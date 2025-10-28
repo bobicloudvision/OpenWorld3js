@@ -3,7 +3,6 @@ import useShapeStore from "../stores/shapeStore"
 
 export const ModeIndicator = () => {
   const deleteMode = useShapeStore((state) => state.deleteMode)
-  const defaultShapeType = useShapeStore((state) => state.defaultShapeType)
   
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -50,22 +49,18 @@ export const ModeIndicator = () => {
         <strong>Keyboard Shortcuts:</strong>
         <br />
         <span style={{ fontSize: '11px' }}>
-          Space: Add {defaultShapeType}
-          <br />
-          C: Cube | B: Cuboid
-          <br />
-          Y: Cylinder | O: Cone
+          C or P: Add Cube
           <br />
           <br />
           <strong>Click Controls:</strong>
           <br />
           Top face: Show grid for precise placement
           <br />
-          Side faces: Add adjacent shapes
+          Side faces: Add adjacent cubes
           <br />
-          Alt+Click: Replace shape
+          Alt+Click: Replace cube
           <br />
-          Shift+Click: Delete shape
+          Shift+Click: Delete cube
         </span>
       </div>
     </div>

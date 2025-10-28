@@ -17,14 +17,23 @@ export const GridOverlay = ({
   
   if (!visible || gridPositions.length === 0) return null
   
+  // Convert world positions to local positions (relative to shape center at [0,0,0])
+  const [shapeX, shapeY, shapeZ] = shapePosition
+  const localGridPositions = gridPositions.map(([x, y, z]) => [
+    x - shapeX,
+    y - shapeY,
+    z - shapeZ
+  ])
+  
   return (
     <group ref={groupRef}>
-      {gridPositions.map((position, index) => (
+      {localGridPositions.map((localPos, index) => (
         <GridCell
           key={index}
-          position={position}
+          position={localPos}
+          worldPosition={gridPositions[index]}
           isHovered={hoveredCell === index}
-          onClick={() => onGridClick(position)}
+          onClick={() => onGridClick(gridPositions[index])}
           onHover={(hovered) => setHoveredCell(hovered ? index : null)}
         />
       ))}
@@ -32,7 +41,7 @@ export const GridOverlay = ({
   )
 }
 
-const GridCell = ({ position, isHovered, onClick, onHover }) => {
+const GridCell = ({ position, worldPosition, isHovered, onClick, onHover }) => {
   const meshRef = useRef()
   
   useFrame(() => {

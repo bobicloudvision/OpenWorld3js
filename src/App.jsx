@@ -6,7 +6,6 @@ import Ecctrl, { EcctrlJoystick } from 'ecctrl'
 import Ground from './components/Ground'
 import { Shapes } from './components/Shapes'
 import { ModeIndicator } from './components/ModeIndicator'
-import { ShapeSelector } from './components/ShapeSelector'
 import { KeyboardShapeCreator } from './components/KeyboardShapeCreator'
 
 export default function App() {
@@ -21,7 +20,6 @@ export default function App() {
   return (
     <>
     <ModeIndicator />
-    <ShapeSelector />
     <KeyboardShapeCreator />
     <EcctrlJoystick />
       <Canvas shadows>

@@ -4,9 +4,8 @@ import { persist } from "zustand/middleware"
 const useShapeStore = create(
   persist(
     (set, get) => ({
-      // Each shape is an object with an id, position, mass, type, and dimensions
+      // Each shape is an object with an id, position, mass, and dimensions (cubes only)
       defaultMass: 100000,
-      defaultShapeType: 'cube',
       shapes: [
         { 
           id: 0, 
@@ -19,7 +18,7 @@ const useShapeStore = create(
       nextId: 1,
       deleteMode: false,
       
-      addShape: (x, y, z, shapeType = 'cube', dimensions = { size: 0.5 }) =>
+      addShape: (x, y, z, dimensions = { size: 0.5 }) =>
         set((state) => ({
           shapes: [
             ...state.shapes,
@@ -27,7 +26,7 @@ const useShapeStore = create(
               id: state.nextId, 
               position: [x, y, z], 
               mass: state.defaultMass,
-              type: shapeType,
+              type: 'cube',
               dimensions
             },
           ],
@@ -38,7 +37,6 @@ const useShapeStore = create(
         set((state) => ({ shapes: state.shapes.filter((s) => s.id !== id) })),
         
       setDefaultMass: (mass) => set({ defaultMass: mass }),
-      setDefaultShapeType: (shapeType) => set({ defaultShapeType: shapeType }),
       setDeleteMode: (mode) => set({ deleteMode: mode }),
       
       reset: () => set({ 
@@ -46,26 +44,16 @@ const useShapeStore = create(
         nextId: 0 
       }),
       
-      // Helper methods for different shape types
+      // Helper method to add a cube
       addCube: (x, y, z, size = 0.5) => 
-        get().addShape(x, y, z, 'cube', { size }),
-        
-      addCuboid: (x, y, z, width = 1, height = 0.5, depth = 0.5) => 
-        get().addShape(x, y, z, 'cuboid', { width, height, depth }),
-        
-      addCylinder: (x, y, z, radius = 0.25, height = 1) => 
-        get().addShape(x, y, z, 'cylinder', { radius, height }),
-        
-      addCone: (x, y, z, radius = 0.25, height = 1) => 
-        get().addShape(x, y, z, 'cone', { radius, height }),
+        get().addShape(x, y, z, { size }),
     }),
     {
       name: "ow3-shapes", // localStorage key
       partialize: (state) => ({ 
         shapes: state.shapes, 
         nextId: state.nextId, 
-        defaultMass: state.defaultMass,
-        defaultShapeType: state.defaultShapeType
+        defaultMass: state.defaultMass
       }),
     }
   )

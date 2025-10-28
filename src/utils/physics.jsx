@@ -1,6 +1,6 @@
-import { RigidBody, CuboidCollider, CylinderCollider, BallCollider } from "@react-three/rapier"
+import { CuboidCollider } from "@react-three/rapier"
 
-// Physics configuration for different shapes
+// Physics configuration for cubes
 export const PHYSICS_CONFIGS = {
   cube: {
     collider: CuboidCollider,
@@ -8,99 +8,36 @@ export const PHYSICS_CONFIGS = {
     geometry: 'boxGeometry',
     geometryArgs: (size) => [size, size, size],
     faces: 6
-  },
-  cuboid: {
-    collider: CuboidCollider,
-    colliderArgs: (width, height, depth) => [width / 2, height / 2, depth / 2],
-    geometry: 'boxGeometry',
-    geometryArgs: (width, height, depth) => [width, height, depth],
-    faces: 6
-  },
-  cylinder: {
-    collider: CylinderCollider,
-    colliderArgs: (radius, height) => [radius, height / 2],
-    geometry: 'cylinderGeometry',
-    geometryArgs: (radius, height) => [radius, radius, height, 8],
-    faces: 3 // top, bottom, side
-  },
-  cone: {
-    collider: CylinderCollider, // Using cylinder collider for cone approximation
-    colliderArgs: (radius, height) => [radius, height / 2],
-    geometry: 'coneGeometry',
-    geometryArgs: (radius, height) => [radius, height, 8],
-    faces: 2 // base, side
   }
 }
 
-// Default dimensions per shape type
-export const getDefaultDimensions = (shapeType) => {
-  switch (shapeType) {
-    case 'cube':
-      return { size: 0.5 }
-    case 'cuboid':
-      return { width: 1, height: 0.5, depth: 0.5 }
-    case 'cylinder':
-      return { radius: 0.25, height: 1 }
-    case 'cone':
-      return { radius: 0.25, height: 1 }
-    default:
-      return { size: 0.5 }
-  }
+// Default dimensions for cubes
+export const getDefaultDimensions = () => {
+  return { size: 0.5 }
 }
 
 // Grid system for subdivision
 export const GRID_UNIT = 0.5 // Base cube size
 
-// Calculate how many grid units a shape occupies
+// Calculate how many grid units a cube occupies
 export const getGridUnits = (shapeType, dimensions) => {
-  switch (shapeType) {
-    case 'cube': {
-      const { size = 0.5 } = dimensions
-      return {
-        x: Math.round(size / GRID_UNIT),
-        y: Math.round(size / GRID_UNIT),
-        z: Math.round(size / GRID_UNIT)
-      }
-    }
-    case 'cuboid': {
-      const { width = 1, height = 0.5, depth = 0.5 } = dimensions
-      return {
-        x: Math.round(width / GRID_UNIT),
-        y: Math.round(height / GRID_UNIT),
-        z: Math.round(depth / GRID_UNIT)
-      }
-    }
-    case 'cylinder': {
-      const { radius = 0.25, height = 1 } = dimensions
-      const diameter = radius * 2
-      return {
-        x: Math.round(diameter / GRID_UNIT),
-        y: Math.round(height / GRID_UNIT),
-        z: Math.round(diameter / GRID_UNIT)
-      }
-    }
-    case 'cone': {
-      const { radius = 0.25, height = 1 } = dimensions
-      const diameter = radius * 2
-      return {
-        x: Math.round(diameter / GRID_UNIT),
-        y: Math.round(height / GRID_UNIT),
-        z: Math.round(diameter / GRID_UNIT)
-      }
-    }
-    default:
-      return { x: 1, y: 1, z: 1 }
+  const { size = 0.5 } = dimensions
+  return {
+    x: Math.round(size / GRID_UNIT),
+    y: Math.round(size / GRID_UNIT),
+    z: Math.round(size / GRID_UNIT)
   }
 }
 
-// Get grid positions for placing shapes on top of another shape
+// Get grid positions for placing cubes on top of another cube
 export const getTopGridPositions = (basePosition, baseShapeType, baseDimensions) => {
   const [x, y, z] = basePosition
   const gridUnits = getGridUnits(baseShapeType, baseDimensions)
   const positions = []
   
   // Calculate the top Y position
-  const halfHeight = (baseDimensions.height ?? baseDimensions.size ?? 1) / 2
+  const { size = 0.5 } = baseDimensions
+  const halfHeight = size / 2
   const topY = y + halfHeight + GRID_UNIT / 2
   
   // Generate grid positions on the top face
@@ -125,8 +62,8 @@ export const snapToGrid = (position) => {
   ]
 }
 
-// Common physics properties for all shapes
-export const getPhysicsProps = (shapeType, mass = 1000, size = 0.5) => ({
+// Common physics properties for cubes
+export const getPhysicsProps = (shapeType, mass = 1000) => ({
   type: "dynamic",
   colliders: false,
   linearDamping: 0.5,
@@ -136,64 +73,27 @@ export const getPhysicsProps = (shapeType, mass = 1000, size = 0.5) => ({
   canSleep: true
 })
 
-// Calculate face directions for different shapes
+// Calculate face directions for cubes
 export const getFaceDirections = (shapeType, position, dimensions) => {
   const [x, y, z] = position
-
-  // Compute full extents per axis for the current shape
-  let dx = 0, dy = 0, dz = 0
-  switch (shapeType) {
-    case 'cube': {
-      const { size = 0.5 } = dimensions || {}
-      dx = size
-      dy = size
-      dz = size
-      break
-    }
-    case 'cuboid': {
-      const { width = 1, height = 0.5, depth = 0.5 } = dimensions || {}
-      dx = width
-      dy = height
-      dz = depth
-      break
-    }
-    case 'cylinder': {
-      const { radius = 0.25, height = 1 } = dimensions || {}
-      dx = radius * 2
-      dy = height
-      dz = radius * 2
-      break
-    }
-    case 'cone': {
-      const { radius = 0.25, height = 1 } = dimensions || {}
-      dx = radius * 2
-      dy = height
-      dz = radius * 2
-      break
-    }
-    default: {
-      const { size = 0.5 } = dimensions || {}
-      dx = dy = dz = size
-      break
-    }
-  }
-
+  const { size = 0.5 } = dimensions || {}
+  
   return [
-    [x + dx, y, z],      // right
-    [x - dx, y, z],      // left
-    [x, y + dy, z],      // top
-    [x, y - dy, z],      // bottom
-    [x, y, z + dz],      // front
-    [x, y, z - dz],      // back
+    [x + size, y, z],      // right
+    [x - size, y, z],      // left
+    [x, y + size, z],      // top
+    [x, y - size, z],      // bottom
+    [x, y, z + size],      // front
+    [x, y, z - size],      // back
   ]
 }
 
-// Get the appropriate collider component for a shape
+// Get the collider component for a cube
 export const getColliderComponent = (shapeType, config, mass, dimensions) => {
   const { collider: ColliderComponent, colliderArgs } = config
   
-  // Call the colliderArgs function with the appropriate dimensions
-  const args = colliderArgs(...Object.values(dimensions))
+  // Call the colliderArgs function with the cube size
+  const args = colliderArgs(dimensions.size)
   
   return <ColliderComponent args={args} mass={mass} friction={1} restitution={0} />
 }
