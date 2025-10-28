@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 import { useTexture } from "@react-three/drei"
+import { RigidBody } from "@react-three/rapier"
 import { getFaceDirections, getDefaultDimensions, snapToGrid } from "../../utils/physics"
 import useShapeStore from "../../stores/shapeStore"
 import useMaterialStore from "../../stores/materialStore"
@@ -29,7 +30,7 @@ export const BaseShape = ({
   
   const onClick = useCallback((e) => {
     e.stopPropagation()
-    const { x, y, z } = ref.current.position
+    const { x, y, z } = ref.current.translation()
     
     // Check if Shift key is held for delete mode
     const isDeleteMode = e.nativeEvent.shiftKey
@@ -81,17 +82,17 @@ export const BaseShape = ({
   }
   
   return (
-    <mesh 
-      {...props}
-      ref={ref}
-      receiveShadow 
-      castShadow 
-      onPointerMove={onMove} 
-      onPointerOut={onOut} 
-      onClick={onClick}
-    >
-      {createMaterials()}
-      {createGeometry()}
-    </mesh>
+    <RigidBody {...props} type="fixed" colliders="cuboid" ref={ref}>
+      <mesh 
+        receiveShadow 
+        castShadow 
+        onPointerMove={onMove} 
+        onPointerOut={onOut} 
+        onClick={onClick}
+      >
+        {createMaterials()}
+        {createGeometry()}
+      </mesh>
+    </RigidBody>
   )
 }
