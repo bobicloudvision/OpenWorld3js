@@ -1,9 +1,10 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
-import { Environment, Fisheye, KeyboardControls, OrbitControls, Sky } from '@react-three/drei'
+import { Environment, Fisheye, KeyboardControls, OrbitControls, PointerLockControls, Sky } from '@react-three/drei'
 import Player from './components/Player'
 import Ecctrl, { EcctrlJoystick } from 'ecctrl'
 import Ground from './components/Ground'
+import Cube, { Cubes } from './Cube'
 
 export default function App() {
   const keyboardMap = [
@@ -36,16 +37,31 @@ export default function App() {
           <ambientLight intensity={2} />
 
           <Physics timeStep="vary">
-          
-
-            <KeyboardControls map={keyboardMap}>
+          <KeyboardControls map={keyboardMap}>
             <Ecctrl maxVelLimit={2} position={[0, 1, 0]}>
-              <Player /> 
+              <Player />
             </Ecctrl>
-          </KeyboardControls>
 
-            <Ground />
+            <Cube position={[0, 0.5, 2]} />
+            <Cubes />
+
+          </KeyboardControls>    
+
+          <Ground />
+
           </Physics>
+      
+
+
+          {/* <KeyboardControls map={keyboardMap}>
+            <Physics gravity={[0, -30, 0]}>
+              <Ground />
+              <Player />
+              <Cube position={[0, 0.5, -10]} />
+              <Cubes />
+            </Physics>
+          </KeyboardControls>  */}
+       
       </Canvas>
       </>
   )
