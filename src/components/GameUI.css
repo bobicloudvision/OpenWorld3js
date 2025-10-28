@@ -1,0 +1,611 @@
+/* Game UI Styles */
+.game-ui {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  font-family: 'Arial', sans-serif;
+}
+
+.game-ui > * {
+  pointer-events: auto;
+}
+
+/* Player Stats */
+.player-stats {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  border-radius: 10px;
+  color: white;
+  min-width: 200px;
+}
+
+.stat-bar {
+  margin-bottom: 10px;
+}
+
+.stat-bar label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.bar {
+  width: 100%;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.stat-info {
+  display: flex;
+  gap: 15px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+/* WoW-Style Magic Palette */
+.magic-palette {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+}
+
+.palette-row {
+  display: flex;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 8px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.magic-slot {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+}
+
+.magic-slot:hover {
+  transform: scale(1.05);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+}
+
+.magic-slot.casting {
+  border-color: #ffff00;
+  box-shadow: 0 0 20px rgba(255, 255, 0, 0.7);
+  animation: casting-pulse 1s infinite;
+}
+
+.magic-slot.insufficient-power {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.magic-icon {
+  font-size: 24px;
+  margin-bottom: 2px;
+}
+
+.magic-hotkey {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.power-cost {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background: rgba(0, 0, 255, 0.8);
+  color: white;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 2px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.cooldown-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.casting-indicator {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  padding: 15px 25px;
+  border-radius: 10px;
+  color: white;
+  text-align: center;
+  border: 2px solid #ffff00;
+  box-shadow: 0 0 20px rgba(255, 255, 0, 0.5);
+}
+
+.casting-text {
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #ffff00;
+}
+
+.casting-range {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 10px;
+}
+
+.cancel-cast {
+  background: rgba(255, 0, 0, 0.8);
+  border: none;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.cancel-cast:hover {
+  background: rgba(255, 0, 0, 1);
+}
+
+.test-effect {
+  background: rgba(0, 255, 0, 0.8);
+  border: none;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.test-effect:hover {
+  background: rgba(0, 255, 0, 1);
+}
+
+
+@keyframes casting-pulse {
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(255, 255, 0, 0.7);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(255, 255, 0, 1);
+  }
+}
+
+/* Legacy Magic Panel (keeping for compatibility) */
+.magic-panel {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  border-radius: 10px;
+  color: white;
+  min-width: 250px;
+}
+
+.magic-panel h3 {
+  margin: 0 0 15px 0;
+  text-align: center;
+}
+
+.magic-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.magic-button {
+  padding: 10px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.magic-button:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: scale(1.05);
+}
+
+.magic-button.selected {
+  border-color: #ffff00;
+  box-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
+}
+
+.magic-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.magic-name {
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.magic-cost, .magic-damage {
+  font-size: 10px;
+  margin-top: 2px;
+}
+
+.cast-button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.cast-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.cast-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Combat Actions */
+.combat-actions {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.attack-button {
+  padding: 15px 30px;
+  background: linear-gradient(45deg, #ff4757, #ff3838);
+  border: none;
+  border-radius: 25px;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(255, 71, 87, 0.3);
+}
+
+.attack-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
+}
+
+/* Combat Log */
+.combat-log {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  border-radius: 10px;
+  color: white;
+  width: 300px;
+  max-height: 200px;
+}
+
+.combat-log h3 {
+  margin: 0 0 10px 0;
+  text-align: center;
+}
+
+.log-messages {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.log-message {
+  padding: 5px;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.log-message.attack {
+  background: rgba(255, 0, 0, 0.2);
+  border-left: 3px solid #ff0000;
+}
+
+.log-message.damage {
+  background: rgba(255, 100, 0, 0.2);
+  border-left: 3px solid #ff6400;
+}
+
+.log-message.heal {
+  background: rgba(0, 255, 0, 0.2);
+  border-left: 3px solid #00ff00;
+}
+
+.log-message.victory {
+  background: rgba(0, 255, 255, 0.2);
+  border-left: 3px solid #00ffff;
+}
+
+/* Enemy Status */
+.enemy-status {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  border-radius: 10px;
+  color: white;
+  min-width: 300px;
+}
+
+.enemy-status h3 {
+  margin: 0 0 10px 0;
+  text-align: center;
+}
+
+.enemy-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+}
+
+.enemy-name {
+  font-weight: bold;
+}
+
+.enemy-health {
+  color: #ff6b6b;
+}
+
+.enemy-type {
+  font-size: 12px;
+  color: #aaa;
+}
+
+.enemy-position {
+  font-size: 10px;
+  color: #888;
+}
+
+/* Debug Info */
+.debug-info {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 15px;
+  border-radius: 10px;
+  color: white;
+  min-width: 200px;
+}
+
+.debug-info h3 {
+  margin: 0 0 10px 0;
+  text-align: center;
+  color: #ffff00;
+}
+
+.debug-info div {
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+/* Game Over Screens */
+.game-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.victory-screen, .defeat-screen {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 40px;
+  border-radius: 20px;
+  text-align: center;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.victory-screen h1 {
+  color: #00ff00;
+  font-size: 3em;
+  margin: 0 0 20px 0;
+}
+
+.defeat-screen h1 {
+  color: #ff0000;
+  font-size: 3em;
+  margin: 0 0 20px 0;
+}
+
+.victory-screen button, .defeat-screen button {
+  padding: 15px 30px;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 25px;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+}
+
+.victory-screen button:hover, .defeat-screen button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* Game Instructions */
+.game-instructions {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+}
+
+.instructions-content {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 30px;
+  border-radius: 20px;
+  color: white;
+  max-width: 500px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.instructions-content h2 {
+  text-align: center;
+  margin: 0 0 20px 0;
+  color: #ffff00;
+}
+
+.control-section {
+  margin-bottom: 20px;
+}
+
+.control-section h3 {
+  color: #00ffff;
+  margin: 0 0 10px 0;
+}
+
+.control-section ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.control-section li {
+  margin-bottom: 5px;
+}
+
+.close-instructions {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 20px;
+}
+
+.close-instructions:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.instructions-toggle {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.instructions-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateX(-50%) scale(1.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .player-stats, .magic-panel {
+    position: relative;
+    margin: 10px;
+  }
+  
+  .combat-actions {
+    position: relative;
+    margin: 20px auto;
+    text-align: center;
+  }
+  
+  .combat-log, .enemy-status {
+    position: relative;
+    margin: 10px;
+  }
+  
+  .instructions-content {
+    margin: 20px;
+    padding: 20px;
+  }
+}
