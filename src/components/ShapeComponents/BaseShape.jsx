@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, useEffect } from "react"
 import { useTexture } from "@react-three/drei"
 import { RigidBody } from "@react-three/rapier"
-import { PHYSICS_CONFIGS, getPhysicsProps, getFaceDirections, getColliderComponent, getDefaultDimensions, getTopGridPositions, snapToGrid, getAdjacentPosition, resolveNonOverlappingPosition } from "../../utils/physics"
+import { PHYSICS_CONFIGS, getPhysicsProps, getFaceDirections, getColliderComponent, getDefaultDimensions, getTopGridPositions, snapToGrid } from "../../utils/physics"
 import { GridOverlay } from "../GridOverlay"
 import useShapeStore from "../../stores/shapeStore"
 import dirt from "/textures/Material.010_diffuse.png"
@@ -19,7 +19,6 @@ export const BaseShape = ({
   const [showGrid, setShowGrid] = useState(false)
   const addShape = useShapeStore((state) => state.addShape)
   const defaultShapeType = useShapeStore((state) => state.defaultShapeType)
-  const shapes = useShapeStore((state) => state.shapes)
   const removeShapeById = useShapeStore((state) => state.removeShapeById)
   const texture = useTexture(dirt)
   
@@ -74,23 +73,16 @@ export const BaseShape = ({
         // Top face clicked - show grid overlay for precise placement
         setShowGrid(true)
       } else {
-        // Side face clicked - add shape adjacent using both base and target dimensions
+        // Side face clicked - add shape adjacent
         const newType = defaultShapeType
         const newDims = getDefaultDimensions(newType)
-        const [newX, newY, newZ] = getAdjacentPosition(shapeType, dimensions, newType, newDims, [x, y, z], faceIndex)
-        const [snappedX, snappedY, snappedZ] = snapToGrid([newX, newY, newZ])
-        // Outward direction based on face index
-        const dir = (
-          faceIndex === 0 ? [1, 0, 0] :
-          faceIndex === 1 ? [-1, 0, 0] :
-          faceIndex === 2 ? [0, 1, 0] :
-          faceIndex === 3 ? [0, -1, 0] :
-          faceIndex === 4 ? [0, 0, 1] :
-          [0, 0, -1]
-        )
-        const resolved = resolveNonOverlappingPosition([snappedX, snappedY, snappedZ], newType, newDims, shapes, dir)
-        const [rx, ry, rz] = snapToGrid(resolved)
-        addShape(rx, ry, rz, newType, newDims)
+        const faceDirections = getFaceDirections(shapeType, [x, y, z], dimensions)
+        
+        if (faceDirections[faceIndex]) {
+          const [newX, newY, newZ] = faceDirections[faceIndex]
+          const [snappedX, snappedY, snappedZ] = snapToGrid([newX, newY, newZ])
+          addShape(snappedX, snappedY, snappedZ, newType, newDims)
+        }
       }
     }
   }, [addShape, removeShapeById, id, shapeType, dimensions, defaultShapeType])
@@ -99,19 +91,9 @@ export const BaseShape = ({
   const handleGridClick = useCallback((gridPosition) => {
     const newType = defaultShapeType
     const newDims = getDefaultDimensions(newType)
-    const { x, y, z } = ref.current.translation()
-    // Compute correct Y by stacking target on top of base
-    const [, newCenterY] = (() => {
-      const res = getAdjacentPosition(shapeType, dimensions, newType, newDims, [x, y, z], 2)
-      return [res[0], res[1]]
-    })()
-    const [gx, , gz] = gridPosition
-    const snapped = snapToGrid([gx, newCenterY, gz])
-    const resolved = resolveNonOverlappingPosition(snapped, newType, newDims, shapes, [0, 1, 0])
-    const [rx, ry, rz] = snapToGrid(resolved)
-    addShape(rx, ry, rz, newType, newDims)
+    addShape(...gridPosition, newType, newDims)
     setShowGrid(false)
-  }, [addShape, defaultShapeType, shapeType, dimensions, shapes])
+  }, [addShape, defaultShapeType])
   
   // Create geometry based on shape type
   const createGeometry = () => {
