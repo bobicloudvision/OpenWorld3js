@@ -1,8 +1,9 @@
 import { Canvas } from '@react-three/fiber'
-import { Physics, RigidBody, CuboidCollider } from '@react-three/rapier'
+import { Physics } from '@react-three/rapier'
 import { Environment, Fisheye, KeyboardControls, OrbitControls } from '@react-three/drei'
 import Player from './components/Player'
 import Ecctrl, { EcctrlJoystick } from 'ecctrl'
+import Ground from './components/Ground'
 
 export default function App() {
   const keyboardMap = [
@@ -40,13 +41,7 @@ export default function App() {
             </Ecctrl>
           </KeyboardControls>
 
-            <RigidBody type="fixed">
-              <mesh position={[0, -1.5, 0]} receiveShadow>
-                <boxGeometry args={[200, 1, 200]} />
-                <meshStandardMaterial color="#4a4a4a" />
-              </mesh>
-              <CuboidCollider args={[100, 0.5, 100]} />
-            </RigidBody>
+            <Ground />
           </Physics>
       </Canvas>
       </>
