@@ -2,16 +2,27 @@ import { useCallback, useRef, useState } from "react"
 import { useTexture } from "@react-three/drei"
 import { RigidBody } from "@react-three/rapier"
 import { create } from "zustand"
+import { persist } from "zustand/middleware"
 import dirt from "/textures/Material.010_diffuse.png"
 
 // This is a naive implementation and wouldn't allow for more than a few thousand boxes.
 // In order to make this scale this has to be one instanced mesh, then it could easily be
 // hundreds of thousands.
 
-const useCubeStore = create((set) => ({
-  cubes: [],
-  addCube: (x, y, z) => set((state) => ({ cubes: [...state.cubes, [x, y, z]] })),
-}))
+const useCubeStore = create(
+  persist(
+    (set, get) => ({
+      cubes: [],
+      addCube: (x, y, z) =>
+        set((state) => ({ cubes: [...state.cubes, [x, y, z]] })),
+      reset: () => set({ cubes: [] }),
+    }),
+    {
+      name: "ow3-cubes", // localStorage key
+      partialize: (state) => ({ cubes: state.cubes }),
+    }
+  )
+)
 
 export  const Cubes = ({ size = 0.5 }) => {
   const cubes = useCubeStore((state) => state.cubes)
