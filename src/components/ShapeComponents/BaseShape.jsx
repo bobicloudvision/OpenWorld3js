@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 import { useTexture } from "@react-three/drei"
-import { RigidBody } from "@react-three/rapier"
-import { PHYSICS_CONFIGS, getPhysicsProps, getFaceDirections, getColliderComponent, getDefaultDimensions, snapToGrid } from "../../utils/physics"
+import { getFaceDirections, getDefaultDimensions, snapToGrid } from "../../utils/physics"
 import useShapeStore from "../../stores/shapeStore"
 import useMaterialStore from "../../stores/materialStore"
 import { DEFAULT_MATERIAL } from "../../utils/materials"
@@ -9,7 +8,6 @@ import { DEFAULT_MATERIAL } from "../../utils/materials"
 // Base shape component that handles common functionality
 export const BaseShape = ({ 
   id, 
-  mass = 1000, 
   shapeType = 'cube', 
   dimensions = { size: 0.5 },
   material = DEFAULT_MATERIAL,
@@ -22,9 +20,6 @@ export const BaseShape = ({
   const selectedMaterial = useMaterialStore((state) => state.selectedMaterial)
   const texture = useTexture(material.texture)
   
-  const config = PHYSICS_CONFIGS[shapeType]
-  const physicsProps = getPhysicsProps(shapeType, mass)
-  
   const onMove = useCallback((e) => {
     e.stopPropagation()
     set(Math.floor(e.faceIndex / 2))
@@ -34,7 +29,7 @@ export const BaseShape = ({
   
   const onClick = useCallback((e) => {
     e.stopPropagation()
-    const { x, y, z } = ref.current.translation()
+    const { x, y, z } = ref.current.position
     
     // Check if Shift key is held for delete mode
     const isDeleteMode = e.nativeEvent.shiftKey
@@ -64,13 +59,12 @@ export const BaseShape = ({
   
   // Create geometry for cube
   const createGeometry = () => {
-    const { geometryArgs } = config
-    return <boxGeometry args={geometryArgs(dimensions.size)} />
+    return <boxGeometry args={[dimensions.size, dimensions.size, dimensions.size]} />
   }
   
   // Create materials for each face
   const createMaterials = () => {
-    const faceCount = config.faces
+    const faceCount = 6 // Cube has 6 faces
     
     return [...Array(faceCount)].map((_, index) => (
       <meshStandardMaterial 
@@ -87,16 +81,17 @@ export const BaseShape = ({
   }
   
   return (
-    <RigidBody
+    <mesh 
       {...props}
-      {...physicsProps}
       ref={ref}
+      receiveShadow 
+      castShadow 
+      onPointerMove={onMove} 
+      onPointerOut={onOut} 
+      onClick={onClick}
     >
-      <mesh receiveShadow castShadow onPointerMove={onMove} onPointerOut={onOut} onClick={onClick}>
-        {createMaterials()}
-        {createGeometry()}
-      </mesh>
-      {getColliderComponent(shapeType, config, mass, dimensions)}
-    </RigidBody>
+      {createMaterials()}
+      {createGeometry()}
+    </mesh>
   )
 }
