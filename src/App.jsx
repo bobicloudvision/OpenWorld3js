@@ -20,14 +20,6 @@ export default function App() {
 
     <EcctrlJoystick />
       <Canvas shadows>
-          <OrbitControls 
-            enablePan={true}
-            enableZoom={true}
-            enableRotate={true}
-            minDistance={5}
-            maxDistance={50}
-            maxPolarAngle={Math.PI / 2}
-          />
           
           <Sky sunPosition={[100, 20, 100]} />
 
