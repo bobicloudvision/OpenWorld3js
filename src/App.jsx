@@ -29,14 +29,14 @@ export default function App() {
           
           <Sky sunPosition={[100, 20, 100]} />
 
-          <directionalLight intensity={2.5} castShadow shadow-bias={-0.0004} position={[-20, 20, 20]}>
-            <orthographicCamera attach="shadow-camera" args={[-20, 20, 20, -20]} />
+          <directionalLight intensity={2.5} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
+        
           </directionalLight>
-          <ambientLight intensity={2} />
+          <ambientLight intensity={5} />
 
           <Physics timeStep="vary" gravity={[0, -30, 0]}>
           <KeyboardControls map={keyboardMap}>
-            <Ecctrl maxVelLimit={2} position={[0, 1, 0]}>
+            <Ecctrl maxVelLimit={2} position={[0, 3, 2]}>
               <Player />
             </Ecctrl>
 

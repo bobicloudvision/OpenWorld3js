@@ -1,7 +1,7 @@
 import * as THREE from "three"
 import { useTexture } from "@react-three/drei"
 import { CuboidCollider, RigidBody } from "@react-three/rapier"
-import grass from "/textures/Material.001_diffuse.png"
+import grass from "/textures/grass.png"
 
 export default function Ground(props) {
   const texture = useTexture(grass)
