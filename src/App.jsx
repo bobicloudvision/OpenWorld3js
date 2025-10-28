@@ -4,7 +4,7 @@ import { Environment, Fisheye, KeyboardControls, OrbitControls, PointerLockContr
 import Player from './components/Player'
 import Ecctrl, { EcctrlJoystick } from 'ecctrl'
 import Ground from './components/Ground'
-import Cube, { Cubes } from './Cube'
+import { Cubes, ModeIndicator } from './Cube'
 
 export default function App() {
   const keyboardMap = [
@@ -17,7 +17,7 @@ export default function App() {
   ]
   return (
     <>
-
+    <ModeIndicator />
     <EcctrlJoystick />
       <Canvas shadows>
           
@@ -28,13 +28,12 @@ export default function App() {
           </directionalLight>
           <ambientLight intensity={2} />
 
-          <Physics timeStep="vary">
+          <Physics timeStep="vary" gravity={[0, -30, 0]}>
           <KeyboardControls map={keyboardMap}>
             <Ecctrl maxVelLimit={2} position={[0, 1, 0]}>
               <Player />
             </Ecctrl>
 
-            <Cube position={[0, 0.5, 2]} />
             <Cubes />
 
           </KeyboardControls>    
@@ -44,16 +43,6 @@ export default function App() {
           </Physics>
       
 
-
-          {/* <KeyboardControls map={keyboardMap}>
-            <Physics gravity={[0, -30, 0]}>
-              <Ground />
-              <Player />
-              <Cube position={[0, 0.5, -10]} />
-              <Cubes />
-            </Physics>
-          </KeyboardControls>  */}
-       
       </Canvas>
       </>
   )
