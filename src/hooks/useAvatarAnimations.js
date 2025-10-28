@@ -50,20 +50,14 @@ export function useAvatarAnimations() {
         jumpAction.setEffectiveTimeScale(2)
         animationActions.current.push(jumpAction)
       }
-      
-      // Add dance animation
-      if (danceAnimations && danceAnimations.length > 0) {
-        const danceAction = mixer.current.clipAction(danceAnimations[0])
-        animationActions.current.push(danceAction)
-      }
-      
+
       // Start with idle animation
       if (animationActions.current.length > 0) {
         activeAction.current = animationActions.current[0]
         activeAction.current.reset().play()
       }
     }
-  }, [clone, idleAnimations, walkAnimations, jumpAnimations, danceAnimations])
+  }, [clone, idleAnimations, walkAnimations, jumpAnimations])
   
   // Animation switching function
   const setAction = (toAction, fadeTime = 0.5) => {
@@ -118,5 +112,3 @@ useGLTF.preload('/models/avatars/Avatar1.glb')
 useGLTF.preload('/models/animations/ManIdle1.glb')
 useGLTF.preload('/models/animations/PohodkaTarikat.glb')
 useGLTF.preload('/models/animations/Jump.glb')
-useGLTF.preload('/models/animations/ArmsHipHopDance.glb')
-
