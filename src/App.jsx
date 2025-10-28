@@ -1,5 +1,5 @@
-import React from 'react'
-import { Canvas } from '@react-three/fiber'
+import React, { useRef } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Environment, Fisheye, KeyboardControls, OrbitControls, PointerLockControls, Sky } from '@react-three/drei'
 import Player from './components/Player'
@@ -84,7 +84,7 @@ export default function App() {
 
           </KeyboardControls>    
 
-          <Ground />
+          <Ground playerPosition={playerPosition} />
           <GameManager playerPosition={playerPosition} />
 
           </Physics>

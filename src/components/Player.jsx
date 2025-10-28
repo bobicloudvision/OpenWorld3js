@@ -1,11 +1,11 @@
 import React, { useRef } from 'react'
 import { useKeyboardControls } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
- 
+import * as THREE from 'three'
  
 import { useAvatarAnimations } from '../hooks/useAvatarAnimations'
 
-export default function Player({ onPositionReset }) {
+export default function Player({ onPositionChange }) {
   const group = useRef()
   
   // Use shared avatar animations hook
@@ -25,6 +25,19 @@ export default function Player({ onPositionReset }) {
     
     // Update the mixer
     updateMixer(delta)
+    
+    // Track player world position for enemies and magic casting
+    if (group.current && onPositionChange) {
+      const worldPosition = new THREE.Vector3()
+      group.current.getWorldPosition(worldPosition)
+      onPositionChange([worldPosition.x, worldPosition.y, worldPosition.z])
+      
+      // Debug logging every 3 seconds
+      const now = Date.now()
+      if (now % 3000 < 50) {
+        console.log(`Player world position: [${worldPosition.x.toFixed(2)}, ${worldPosition.y.toFixed(2)}, ${worldPosition.z.toFixed(2)}]`)
+      }
+    }
     
     // Check if any movement keys are pressed
     const { forward, backward, leftward, rightward, jump } = get()

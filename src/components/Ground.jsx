@@ -35,32 +35,25 @@ export default function Ground(props) {
     }
     
     if (castingMode) {
-      // Cast the magic at clicked position
-      console.log(`Casting ${player.selectedMagic} at clicked position [${targetPosition[0].toFixed(2)}, ${targetPosition[2].toFixed(2)}]`)
+      // Get actual player position from props or use a default
+      const playerPos = props.playerPosition || [0, 0, 0]
+      const distanceToPlayer = Math.sqrt(
+        Math.pow(targetPosition[0] - playerPos[0], 2) +
+        Math.pow(targetPosition[2] - playerPos[2], 2)
+      )
       
-      // Show magic effect at clicked position
-      if (window.addMagicEffect) {
-        // Different effect sizes for different spells
-        const effectRadius = {
-          fire: 3,
-          ice: 2.5,
-          lightning: 4,
-          heal: 2,
-          meteor: 5,
-          shield: 1.5
-        }
+      const magicRange = 15 // Magic range from gameStore
+      
+      console.log(`Player position: [${playerPos[0].toFixed(2)}, ${playerPos[2].toFixed(2)}]`)
+      console.log(`Distance to player: ${distanceToPlayer.toFixed(2)}m, Magic range: ${magicRange}m`)
+      
+      if (distanceToPlayer <= magicRange) {
+        // Cast the magic at clicked position
+        console.log(`Casting ${player.selectedMagic} at clicked position [${targetPosition[0].toFixed(2)}, ${targetPosition[2].toFixed(2)}]`)
         
-        window.addMagicEffect(targetPosition, player.selectedMagic, effectRadius[player.selectedMagic] || 3)
-      }
-      
-      const result = castMagicAtPosition(player.selectedMagic, targetPosition, [0, 0, 0])
-      
-      if (result.success) {
-        console.log(`Magic cast successful! Damage: ${result.damage}`)
-        if (player.selectedMagic === 'heal') {
-          healPlayer(Math.abs(result.damage))
-        } else {
-          // Find enemies in range of the clicked position
+        // Show magic effect at clicked position
+        if (window.addMagicEffect) {
+          // Different effect sizes for different spells
           const effectRadius = {
             fire: 3,
             ice: 2.5,
@@ -70,28 +63,52 @@ export default function Ground(props) {
             shield: 1.5
           }
           
-          const aoeRadius = effectRadius[player.selectedMagic] || 3
-          
-          const enemiesInRange = enemies.filter(enemy => {
-            if (!enemy.alive) return false
-            const distance = Math.sqrt(
-              Math.pow(enemy.position[0] - targetPosition[0], 2) +
-              Math.pow(enemy.position[2] - targetPosition[2], 2)
-            )
-            return distance <= aoeRadius
-          })
-          
-          console.log(`Found ${enemiesInRange.length} enemies in range of clicked magic (radius: ${aoeRadius}m)`)
-          
-          // Damage all enemies in range
-          enemiesInRange.forEach(enemy => {
-            attackEnemy(enemy.id, result.damage)
-          })
+          window.addMagicEffect(targetPosition, player.selectedMagic, effectRadius[player.selectedMagic] || 3)
         }
         
-        exitCastingMode()
+        const result = castMagicAtPosition(player.selectedMagic, targetPosition, playerPos)
+        
+        if (result.success) {
+          console.log(`Magic cast successful! Damage: ${result.damage}`)
+          if (player.selectedMagic === 'heal') {
+            healPlayer(Math.abs(result.damage))
+          } else {
+            // Find enemies in range of the clicked position
+            const effectRadius = {
+              fire: 3,
+              ice: 2.5,
+              lightning: 4,
+              heal: 2,
+              meteor: 5,
+              shield: 1.5
+            }
+            
+            const aoeRadius = effectRadius[player.selectedMagic] || 3
+            
+            const enemiesInRange = enemies.filter(enemy => {
+              if (!enemy.alive) return false
+              const distance = Math.sqrt(
+                Math.pow(enemy.position[0] - targetPosition[0], 2) +
+                Math.pow(enemy.position[2] - targetPosition[2], 2)
+              )
+              return distance <= aoeRadius
+            })
+            
+            console.log(`Found ${enemiesInRange.length} enemies in range of clicked magic (radius: ${aoeRadius}m)`)
+            
+            // Damage all enemies in range
+            enemiesInRange.forEach(enemy => {
+              attackEnemy(enemy.id, result.damage)
+            })
+          }
+          
+          exitCastingMode()
+        } else {
+          console.log(`Magic cast failed: ${result.message}`)
+        }
       } else {
-        console.log(`Magic cast failed: ${result.message}`)
+        console.log(`Target too far! Distance: ${distanceToPlayer.toFixed(2)}m, Range: ${magicRange}m`)
+        // Still show click effect but don't cast magic
       }
     }
   }
