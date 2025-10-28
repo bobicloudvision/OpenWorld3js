@@ -7,6 +7,8 @@ import Ground from './components/Ground'
 import { Shapes } from './components/Shapes'
 import { ModeIndicator } from './components/ModeIndicator'
 import { KeyboardShapeCreator } from './components/KeyboardShapeCreator'
+import { MaterialPalette } from './components/MaterialPalette'
+import './App.css'
 
 export default function App() {
   const keyboardMap = [
@@ -21,6 +23,7 @@ export default function App() {
     <>
     <ModeIndicator />
     <KeyboardShapeCreator />
+    <MaterialPalette />
     <EcctrlJoystick />
       <Canvas shadows>
           

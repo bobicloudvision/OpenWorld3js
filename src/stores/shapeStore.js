@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
+import { DEFAULT_MATERIAL } from "../utils/materials"
 
 const useShapeStore = create(
   persist(
@@ -12,13 +13,14 @@ const useShapeStore = create(
           position: [0, 0.5, 2], 
           mass: 100000, 
           type: 'cube',
-          dimensions: { size: 0.5 }
+          dimensions: { size: 0.5 },
+          material: DEFAULT_MATERIAL
         }
       ],
       nextId: 1,
       deleteMode: false,
       
-      addShape: (x, y, z, dimensions = { size: 0.5 }) =>
+      addShape: (x, y, z, dimensions = { size: 0.5 }, material = DEFAULT_MATERIAL) =>
         set((state) => ({
           shapes: [
             ...state.shapes,
@@ -27,7 +29,8 @@ const useShapeStore = create(
               position: [x, y, z], 
               mass: state.defaultMass,
               type: 'cube',
-              dimensions
+              dimensions,
+              material
             },
           ],
           nextId: state.nextId + 1,
@@ -45,8 +48,8 @@ const useShapeStore = create(
       }),
       
       // Helper method to add a cube
-      addCube: (x, y, z, size = 0.5) => 
-        get().addShape(x, y, z, { size }),
+      addCube: (x, y, z, size = 0.5, material = DEFAULT_MATERIAL) => 
+        get().addShape(x, y, z, { size }, material),
     }),
     {
       name: "ow3-shapes", // localStorage key

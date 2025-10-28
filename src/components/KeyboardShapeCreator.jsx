@@ -1,8 +1,10 @@
 import { useEffect } from "react"
 import useShapeStore from "../stores/shapeStore"
+import useMaterialStore from "../stores/materialStore"
 
 export const KeyboardShapeCreator = () => {
   const addShape = useShapeStore((state) => state.addShape)
+  const selectedMaterial = useMaterialStore((state) => state.selectedMaterial)
   
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -12,12 +14,12 @@ export const KeyboardShapeCreator = () => {
       switch (e.key.toLowerCase()) {
         case 'c':
           // Add cube at origin (press C)
-          addShape(0, 1, 0, { size: 0.5 })
+          addShape(0, 1, 0, { size: 0.5 }, selectedMaterial)
           break
         case 'p':
           // Add cube at origin (press P)
           e.preventDefault() // Prevent page scroll
-          addShape(0, 1, 0, { size: 0.5 })
+          addShape(0, 1, 0, { size: 0.5 }, selectedMaterial)
           break
         default:
           break
@@ -29,7 +31,7 @@ export const KeyboardShapeCreator = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [addShape])
+  }, [addShape, selectedMaterial])
   
   return null // This component doesn't render anything
 }

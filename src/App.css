@@ -22,3 +22,133 @@
       0 0 20px rgba(255, 255, 0, 0.5);
   }
 }
+
+/* Material Palette Styles */
+.material-palette {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  padding: 15px;
+  max-width: 90vw;
+  z-index: 1000;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.material-palette-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  color: white;
+}
+
+.material-palette-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.selected-material-info {
+  font-size: 14px;
+  color: #ccc;
+}
+
+.selected-material-name {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+.material-palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.material-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.material-preview:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.material-preview.selected {
+  border-color: #4CAF50;
+  background: rgba(76, 175, 80, 0.2);
+  box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+}
+
+.material-preview-texture {
+  width: 50px;
+  height: 50px;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.texture-sample {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.material-preview-name {
+  font-size: 11px;
+  color: white;
+  text-align: center;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.material-palette-instructions {
+  text-align: center;
+  color: #aaa;
+  font-size: 12px;
+  margin-top: 10px;
+}
+
+.material-palette-instructions p {
+  margin: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .material-palette {
+    bottom: 10px;
+    padding: 10px;
+    max-width: 95vw;
+  }
+  
+  .material-palette-grid {
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 8px;
+  }
+  
+  .material-preview-texture {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .material-preview-name {
+    font-size: 10px;
+  }
+}

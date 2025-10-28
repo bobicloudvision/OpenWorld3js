@@ -3,7 +3,8 @@ import { useTexture } from "@react-three/drei"
 import { RigidBody } from "@react-three/rapier"
 import { PHYSICS_CONFIGS, getPhysicsProps, getFaceDirections, getColliderComponent, getDefaultDimensions, snapToGrid } from "../../utils/physics"
 import useShapeStore from "../../stores/shapeStore"
-import dirt from "/textures/Material.010_diffuse.png"
+import useMaterialStore from "../../stores/materialStore"
+import { DEFAULT_MATERIAL } from "../../utils/materials"
 
 // Base shape component that handles common functionality
 export const BaseShape = ({ 
@@ -11,13 +12,15 @@ export const BaseShape = ({
   mass = 1000, 
   shapeType = 'cube', 
   dimensions = { size: 0.5 },
+  material = DEFAULT_MATERIAL,
   ...props 
 }) => {
   const ref = useRef()
   const [hover, set] = useState(null)
   const addShape = useShapeStore((state) => state.addShape)
   const removeShapeById = useShapeStore((state) => state.removeShapeById)
-  const texture = useTexture(dirt)
+  const selectedMaterial = useMaterialStore((state) => state.selectedMaterial)
+  const texture = useTexture(material.texture)
   
   const config = PHYSICS_CONFIGS[shapeType]
   const physicsProps = getPhysicsProps(shapeType, mass)
@@ -44,7 +47,7 @@ export const BaseShape = ({
       // Replace this cube at the same position
       const newDims = getDefaultDimensions()
       removeShapeById(id)
-      addShape(x, y, z, newDims)
+      addShape(x, y, z, newDims, selectedMaterial)
     } else {
       // Add cube adjacent to clicked face
       const newDims = getDefaultDimensions()
@@ -54,10 +57,10 @@ export const BaseShape = ({
       if (faceDirections[faceIndex]) {
         const [newX, newY, newZ] = faceDirections[faceIndex]
         const [snappedX, snappedY, snappedZ] = snapToGrid([newX, newY, newZ])
-        addShape(snappedX, snappedY, snappedZ, newDims)
+        addShape(snappedX, snappedY, snappedZ, newDims, selectedMaterial)
       }
     }
-  }, [addShape, removeShapeById, id, shapeType, dimensions])
+  }, [addShape, removeShapeById, id, shapeType, dimensions, selectedMaterial])
   
   // Create geometry for cube
   const createGeometry = () => {
@@ -74,7 +77,11 @@ export const BaseShape = ({
         attach={`material-${index}`} 
         key={index} 
         map={texture} 
-        color={hover === index ? "hotpink" : "white"} 
+        color={hover === index ? "hotpink" : material.color} 
+        roughness={material.roughness}
+        metalness={material.metalness}
+        transparent={material.transparent}
+        opacity={material.opacity}
       />
     ))
   }
