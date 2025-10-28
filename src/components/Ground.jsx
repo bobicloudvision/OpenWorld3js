@@ -1,29 +1,18 @@
-import React, { useMemo } from 'react'
-import { RepeatWrapping, SRGBColorSpace, MirroredRepeatWrapping } from 'three'
-import { useTexture } from '@react-three/drei'
-import { RigidBody, CuboidCollider } from '@react-three/rapier'
+import * as THREE from "three"
+import { useTexture } from "@react-three/drei"
+import { CuboidCollider, RigidBody } from "@react-three/rapier"
+import grass from "/textures/Material.001_diffuse.png"
 
-export default function Ground() {
-  const texture = useTexture('/textures/Material.001_diffuse.png')
-
-  useMemo(() => {
-    if (!texture) return
-    texture.wrapS = MirroredRepeatWrapping
-    texture.wrapT = MirroredRepeatWrapping
-    texture.repeat.set(40, 40)
-    texture.colorSpace = SRGBColorSpace
-    texture.anisotropy = 8
-  }, [texture])
-
+export default function Ground(props) {
+  const texture = useTexture(grass)
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping
   return (
-    <RigidBody type="fixed">
-      <mesh position={[0, 0, 0]} receiveShadow>
-        <boxGeometry args={[200, 1, 200]} />
-        <meshStandardMaterial map={texture} color="#ffffff" />
+    <RigidBody {...props} type="fixed" colliders={false}>
+      <mesh receiveShadow position={[0, 0, 0]} rotation-x={-Math.PI / 2}>
+        <planeGeometry args={[1000, 1000]} />
+        <meshStandardMaterial map={texture} map-repeat={[240, 240]} color="green" />
       </mesh>
-      <CuboidCollider args={[100, 0.5, 100]} />
+      <CuboidCollider args={[1000, 2, 1000]} position={[0, -2, 0]} />
     </RigidBody>
   )
 }
-
-

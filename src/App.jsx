@@ -1,6 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
-import { Environment, Fisheye, KeyboardControls, OrbitControls } from '@react-three/drei'
+import { Environment, Fisheye, KeyboardControls, OrbitControls, Sky } from '@react-three/drei'
 import Player from './components/Player'
 import Ecctrl, { EcctrlJoystick } from 'ecctrl'
 import Ground from './components/Ground'
@@ -27,11 +27,14 @@ export default function App() {
             maxDistance={50}
             maxPolarAngle={Math.PI / 2}
           />
-          <Environment files="/night.hdr" ground={{ scale: 100 }} />
-          <directionalLight intensity={0.7} castShadow shadow-bias={-0.0004} position={[-20, 20, 20]}>
+          
+          <Sky sunPosition={[100, 20, 100]} />
+
+          <directionalLight intensity={2.5} castShadow shadow-bias={-0.0004} position={[-20, 20, 20]}>
             <orthographicCamera attach="shadow-camera" args={[-20, 20, 20, -20]} />
           </directionalLight>
           <ambientLight intensity={0.2} />
+
           <Physics timeStep="vary">
           
 
