@@ -4,7 +4,10 @@ import { Environment, Fisheye, KeyboardControls, OrbitControls, PointerLockContr
 import Player from './components/Player'
 import Ecctrl, { EcctrlJoystick } from 'ecctrl'
 import Ground from './components/Ground'
-import { Cubes, ModeIndicator } from './Cube'
+import { Shapes } from './components/Shapes'
+import { ModeIndicator } from './components/ModeIndicator'
+import { ShapeSelector } from './components/ShapeSelector'
+import { KeyboardShapeCreator } from './components/KeyboardShapeCreator'
 
 export default function App() {
   const keyboardMap = [
@@ -18,6 +21,8 @@ export default function App() {
   return (
     <>
     <ModeIndicator />
+    <ShapeSelector />
+    <KeyboardShapeCreator />
     <EcctrlJoystick />
       <Canvas shadows>
           
@@ -34,7 +39,7 @@ export default function App() {
               <Player />
             </Ecctrl>
 
-            <Cubes />
+            <Shapes />
 
           </KeyboardControls>    
 
