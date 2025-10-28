@@ -1,0 +1,1 @@
+gltf-transform optimize public/models/scene.glb public/models/scene-optimized.glb --texture-compress webp
