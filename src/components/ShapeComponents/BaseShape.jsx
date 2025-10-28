@@ -19,6 +19,7 @@ export const BaseShape = ({
   const addShape = useShapeStore((state) => state.addShape)
   const removeShapeById = useShapeStore((state) => state.removeShapeById)
   const selectedMaterial = useMaterialStore((state) => state.selectedMaterial)
+  const buildingMode = useShapeStore((state) => state.buildingMode)
   const texture = useTexture(material.texture)
   
   const onMove = useCallback((e) => {
@@ -37,26 +38,30 @@ export const BaseShape = ({
     const isReplace = e.nativeEvent.altKey
     
     if (isDeleteMode) {
-      // Delete this shape by id
+      // Delete this shape by id (always allowed)
       removeShapeById(id)
     } else if (isReplace) {
-      // Replace this cube at the same position
-      const newDims = getDefaultDimensions()
-      removeShapeById(id)
-      addShape(x, y, z, newDims, selectedMaterial)
+      // Replace this cube at the same position (only if building mode is on)
+      if (buildingMode) {
+        const newDims = getDefaultDimensions()
+        removeShapeById(id)
+        addShape(x, y, z, newDims, selectedMaterial)
+      }
     } else {
-      // Add cube adjacent to clicked face
-      const newDims = getDefaultDimensions()
-      const faceIndex = Math.floor(e.faceIndex / 2)
-      const faceDirections = getFaceDirections(shapeType, [x, y, z], dimensions)
-      
-      if (faceDirections[faceIndex]) {
-        const [newX, newY, newZ] = faceDirections[faceIndex]
-        const [snappedX, snappedY, snappedZ] = snapToGrid([newX, newY, newZ])
-        addShape(snappedX, snappedY, snappedZ, newDims, selectedMaterial)
+      // Add cube adjacent to clicked face (only if building mode is on)
+      if (buildingMode) {
+        const newDims = getDefaultDimensions()
+        const faceIndex = Math.floor(e.faceIndex / 2)
+        const faceDirections = getFaceDirections(shapeType, [x, y, z], dimensions)
+        
+        if (faceDirections[faceIndex]) {
+          const [newX, newY, newZ] = faceDirections[faceIndex]
+          const [snappedX, snappedY, snappedZ] = snapToGrid([newX, newY, newZ])
+          addShape(snappedX, snappedY, snappedZ, newDims, selectedMaterial)
+        }
       }
     }
-  }, [addShape, removeShapeById, id, shapeType, dimensions, selectedMaterial])
+  }, [addShape, removeShapeById, id, shapeType, dimensions, selectedMaterial, buildingMode])
   
   // Create geometry for cube
   const createGeometry = () => {

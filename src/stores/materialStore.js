@@ -8,6 +8,9 @@ const useMaterialStore = create(
       // Currently selected material
       selectedMaterial: DEFAULT_MATERIAL,
       
+      // Material palette visibility
+      paletteVisible: false,
+      
       // Set the selected material
       setSelectedMaterial: (materialId) => {
         const material = MATERIALS[materialId] || DEFAULT_MATERIAL
@@ -22,6 +25,12 @@ const useMaterialStore = create(
       
       // Reset to default material
       resetToDefault: () => set({ selectedMaterial: DEFAULT_MATERIAL }),
+      
+      // Toggle palette visibility
+      togglePaletteVisibility: () => set((state) => ({ paletteVisible: !state.paletteVisible })),
+      
+      // Set palette visibility
+      setPaletteVisibility: (visible) => set({ paletteVisible: visible }),
     }),
     {
       name: "ow3-materials", // localStorage key

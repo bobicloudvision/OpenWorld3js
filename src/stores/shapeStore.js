@@ -19,6 +19,7 @@ const useShapeStore = create(
       ],
       nextId: 1,
       deleteMode: false,
+      buildingMode: false,
       
       addShape: (x, y, z, dimensions = { size: 0.5 }, material = DEFAULT_MATERIAL) =>
         set((state) => ({
@@ -41,6 +42,8 @@ const useShapeStore = create(
         
       setDefaultMass: (mass) => set({ defaultMass: mass }),
       setDeleteMode: (mode) => set({ deleteMode: mode }),
+      setBuildingMode: (mode) => set({ buildingMode: mode }),
+      toggleBuildingMode: () => set((state) => ({ buildingMode: !state.buildingMode })),
       
       reset: () => set({ 
         shapes: [], 

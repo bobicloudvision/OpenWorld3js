@@ -29,7 +29,13 @@ const MaterialPreview = ({ material, isSelected, onClick }) => {
 export const MaterialPalette = () => {
   const selectedMaterial = useMaterialStore((state) => state.selectedMaterial)
   const setSelectedMaterial = useMaterialStore((state) => state.setSelectedMaterial)
+  const paletteVisible = useMaterialStore((state) => state.paletteVisible)
   const allMaterials = getAllMaterials()
+  
+  // Don't render if palette is not visible
+  if (!paletteVisible) {
+    return null
+  }
   
   return (
     <div className="material-palette">
