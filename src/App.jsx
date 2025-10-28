@@ -36,7 +36,7 @@ export default function App() {
           
 
             <KeyboardControls map={keyboardMap}>
-            <Ecctrl maxVelLimit={5.5} position={[0, 1, 0]}>
+            <Ecctrl maxVelLimit={2} position={[0, 1, 0]}>
               <Player /> 
             </Ecctrl>
           </KeyboardControls>
