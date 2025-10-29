@@ -9,7 +9,7 @@ import * as THREE from 'three'
  * Encapsulates common animation logic used by both Player and RemotePlayer
  * @param {string} modelPath - Path to the avatar model (optional, defaults to Avatar1)
  */
-export function useAvatarAnimations(modelPath = '/models/avatars/Avatar1.glb') {
+export function useAvatarAnimations(modelPath = '/models/avatars/NightshadeJFriedrich.glb') {
   const mixer = useRef()
   const animationActions = useRef([])
   const activeAction = useRef()
