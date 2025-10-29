@@ -1,7 +1,7 @@
 import React from 'react'
 import useGameStore from '../stores/gameStore'
 
-export default function GameUI({ playerPosition }) {
+export default function GameUI({ playerPositionRef }) {
   const { 
     player, 
     enemies, 
@@ -104,7 +104,7 @@ export default function GameUI({ playerPosition }) {
         <div>Player Health: {player.health}</div>
         <div>Game State: {gameState}</div>
         <div>Alive Enemies: {enemies.filter(e => e.alive).length}</div>
-        <div>Player Position: [{Math.round(playerPosition?.[0] || 0)}, {Math.round(playerPosition?.[2] || 0)}]</div>
+        <div>Player Position: [{Math.round(playerPositionRef?.current?.[0] || 0)}, {Math.round(playerPositionRef?.current?.[2] || 0)}]</div>
         <div>Last Damage Source: {combatLog.slice(-1)[0]?.message || 'None'}</div>
       </div>
     </div>

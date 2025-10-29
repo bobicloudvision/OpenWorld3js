@@ -20,9 +20,10 @@ import MagicEffectsManager from './components/MagicEffectsManager'
 import ClickEffectsManager from './components/ClickEffectsManager'
 import './App.css'
 import './components/GameUI.css'
+import SimpleGround from './components/SimpleGround'
 
 export default function App() {
-  const [playerPosition, setPlayerPosition] = React.useState([0, 3, 2])
+  const playerPositionRef = React.useRef([0, 0, 0]);
   
   const keyboardMap = [
     { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
@@ -39,12 +40,13 @@ export default function App() {
   ]
   return (
     <>
-    <GameInstructions />
-    <GameUI playerPosition={playerPosition} />
+    {/* <GameInstructions /> */}
+    <GameUI playerPositionRef={playerPositionRef} />
     <MagicPalette />
     <ModeIndicator />
     <KeyboardShapeCreator />
     <MaterialPalette />
+    
     <EcctrlJoystick />
       <Canvas 
         shadows
@@ -71,21 +73,24 @@ export default function App() {
             <Ecctrl 
               maxVelLimit={6}
             >
-              <Player onPositionChange={setPlayerPosition} />
+              <Player onPositionChange={function(position) {
+                playerPositionRef.current = position; 
+              }} />
 
-            </Ecctrl>
+            </Ecctrl> 
 
             <Shapes />
-            <Enemies playerPosition={playerPosition} />
-            <CombatController playerPosition={playerPosition} />
-            <ClickToCast playerPosition={playerPosition} />
+            <Enemies playerPositionRef={playerPositionRef} />
+            <CombatController playerPositionRef={playerPositionRef} />
+            <ClickToCast playerPositionRef={playerPositionRef} />
             <MagicEffectsManager />
             <ClickEffectsManager />
 
           </KeyboardControls>    
+         
 
-          <Ground playerPosition={playerPosition} />
-          <GameManager playerPosition={playerPosition} />
+          <Ground playerPositionRef={playerPositionRef} />
+          <GameManager playerPositionRef={playerPositionRef} />
 
           </Physics>
       

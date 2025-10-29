@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { useKeyboardControls } from '@react-three/drei'
 import useGameStore from '../stores/gameStore'
 
-export default function CombatController({ playerPosition }) {
+export default function CombatController({ playerPositionRef }) {
   const [, get] = useKeyboardControls()
   const { 
     player, 
@@ -29,6 +29,7 @@ export default function CombatController({ playerPosition }) {
               const aliveEnemies = enemies.filter(e => e.alive)
               if (aliveEnemies.length > 0) {
                 // Find enemies in attack range (3m)
+                const playerPosition = playerPositionRef.current
                 const enemiesInRange = aliveEnemies.filter(enemy => {
                   const distance = Math.sqrt(
                     Math.pow(enemy.position[0] - playerPosition[0], 2) +
@@ -87,7 +88,7 @@ export default function CombatController({ playerPosition }) {
     
     const interval = setInterval(handleKeyPress, 50) // Check every 50ms
     return () => clearInterval(interval)
-  }, [get, enemies, player, attackEnemy, enterCastingMode, exitCastingMode, castingMode])
+  }, [get, enemies, player, attackEnemy, enterCastingMode, exitCastingMode, castingMode, playerPositionRef])
   
   return null // This component doesn't render anything
 }

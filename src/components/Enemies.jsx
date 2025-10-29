@@ -2,7 +2,7 @@ import React from 'react'
 import Enemy from './Enemy'
 import useGameStore from '../stores/gameStore'
 
-export default function Enemies({ playerPosition }) {
+export default function Enemies({ playerPositionRef }) {
   const { enemies } = useGameStore()
   
   return (
@@ -11,7 +11,7 @@ export default function Enemies({ playerPosition }) {
         <Enemy 
           key={enemy.id} 
           enemy={enemy} 
-          playerPosition={playerPosition}
+          playerPositionRef={playerPositionRef}
         />
       ))}
     </>

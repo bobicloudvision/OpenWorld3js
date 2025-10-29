@@ -2,7 +2,7 @@ import React, { useRef } from 'react'
 import { useThree } from '@react-three/fiber'
 import useGameStore from '../stores/gameStore'
 
-export default function ClickToCast({ playerPosition }) {
+export default function ClickToCast({ playerPositionRef }) {
   const { camera, raycaster, mouse } = useThree()
   const { 
     castingMode, 
@@ -32,6 +32,7 @@ export default function ClickToCast({ playerPosition }) {
     
     if (castingMode) {
       // Cast the magic at player's location
+      const playerPosition = playerPositionRef.current
       console.log(`Casting ${player.selectedMagic} at player position [${playerPosition[0].toFixed(2)}, ${playerPosition[2].toFixed(2)}]`)
       
       // Show magic effect at player location

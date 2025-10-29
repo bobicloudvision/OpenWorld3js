@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import useGameStore from '../stores/gameStore'
 
-export default function GameManager({ playerPosition }) {
+export default function GameManager({ playerPositionRef }) {
   const { 
     enemies, 
     player, 

@@ -5,7 +5,7 @@ import { Box, Text } from '@react-three/drei'
 import * as THREE from 'three'
 import useGameStore from '../stores/gameStore'
 
-export default function Enemy({ enemy, playerPosition }) {
+export default function Enemy({ enemy, playerPositionRef }) {
   const groupRef = useRef()
   const { enemyAttackPlayer } = useGameStore()
   
@@ -15,6 +15,7 @@ export default function Enemy({ enemy, playerPosition }) {
   useFrame((state, delta) => {
     if (!enemy.alive) return
     
+    const playerPosition = playerPositionRef.current
     const distanceToPlayer = Math.sqrt(
       Math.pow(enemy.position[0] - playerPosition[0], 2) +
       Math.pow(enemy.position[2] - playerPosition[2], 2)
@@ -131,6 +132,7 @@ export default function Enemy({ enemy, playerPosition }) {
       
       {/* Distance text (for debugging) */}
       {groupRef.current && (() => {
+        const playerPosition = playerPositionRef.current
         const distance = Math.sqrt(
           Math.pow(groupRef.current.matrixWorld.elements[12] - playerPosition[0], 2) +
           Math.pow(groupRef.current.matrixWorld.elements[14] - playerPosition[2], 2)

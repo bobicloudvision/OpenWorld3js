@@ -36,7 +36,7 @@ export default function Ground(props) {
     
     if (castingMode) {
       // Get player position from props
-      const playerPos = props.playerPosition || [0, 0, 0]
+      const playerPos = props.playerPositionRef?.current || [0, 0, 0]
       
       // Ensure playerPos values are numbers
       const playerX = typeof playerPos[0] === 'number' ? playerPos[0] : parseFloat(playerPos[0])
@@ -134,8 +134,8 @@ export default function Ground(props) {
         <meshStandardMaterial map={texture} map-repeat={[240, 240]} color="green" />
       </mesh>
       <CuboidCollider 
-        args={[1000, 2, 1000]} 
-        position={[0, -1.69, 0]} 
+        args={[1000, 0.4, 1000]} 
+        position={[0, 0, 0]} 
       />
     </RigidBody>
   )
