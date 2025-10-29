@@ -148,7 +148,7 @@ export default function Forest({
   
   // Calculate ground level: bottom of forest cylinder (relative to forest center which is at Y=0)
   // The forest cylinder height is size[1], so ground is at -size[1]/2
-  const forestGroundY = -size[1] / 2
+  const forestGroundY = -size[1] / 2 + 4.2
   
   // Use dynamic tree height for colliders
   const dynamicTreeColliderHeight = treeScaling.treeHeight
