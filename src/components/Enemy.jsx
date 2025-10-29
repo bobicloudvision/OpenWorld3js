@@ -2,10 +2,11 @@ import React, { useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useRapier } from '@react-three/rapier'
 import { Box, Text } from '@react-three/drei'
+import * as THREE from 'three'
 import useGameStore from '../stores/gameStore'
 
 export default function Enemy({ enemy, playerPosition }) {
-  const meshRef = useRef()
+  const groupRef = useRef()
   const { enemyAttackPlayer } = useGameStore()
   
   const attackRange = 3 // Attack range
@@ -14,7 +15,6 @@ export default function Enemy({ enemy, playerPosition }) {
   useFrame((state, delta) => {
     if (!enemy.alive) return
     
-    // Calculate distance to player (inside useFrame so it updates)
     const distanceToPlayer = Math.sqrt(
       Math.pow(enemy.position[0] - playerPosition[0], 2) +
       Math.pow(enemy.position[2] - playerPosition[2], 2)
@@ -25,7 +25,7 @@ export default function Enemy({ enemy, playerPosition }) {
     // Debug logging every 2 seconds
     if (now % 2000 < 50) {
       // console.log(`Enemy ${enemy.id} (${enemy.name}) - Distance: ${distanceToPlayer.toFixed(2)}m, Attack Range: ${attackRange}m, Magic Range: ${magicRange}m`)
-      // console.log(`Enemy pos: [${enemy.position[0]}, ${enemy.position[2]}], Player pos: [${playerPosition[0]}, ${playerPosition[2]}]`)
+      // console.log(`Enemy world pos: [${enemy.position[0].toFixed(2)}, ${enemy.position[2].toFixed(2)}], Player pos: [${playerPosition[0].toFixed(2)}, ${playerPosition[2].toFixed(2)}]`)
     }
     
     // Enemy AI behavior
@@ -69,7 +69,7 @@ export default function Enemy({ enemy, playerPosition }) {
   }
   
   return (
-    <group position={enemy.position}>
+    <group ref={groupRef} position={enemy.position}>
       {/* Debug: Show actual enemy position */}
       <Text
         position={[0, 4, 0]}
@@ -78,12 +78,11 @@ export default function Enemy({ enemy, playerPosition }) {
         anchorX="center"
         anchorY="middle"
       >
-        Actual: [{enemy.position[0]}, {enemy.position[2]}]
+        World: [{enemy.position[0].toFixed(1)}, {enemy.position[2].toFixed(1)}]
       </Text>
       
       {/* Enemy body */}
       <Box
-        ref={meshRef}
         args={[1, 2, 1]}
         castShadow
         receiveShadow
@@ -131,18 +130,42 @@ export default function Enemy({ enemy, playerPosition }) {
       </mesh>
       
       {/* Distance text (for debugging) */}
-      <Text
-        position={[0, 3, 0]}
-        fontSize={0.2}
-        color="yellow"
-        anchorX="center"
-        anchorY="middle"
-      >
-        {Math.round(Math.sqrt(
-          Math.pow(enemy.position[0] - playerPosition[0], 2) +
-          Math.pow(enemy.position[2] - playerPosition[2], 2)
-        ) * 10) / 10}m
-      </Text>
+      {groupRef.current && (() => {
+        const distance = Math.sqrt(
+          Math.pow(groupRef.current.matrixWorld.elements[12] - playerPosition[0], 2) +
+          Math.pow(groupRef.current.matrixWorld.elements[14] - playerPosition[2], 2)
+        )
+        const roundedDistance = Math.round(distance * 10) / 10
+        
+        let textColor = "yellow"
+        let textContent = ""
+        
+        if (distance <= attackRange) {
+          textColor = "red"
+          textContent = `VERY CLOSE (${roundedDistance}m)`
+        } else if (distance <= magicRange) {
+          textColor = "orange"
+          textContent = `CLOSE (${roundedDistance}m)`
+        } else if (distance <= 15) {
+          textColor = "yellow"
+          textContent = `NEARBY (${roundedDistance}m)`
+        } else {
+          textColor = "lightblue"
+          textContent = `FAR (${roundedDistance}m)`
+        }
+        
+        return (
+          <Text
+            position={[0, 3, 0]}
+            fontSize={0.2}
+            color={textColor}
+            anchorX="center"
+            anchorY="middle"
+          >
+            {textContent}
+          </Text>
+        )
+      })()}
     </group>
   )
 }

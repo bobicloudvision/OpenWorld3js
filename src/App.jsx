@@ -69,10 +69,10 @@ export default function App() {
           >
           <KeyboardControls map={keyboardMap}>
             <Ecctrl 
-              maxVelLimit={5} 
-              position={[0, 3, 2]}
+              maxVelLimit={6}
             >
               <Player onPositionChange={setPlayerPosition} />
+
             </Ecctrl>
 
             <Shapes />

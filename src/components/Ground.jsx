@@ -35,16 +35,21 @@ export default function Ground(props) {
     }
     
     if (castingMode) {
-      // Get actual player position from props or use a default
+      // Get player position from props
       const playerPos = props.playerPosition || [0, 0, 0]
+      
+      // Ensure playerPos values are numbers
+      const playerX = typeof playerPos[0] === 'number' ? playerPos[0] : parseFloat(playerPos[0])
+      const playerZ = typeof playerPos[2] === 'number' ? playerPos[2] : parseFloat(playerPos[2])
+      
       const distanceToPlayer = Math.sqrt(
-        Math.pow(targetPosition[0] - playerPos[0], 2) +
-        Math.pow(targetPosition[2] - playerPos[2], 2)
+        Math.pow(targetPosition[0] - playerX, 2) +
+        Math.pow(targetPosition[2] - playerZ, 2)
       )
       
       const magicRange = 15 // Magic range from gameStore
       
-      console.log(`Player position: [${playerPos[0].toFixed(2)}, ${playerPos[2].toFixed(2)}]`)
+      console.log(`Player position: [${playerX.toFixed(2)}, ${playerZ.toFixed(2)}]`)
       console.log(`Distance to player: ${distanceToPlayer.toFixed(2)}m, Magic range: ${magicRange}m`)
       
       if (distanceToPlayer <= magicRange) {
@@ -66,7 +71,7 @@ export default function Ground(props) {
           window.addMagicEffect(targetPosition, player.selectedMagic, effectRadius[player.selectedMagic] || 3)
         }
         
-        const result = castMagicAtPosition(player.selectedMagic, targetPosition, playerPos)
+        const result = castMagicAtPosition(player.selectedMagic, targetPosition, [playerX, playerPos[1], playerZ])
         
         if (result.success) {
           console.log(`Magic cast successful! Damage: ${result.damage}`)
@@ -116,8 +121,8 @@ export default function Ground(props) {
   return (
     <RigidBody 
       {...props} 
-      type="fixed" 
-      colliders={false}
+      type="fixed"
+      colliders="cuboid" 
     >
       <mesh 
         receiveShadow 
@@ -130,7 +135,7 @@ export default function Ground(props) {
       </mesh>
       <CuboidCollider 
         args={[1000, 2, 1000]} 
-        position={[0, -2, 0]}
+        position={[0, -1.69, 0]} 
       />
     </RigidBody>
   )
