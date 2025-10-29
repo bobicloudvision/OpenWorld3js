@@ -60,39 +60,26 @@ export default function HiddenElementPlaceholders() {
           // Restore original visibility state
           child.visible = wasVisible
           
-          // If size is zero (empty container), calculate from children
+          // Calculate size - use bounding box if available, otherwise use scale
           const hasValidSize = size.x > 0 || size.y > 0 || size.z > 0
           let finalSize = [size.x, size.y, size.z]
           
-          if (!hasValidSize && child.children && child.children.length > 0) {
-            // Calculate combined bounding box of all children
-            const childBox = new Box3()
-            child.children.forEach(childObj => {
-              // Temporarily make child visible
-              const childWasVisible = childObj.visible
-              childObj.visible = true
-              
-              const tempBox = new Box3().setFromObject(childObj)
-              childBox.union(tempBox)
-              
-              // Restore child visibility
-              childObj.visible = childWasVisible
-            })
-            const childSize = new Vector3()
-            childBox.getSize(childSize)
+          if (!hasValidSize) {
+            // Empty container - use scale values to determine size
+            const scaleX = child.scale.x || 1
+            const scaleY = child.scale.y || 1
+            const scaleZ = child.scale.z || 1
             
-            if (childSize.x > 0 || childSize.y > 0 || childSize.z > 0) {
-              finalSize = [childSize.x, childSize.y, childSize.z]
-              console.log(`  Using children size: [${childSize.x.toFixed(2)}, ${childSize.y.toFixed(2)}, ${childSize.z.toFixed(2)}]`)
-            } else {
-              // Last resort: use scale as hint for size
-              finalSize = [
-                child.scale.x * 2,
-                child.scale.y * 2,
-                child.scale.z * 2
-              ]
-              console.log(`  Using scale-based size: [${finalSize[0].toFixed(2)}, ${finalSize[1].toFixed(2)}, ${finalSize[2].toFixed(2)}]`)
-            }
+            // Apply minimum height for houses
+            const isHouse = child.name.includes('house')
+            const minHeight = isHouse ? 4 : 2
+            
+            finalSize = [
+              scaleX * 2,
+              Math.max(scaleY * 2, minHeight),
+              scaleZ * 2
+            ]
+            console.log(`  Using scale-based size (scale × 2, min height: ${minHeight}): [${finalSize[0].toFixed(2)}, ${finalSize[1].toFixed(2)}, ${finalSize[2].toFixed(2)}]`)
           }
           
           // Use world position as the primary position (not bounding box center if it's 0,0,0)
@@ -126,10 +113,9 @@ export default function HiddenElementPlaceholders() {
           console.log(`  Has Geometry: ${!!child.geometry}`)
           console.log(`  Has Material: ${!!child.material}`)
           console.log(`  Is Empty Container: ${!hasValidSize}`)
-          console.log(`  Children Count: ${child.children?.length || 0}`)
           
           if (!hasValidSize) {
-            console.log('  Size Source: Children or Scale (parent empty)')
+            console.log('  Size Source: Scale (empty container)')
           } else {
             console.log('  Size Source: Direct Bounding Box')
           }
@@ -179,11 +165,21 @@ export default function HiddenElementPlaceholders() {
             height: finalSize[1],
             depth: finalSize[2]
           })
-          console.log('  Object Scale:', {
+          console.log('  Object Scale (property):', {
             x: child.scale.x,
             y: child.scale.y,
             z: child.scale.z
           })
+          
+          // Extract scale from matrix for comparison
+          if (child.matrix) {
+            const matrixElements = child.matrix.elements
+            console.log('  Matrix Scale (extracted):', {
+              x: Math.sqrt(matrixElements[0] * matrixElements[0] + matrixElements[1] * matrixElements[1] + matrixElements[2] * matrixElements[2]),
+              y: Math.sqrt(matrixElements[4] * matrixElements[4] + matrixElements[5] * matrixElements[5] + matrixElements[6] * matrixElements[6]),
+              z: Math.sqrt(matrixElements[8] * matrixElements[8] + matrixElements[9] * matrixElements[9] + matrixElements[10] * matrixElements[10])
+            })
+          }
           console.log('  Object Rotation:', {
             x: child.rotation.x,
             y: child.rotation.y,
@@ -222,8 +218,15 @@ export default function HiddenElementPlaceholders() {
     foundElements.forEach((elem, idx) => {
       console.log(`${idx + 1}. ${elem.name}${elem.isEmptyContainer ? ' 📦 (empty container)' : ''}`)
       console.log(`   Position: [${elem.position[0].toFixed(2)}, ${elem.position[1].toFixed(2)}, ${elem.position[2].toFixed(2)}]`)
-      console.log(`   Size: [${elem.size[0].toFixed(2)} × ${elem.size[1].toFixed(2)} × ${elem.size[2].toFixed(2)}]`)
+      console.log(`   Size [W×H×D]: [${elem.size[0].toFixed(2)} × ${elem.size[1].toFixed(2)} × ${elem.size[2].toFixed(2)}]`)
       console.log(`   Hidden: ${elem.wasHidden ? 'YES' : 'NO'}`)
+      
+      // Verify the size values
+      if (elem.size[0] && elem.size[1] && elem.size[2]) {
+        console.log(`   ✅ Size values are valid`)
+      } else {
+        console.warn(`   ⚠️ Size values may be invalid:`, elem.size)
+      }
       console.log('')
     })
     console.log('════════════════════════════════════════════\n')
@@ -255,7 +258,13 @@ export default function HiddenElementPlaceholders() {
       {/* Placeholder visualizations */}
       {placeholders && placeholders.length > 0 && (
         <group>
-          {placeholders.map((placeholder, index) => placeholder && placeholder.position && placeholder.size && (
+          {placeholders.map((placeholder, index) => {
+            // Debug log for rendering
+            if (placeholder && placeholder.position && placeholder.size) {
+              console.log(`Rendering ${placeholder.name} with size:`, placeholder.size)
+            }
+            
+            return placeholder && placeholder.position && placeholder.size && (
             <RigidBody 
               key={index} 
               type="fixed" 
@@ -270,11 +279,11 @@ export default function HiddenElementPlaceholders() {
               {/* Manual colliders for proper physics */}
               {isForest(placeholder.name) ? (
                 <CylinderCollider 
-                  args={[placeholder.size[1] / 2, placeholder.size[0] / 2]} 
+                  args={[placeholder.size[1] / 2, placeholder.size[0] / 2]} // [halfHeight, radius]
                 />
               ) : (
                 <CuboidCollider 
-                  args={[placeholder.size[0] / 2, placeholder.size[1] / 2, placeholder.size[2] / 2]} 
+                  args={[placeholder.size[0] / 2, placeholder.size[1] / 2, placeholder.size[2] / 2]} // [halfWidth, halfHeight, halfDepth]
                 />
               )}
               
@@ -371,7 +380,7 @@ export default function HiddenElementPlaceholders() {
               />
             </group>
             </RigidBody>
-          ))}
+          )})}
         </group>
       )}
     </>
