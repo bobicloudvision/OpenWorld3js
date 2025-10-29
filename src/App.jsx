@@ -20,7 +20,6 @@ import MagicEffectsManager from './components/MagicEffectsManager'
 import ClickEffectsManager from './components/ClickEffectsManager'
 import './App.css'
 import './components/GameUI.css'
-import SimpleGround from './components/SimpleGround'
 
 export default function App() {
   const playerPositionRef = React.useRef([0, 0, 0]);

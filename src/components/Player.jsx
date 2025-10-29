@@ -14,10 +14,6 @@ export default function Player({ onPositionChange }) {
   // Get keyboard controls state
   const [, get] = useKeyboardControls()
   
-  const currentAnimation = useRef('idle')
-  const lastMovementState = useRef(false)
-  const lastJumpState = useRef(false)
-  const lastPosition = useRef([0, 0, 0])
   const isMoving = useRef(false)
   
   // Function to get current player position
@@ -37,75 +33,25 @@ export default function Player({ onPositionChange }) {
     // Check if any movement keys are pressed
     const { forward, backward, leftward, rightward, jump } = get()
     const currentlyMoving = forward || backward || leftward || rightward
-    const isJumping = jump
     
     // Update position when moving or when movement state changes
     if (currentlyMoving && onPositionChange) {
-      // Update position continuously while moving
-      const newPosition = getCurrentPosition()
-      lastPosition.current = newPosition
-      onPositionChange(newPosition)
+      onPositionChange(getCurrentPosition())
     } else if (!currentlyMoving && isMoving.current && onPositionChange) {
-      // Update position when stopping movement
-      const newPosition = getCurrentPosition()
-      lastPosition.current = newPosition
-      onPositionChange(newPosition)
-      console.log(`Player stopped moving: [${newPosition[0].toFixed(2)}, ${newPosition[1].toFixed(2)}, ${newPosition[2].toFixed(2)}]`)
+      onPositionChange(getCurrentPosition())
     }
     
-    // Track movement state changes
-    if (currentlyMoving !== isMoving.current) {
-      isMoving.current = currentlyMoving
-      if (currentlyMoving) {
-        console.log(`Player started moving`)
-      }
-    }
+    // Track movement state
+    isMoving.current = currentlyMoving
     
-    // Default to appropriate state
-    if (isJumping && animationActions.current.length > 2) {
-      currentAnimation.current = 'jump'
-      setAction(animationActions.current[2], 1)
+    // Handle animations: jump > walk > idle
+    if (jump && animationActions.current.length > 2) {
+      setAction(animationActions.current[2], 1) // jump
     } else if (currentlyMoving && animationActions.current.length > 1) {
-      currentAnimation.current = 'walk'
-      setAction(animationActions.current[1], 1)
+      setAction(animationActions.current[1], 1) // walk
     } else {
-      currentAnimation.current = 'idle'
-      setAction(animationActions.current[0], 1)
+      setAction(animationActions.current[0], 1) // idle
     }
-    // Handle jump animation transitions
-    if (isJumping !== lastJumpState.current) {
-      if (isJumping && animationActions.current.length > 2) {
-        // Switch to jump animation (third animation)
-        currentAnimation.current = 'jump'
-        setAction(animationActions.current[2], 1)
-      } else if (!isJumping) {
-        // Return to previous state when jump ends
-        if (currentlyMoving && animationActions.current.length > 1) {
-          currentAnimation.current = 'walk'
-          setAction(animationActions.current[1], 1)
-        } else {
-          currentAnimation.current = 'idle'
-          setAction(animationActions.current[0], 1)
-        }
-      }
-      lastJumpState.current = isJumping
-    }
-    // Handle movement animations
-    if (currentlyMoving !== lastMovementState.current) {
-      if (currentlyMoving) {
-        // Switch to walk animation
-        if (animationActions.current.length > 1) {
-          currentAnimation.current = 'walk'
-          setAction(animationActions.current[1], 1)
-        }
-      } else {
-        // Player stopped moving - switch to idle
-        currentAnimation.current = 'idle'
-        setAction(animationActions.current[0], 1)
-      }
-      lastMovementState.current = currentlyMoving
-    }
-    
   })
   
 
