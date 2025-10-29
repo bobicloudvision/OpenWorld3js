@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { useGLTF, Html, Box } from '@react-three/drei'
 import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier'
 import { Box3, Vector3 } from 'three'
+import Forest from './Forest'
 
 /**
  * Component that visualizes specific elements from world1.glb as wireframe placeholders
@@ -13,6 +14,14 @@ export default function HiddenElementPlaceholders() {
   const { scene } = useGLTF('/models/world1.glb')
   const { scene: houseModel } = useGLTF('/models/houses/house1.glb')
   const showBoundingBox = false
+  
+  // Forest generation settings (can be passed to Forest component)
+  const TREE_DENSITY = 0.3 // Trees per square unit (adjust for more/fewer trees)
+  const TREE_SPACING_MIN = 2 // Minimum distance between trees
+  const TREE_SCALE_VARIATION = 0.4 // How much trees vary in size (0.4 = ±40%)
+  const TREE_COLLIDER_RADIUS = 0.5 // Base radius of tree collision cylinder
+  const SHOW_FOREST_WIREFRAME = false // Toggle to show/hide forest boundary wireframe
+  const DEBUG_TREE_MARKERS = false // Show colored spheres where trees should be
   
   // World Y offset - must match Ground component's position Y value
   // Ground.jsx line ~137: position={[0, -10, 0]}
@@ -326,137 +335,140 @@ export default function HiddenElementPlaceholders() {
             }
             
             return placeholder && placeholder.position && placeholder.size && (
-            <RigidBody 
-              key={index} 
-              type="fixed" 
-              colliders={false}
-              position={placeholder.position}
-              rotation={isForest(placeholder.name) ? [0, 0, 0] : placeholder.rotation}
-              friction={1}
-              restitution={0}
-              lockTranslations={true}
-              lockRotations={true}
-              canSleep={false}
-            >
-              {/* Manual colliders for proper physics */}
-              {isForest(placeholder.name) ? (
-                <CylinderCollider 
-                  args={[placeholder.size[1] / 2, placeholder.size[0] / 2]} // [halfHeight, radius]
-                />
-              ) : (
-                <CuboidCollider 
-                  args={[placeholder.size[0] / 2, placeholder.size[1] / 2, placeholder.size[2] / 2]} // [halfWidth, halfHeight, halfDepth]
-                />
-              )}
-              
-            <group>
-              
-              {isForest(placeholder.name) ? (
-                // Forest - keep as wireframe cylinder
-                <>
-                  <mesh>
-                    <cylinderGeometry args={[placeholder.size[0] / 2, placeholder.size[0] / 2, placeholder.size[1], 16]} />
-                    <meshBasicMaterial 
-                      color={getColorForElement(placeholder.name)}
-                      wireframe={true}
-                      transparent={true}
-                      opacity={0.6}
+              <React.Fragment key={index}>
+                {isForest(placeholder.name) ? (
+                  // Forest - use Forest component (handles its own colliders for each tree)
+                  <group position={placeholder.position}>
+                    <Forest 
+                      position={placeholder.position}
+                      size={placeholder.size}
+                      name={placeholder.name}
+                      density={TREE_DENSITY}
+                      spacingMin={TREE_SPACING_MIN}
+                      scaleVariation={TREE_SCALE_VARIATION}
+                      treeColliderRadius={TREE_COLLIDER_RADIUS}
+                      showWireframe={SHOW_FOREST_WIREFRAME}
+                      showDebugMarkers={DEBUG_TREE_MARKERS}
                     />
-                  </mesh>
-                  <mesh>
-                    <cylinderGeometry args={[placeholder.size[0] / 2, placeholder.size[0] / 2, placeholder.size[1], 16]} />
-                    <meshBasicMaterial 
-                      color={getColorForElement(placeholder.name)}
-                      transparent={true}
-                      opacity={0.15}
+                    
+                    {/* Origin marker and label for forest */}
+                    <group>
+                      <mesh position={[0, 0, 0]}>
+                        <sphereGeometry args={[0.5, 16, 16]} />
+                        <meshBasicMaterial color={getColorForElement(placeholder.name)} />
+                      </mesh>
+                      
+                      <TextLabel 
+                        text={`${placeholder.name}\nSize: [${placeholder.size[0].toFixed(1)} × ${placeholder.size[1].toFixed(1)} × ${placeholder.size[2].toFixed(1)}]\nPos: [${placeholder.position[0].toFixed(1)}, ${placeholder.position[1].toFixed(1)}, ${placeholder.position[2].toFixed(1)}]`} 
+                        position={[0, placeholder.size[1] / 2 + 0.5, 0]}
+                        color={getColorForElement(placeholder.name)}
+                      />
+                    </group>
+                  </group>
+                ) : (
+                  // Houses and other elements - use RigidBody with collider
+                  <RigidBody 
+                    type="fixed" 
+                    colliders={false}
+                    position={placeholder.position}
+                    rotation={placeholder.rotation}
+                    friction={1}
+                    restitution={0}
+                    lockTranslations={true}
+                    lockRotations={true}
+                    canSleep={false}
+                  >
+                    {/* Cuboid collider for houses */}
+                    <CuboidCollider 
+                      args={[placeholder.size[0] / 2, placeholder.size[1] / 2, placeholder.size[2] / 2]}
                     />
-                  </mesh>
-                </>
-              ) : (
-                // House - use actual 3D model scaled proportionally at original position
-                (() => {
-                  // Calculate uniform scale to fit in placeholder while maintaining proportions
-                  const scaleX = placeholder.size[0] / houseModelSize.x
-                  const scaleY = placeholder.size[1] / houseModelSize.y
-                  const scaleZ = placeholder.size[2] / houseModelSize.z
-                  const uniformScale = Math.min(scaleX, scaleY, scaleZ)
-                  
-                  // Use original element's Y position (already at ground level)
-                  // Relative to placeholder's center position
-                  const relativeY = placeholder.originalYPosition - placeholder.position[1]
-                  
-                  return (
-                    <primitive 
-                      object={houseModel.clone()} 
-                      scale={uniformScale}
-                      position={[0, relativeY, 0]} // Centered horizontally, original Y position
-                    />
-                  )
-                })()
-              )}
-              
-              {/* Origin marker - small sphere at center */}
-              <mesh position={[0, 0, 0]}>
-                <sphereGeometry args={[0.5, 16, 16]} />
-                <meshBasicMaterial 
-                  color={getColorForElement(placeholder.name)}
-                />
-              </mesh>
-              
-              {/* Bounding Box visualization - shows the actual computed bounding box */}
-              {showBoundingBox && placeholder.boundingBox && placeholder.boundingBox.hasSize && (
-                <group position={[
-                  placeholder.boundingBox.center[0] - placeholder.position[0],
-                  placeholder.boundingBox.center[1] - placeholder.position[1],
-                  placeholder.boundingBox.center[2] - placeholder.position[2]
-                ]}>
-                  {/* Thin wireframe for bounding box */}
-                  <mesh>
-                    <boxGeometry args={placeholder.boundingBox.size} />
-                    <meshBasicMaterial 
-                      color="#00FFFF"
-                      wireframe={true}
-                      transparent={true}
-                      opacity={0.9}
-                    />
-                  </mesh>
-                  {/* Cyan corner markers for bounding box */}
-                  <mesh>
-                    <boxGeometry args={placeholder.boundingBox.size} />
-                    <meshBasicMaterial 
-                      color="#00FFFF"
-                      transparent={true}
-                      opacity={0.1}
-                    />
-                  </mesh>
-                </group>
-              )}
-              
-              {/* Visual axis helpers */}
-              {/* X axis - red */}
-              <mesh position={[placeholder.size[0] / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-                <cylinderGeometry args={[0.1, 0.1, placeholder.size[0], 8]} />
-                <meshBasicMaterial color="#ff0000" transparent={true} opacity={0.5} />
-              </mesh>
-              {/* Y axis - green */}
-              <mesh position={[0, placeholder.size[1] / 2, 0]}>
-                <cylinderGeometry args={[0.1, 0.1, placeholder.size[1], 8]} />
-                <meshBasicMaterial color="#00ff00" transparent={true} opacity={0.5} />
-              </mesh>
-              {/* Z axis - blue */}
-              <mesh position={[0, 0, placeholder.size[2] / 2]} rotation={[Math.PI / 2, 0, 0]}>
-                <cylinderGeometry args={[0.1, 0.1, placeholder.size[2], 8]} />
-                <meshBasicMaterial color="#0000ff" transparent={true} opacity={0.5} />
-              </mesh>
-              
-              {/* Label to show element name and size */}
-              <TextLabel 
-                text={`${placeholder.name}${placeholder.isEmptyContainer ? ' 📦' : ''}\nSize: [${placeholder.size[0].toFixed(1)} × ${placeholder.size[1].toFixed(1)} × ${placeholder.size[2].toFixed(1)}]\nPos: [${placeholder.position[0].toFixed(1)}, ${placeholder.position[1].toFixed(1)}, ${placeholder.position[2].toFixed(1)}]${isForest(placeholder.name) ? '' : `\nRot: [${(placeholder.rotation[0] * 180 / Math.PI).toFixed(0)}°, ${(placeholder.rotation[1] * 180 / Math.PI).toFixed(0)}°, ${(placeholder.rotation[2] * 180 / Math.PI).toFixed(0)}°]`}`} 
-                position={[0, placeholder.size[1] / 2 + 0.5, 0]}
-                color={getColorForElement(placeholder.name)}
-              />
-            </group>
-            </RigidBody>
+                    
+                    <group>
+                      {/* House - use actual 3D model scaled proportionally at original position */}
+                      {(() => {
+                        // Calculate uniform scale to fit in placeholder while maintaining proportions
+                        const scaleX = placeholder.size[0] / houseModelSize.x
+                        const scaleY = placeholder.size[1] / houseModelSize.y
+                        const scaleZ = placeholder.size[2] / houseModelSize.z
+                        const uniformScale = Math.min(scaleX, scaleY, scaleZ)
+                        
+                        // Use original element's Y position (already at ground level)
+                        // Relative to placeholder's center position
+                        const relativeY = placeholder.originalYPosition - placeholder.position[1]
+                        
+                        return (
+                          <primitive 
+                            object={houseModel.clone()} 
+                            scale={uniformScale}
+                            position={[0, relativeY, 0]} // Centered horizontally, original Y position
+                          />
+                        )
+                      })()}
+                      
+                      {/* Origin marker - small sphere at center */}
+                      <mesh position={[0, 0, 0]}>
+                        <sphereGeometry args={[0.5, 16, 16]} />
+                        <meshBasicMaterial 
+                          color={getColorForElement(placeholder.name)}
+                        />
+                      </mesh>
+                      
+                      {/* Bounding Box visualization - shows the actual computed bounding box */}
+                      {showBoundingBox && placeholder.boundingBox && placeholder.boundingBox.hasSize && (
+                        <group position={[
+                          placeholder.boundingBox.center[0] - placeholder.position[0],
+                          placeholder.boundingBox.center[1] - placeholder.position[1],
+                          placeholder.boundingBox.center[2] - placeholder.position[2]
+                        ]}>
+                          {/* Thin wireframe for bounding box */}
+                          <mesh>
+                            <boxGeometry args={placeholder.boundingBox.size} />
+                            <meshBasicMaterial 
+                              color="#00FFFF"
+                              wireframe={true}
+                              transparent={true}
+                              opacity={0.9}
+                            />
+                          </mesh>
+                          {/* Cyan corner markers for bounding box */}
+                          <mesh>
+                            <boxGeometry args={placeholder.boundingBox.size} />
+                            <meshBasicMaterial 
+                              color="#00FFFF"
+                              transparent={true}
+                              opacity={0.1}
+                            />
+                          </mesh>
+                        </group>
+                      )}
+                      
+                      {/* Visual axis helpers */}
+                      {/* X axis - red */}
+                      <mesh position={[placeholder.size[0] / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                        <cylinderGeometry args={[0.1, 0.1, placeholder.size[0], 8]} />
+                        <meshBasicMaterial color="#ff0000" transparent={true} opacity={0.5} />
+                      </mesh>
+                      {/* Y axis - green */}
+                      <mesh position={[0, placeholder.size[1] / 2, 0]}>
+                        <cylinderGeometry args={[0.1, 0.1, placeholder.size[1], 8]} />
+                        <meshBasicMaterial color="#00ff00" transparent={true} opacity={0.5} />
+                      </mesh>
+                      {/* Z axis - blue */}
+                      <mesh position={[0, 0, placeholder.size[2] / 2]} rotation={[Math.PI / 2, 0, 0]}>
+                        <cylinderGeometry args={[0.1, 0.1, placeholder.size[2], 8]} />
+                        <meshBasicMaterial color="#0000ff" transparent={true} opacity={0.5} />
+                      </mesh>
+                      
+                      {/* Label to show element name and size */}
+                      <TextLabel 
+                        text={`${placeholder.name}${placeholder.isEmptyContainer ? ' 📦' : ''}\nSize: [${placeholder.size[0].toFixed(1)} × ${placeholder.size[1].toFixed(1)} × ${placeholder.size[2].toFixed(1)}]\nPos: [${placeholder.position[0].toFixed(1)}, ${placeholder.position[1].toFixed(1)}, ${placeholder.position[2].toFixed(1)}]\nRot: [${(placeholder.rotation[0] * 180 / Math.PI).toFixed(0)}°, ${(placeholder.rotation[1] * 180 / Math.PI).toFixed(0)}°, ${(placeholder.rotation[2] * 180 / Math.PI).toFixed(0)}°]`} 
+                        position={[0, placeholder.size[1] / 2 + 0.5, 0]}
+                        color={getColorForElement(placeholder.name)}
+                      />
+                    </group>
+                  </RigidBody>
+                )}
+              </React.Fragment>
           )})}
         </group>
       )}
