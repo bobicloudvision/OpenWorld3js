@@ -11,7 +11,26 @@ import { Box3, Vector3 } from 'three'
  */
 export default function HiddenElementPlaceholders() {
   const { scene } = useGLTF('/models/world1.glb')
+  const { scene: houseModel } = useGLTF('/models/houses/house1.glb')
   const showBoundingBox = false
+  
+  // World Y offset - must match Ground component's position Y value
+  // Ground.jsx line ~137: position={[0, -10, 0]}
+  // If Ground position changes, update this constant to match
+  const WORLD_Y_OFFSET = -10
+  
+  // Calculate house model original size for scaling
+  const houseModelSize = useMemo(() => {
+    const box = new Box3().setFromObject(houseModel)
+    const size = new Vector3()
+    box.getSize(size)
+    console.log('🏠 House Model Original Size:', {
+      width: size.x.toFixed(2),
+      height: size.y.toFixed(2),
+      depth: size.z.toFixed(2)
+    })
+    return size
+  }, [houseModel])
   
   // Regex patterns for elements we want to visualize (detects by name, not visibility)
   const elementPatterns = {
@@ -95,20 +114,25 @@ export default function HiddenElementPlaceholders() {
           // Use world position as the primary position (not bounding box center if it's 0,0,0)
           const useWorldPos = !hasValidSize || (center.x === 0 && center.y === 0 && center.z === 0)
           const finalPosition = useWorldPos 
-            ? [worldPos.x, worldPos.y - 10, worldPos.z]
-            : [center.x, center.y - 10, center.z]
+            ? [worldPos.x, worldPos.y + WORLD_Y_OFFSET, worldPos.z]
+            : [center.x, center.y + WORLD_Y_OFFSET, center.z]
+          
+          // Calculate ground level Y position (bottom of the cube, not center)
+          const groundLevelY = (worldPos.y - finalSize[1] / 2) + WORLD_Y_OFFSET
           
           foundElements.push({
             name: child.name,
             position: finalPosition,
-            worldPosition: [worldPos.x, worldPos.y - 10, worldPos.z],
+            worldPosition: [worldPos.x, worldPos.y + WORLD_Y_OFFSET, worldPos.z],
+            originalYPosition: groundLevelY, // Bottom Y position for ground level
             size: finalSize,
+            rotation: [child.rotation.x, child.rotation.y, child.rotation.z], // Store rotation in radians
             originalObject: child,
             wasHidden: !wasVisible,
             isEmptyContainer: !hasValidSize,
             // Store bounding box info for visualization
             boundingBox: {
-              center: [center.x, center.y - 10, center.z],
+              center: [center.x, center.y + WORLD_Y_OFFSET, center.z],
               size: [size.x, size.y, size.z],
               hasSize: hasValidSize
             }
@@ -144,7 +168,7 @@ export default function HiddenElementPlaceholders() {
           })
           console.log('  World Position (adjusted):', {
             x: worldPos.x,
-            y: worldPos.y - 10,
+            y: worldPos.y + WORLD_Y_OFFSET,
             z: worldPos.z
           })
           console.log('  Bounding Box Center:', {
@@ -154,15 +178,20 @@ export default function HiddenElementPlaceholders() {
           })
           console.log('  Bounding Box Center (adjusted):', {
             x: center.x,
-            y: center.y - 10,
+            y: center.y + WORLD_Y_OFFSET,
             z: center.z
           })
           
           console.log(`\n✅ USING: ${useWorldPos ? 'World Position' : 'Bounding Box Center'} for placement`)
-          console.log('  Final Position:', {
+          console.log('  Final Position (center):', {
             x: finalPosition[0],
             y: finalPosition[1],
             z: finalPosition[2]
+          })
+          console.log('  Ground Level Y:', {
+            centerY: (worldPos.y + WORLD_Y_OFFSET).toFixed(2),
+            halfHeight: (finalSize[1] / 2).toFixed(2),
+            groundY: groundLevelY.toFixed(2)
           })
           
           console.log('\n📏 Size & Scale:')
@@ -191,10 +220,15 @@ export default function HiddenElementPlaceholders() {
               z: Math.sqrt(matrixElements[8] * matrixElements[8] + matrixElements[9] * matrixElements[9] + matrixElements[10] * matrixElements[10])
             })
           }
-          console.log('  Object Rotation:', {
-            x: child.rotation.x,
-            y: child.rotation.y,
-            z: child.rotation.z
+          console.log('  Object Rotation (Radians):', {
+            x: child.rotation.x.toFixed(4),
+            y: child.rotation.y.toFixed(4),
+            z: child.rotation.z.toFixed(4)
+          })
+          console.log('  Object Rotation (Degrees):', {
+            x: (child.rotation.x * 180 / Math.PI).toFixed(2) + '°',
+            y: (child.rotation.y * 180 / Math.PI).toFixed(2) + '°',
+            z: (child.rotation.z * 180 / Math.PI).toFixed(2) + '°'
           })
           
           if (child.geometry) {
@@ -227,10 +261,16 @@ export default function HiddenElementPlaceholders() {
     console.log('╚════════════════════════════════════════════╝')
     console.log(`Found ${foundElements.length} elements by name pattern:\n`)
     foundElements.forEach((elem, idx) => {
+      const elemType = getElementType(elem.name)
       console.log(`${idx + 1}. ${elem.name}${elem.isEmptyContainer ? ' 📦 (empty container)' : ''}`)
-      console.log(`   Type: ${getElementType(elem.name)}`)
+      console.log(`   Type: ${elemType}`)
       console.log(`   Position: [${elem.position[0].toFixed(2)}, ${elem.position[1].toFixed(2)}, ${elem.position[2].toFixed(2)}]`)
       console.log(`   Size [W×H×D]: [${elem.size[0].toFixed(2)} × ${elem.size[1].toFixed(2)} × ${elem.size[2].toFixed(2)}]`)
+      if (elemType !== 'forest') {
+        console.log(`   Rotation (°): [${(elem.rotation[0] * 180 / Math.PI).toFixed(1)}°, ${(elem.rotation[1] * 180 / Math.PI).toFixed(1)}°, ${(elem.rotation[2] * 180 / Math.PI).toFixed(1)}°]`)
+      } else {
+        console.log(`   Rotation: Not applied (forest stays vertical)`)
+      }
       
       // Verify the size values
       if (elem.size[0] && elem.size[1] && elem.size[2]) {
@@ -273,7 +313,16 @@ export default function HiddenElementPlaceholders() {
           {placeholders.map((placeholder, index) => {
             // Debug log for rendering
             if (placeholder && placeholder.position && placeholder.size) {
-              console.log(`Rendering ${placeholder.name} with size:`, placeholder.size)
+              if (isForest(placeholder.name)) {
+                console.log(`Rendering ${placeholder.name} (forest cylinder) with size:`, placeholder.size)
+              } else {
+                const scaleX = placeholder.size[0] / houseModelSize.x
+                const scaleY = placeholder.size[1] / houseModelSize.y
+                const scaleZ = placeholder.size[2] / houseModelSize.z
+                const uniformScale = Math.min(scaleX, scaleY, scaleZ)
+                const relativeY = placeholder.originalYPosition - placeholder.position[1]
+                console.log(`Rendering ${placeholder.name} (house model) scale: ${uniformScale.toFixed(2)}, Y: ${relativeY.toFixed(2)} (using original position)`)
+              }
             }
             
             return placeholder && placeholder.position && placeholder.size && (
@@ -282,6 +331,7 @@ export default function HiddenElementPlaceholders() {
               type="fixed" 
               colliders={false}
               position={placeholder.position}
+              rotation={isForest(placeholder.name) ? [0, 0, 0] : placeholder.rotation}
               friction={1}
               restitution={0}
               lockTranslations={true}
@@ -301,34 +351,49 @@ export default function HiddenElementPlaceholders() {
               
             <group>
               
-              {/* Wireframe placeholder - cylinder for forest, box for house */}
-              <mesh>
-                {isForest(placeholder.name) ? (
-                  <cylinderGeometry args={[placeholder.size[0] / 2, placeholder.size[0] / 2, placeholder.size[1], 16]} />
-                ) : (
-                  <boxGeometry args={placeholder.size} />
-                )}
-                <meshBasicMaterial 
-                  color={getColorForElement(placeholder.name)}
-                  wireframe={true}
-                  transparent={true}
-                  opacity={0.6}
-                />
-              </mesh>
-              
-              {/* Semi-transparent filled shape for better visibility */}
-              <mesh>
-                {isForest(placeholder.name) ? (
-                  <cylinderGeometry args={[placeholder.size[0] / 2, placeholder.size[0] / 2, placeholder.size[1], 16]} />
-                ) : (
-                  <boxGeometry args={placeholder.size} />
-                )}
-                <meshBasicMaterial 
-                  color={getColorForElement(placeholder.name)}
-                  transparent={true}
-                  opacity={0.15}
-                />
-              </mesh>
+              {isForest(placeholder.name) ? (
+                // Forest - keep as wireframe cylinder
+                <>
+                  <mesh>
+                    <cylinderGeometry args={[placeholder.size[0] / 2, placeholder.size[0] / 2, placeholder.size[1], 16]} />
+                    <meshBasicMaterial 
+                      color={getColorForElement(placeholder.name)}
+                      wireframe={true}
+                      transparent={true}
+                      opacity={0.6}
+                    />
+                  </mesh>
+                  <mesh>
+                    <cylinderGeometry args={[placeholder.size[0] / 2, placeholder.size[0] / 2, placeholder.size[1], 16]} />
+                    <meshBasicMaterial 
+                      color={getColorForElement(placeholder.name)}
+                      transparent={true}
+                      opacity={0.15}
+                    />
+                  </mesh>
+                </>
+              ) : (
+                // House - use actual 3D model scaled proportionally at original position
+                (() => {
+                  // Calculate uniform scale to fit in placeholder while maintaining proportions
+                  const scaleX = placeholder.size[0] / houseModelSize.x
+                  const scaleY = placeholder.size[1] / houseModelSize.y
+                  const scaleZ = placeholder.size[2] / houseModelSize.z
+                  const uniformScale = Math.min(scaleX, scaleY, scaleZ)
+                  
+                  // Use original element's Y position (already at ground level)
+                  // Relative to placeholder's center position
+                  const relativeY = placeholder.originalYPosition - placeholder.position[1]
+                  
+                  return (
+                    <primitive 
+                      object={houseModel.clone()} 
+                      scale={uniformScale}
+                      position={[0, relativeY, 0]} // Centered horizontally, original Y position
+                    />
+                  )
+                })()
+              )}
               
               {/* Origin marker - small sphere at center */}
               <mesh position={[0, 0, 0]}>
@@ -386,7 +451,7 @@ export default function HiddenElementPlaceholders() {
               
               {/* Label to show element name and size */}
               <TextLabel 
-                text={`${placeholder.name}${placeholder.isEmptyContainer ? ' 📦' : ''}\nSize: [${placeholder.size[0].toFixed(1)} × ${placeholder.size[1].toFixed(1)} × ${placeholder.size[2].toFixed(1)}]\nPos: [${placeholder.position[0].toFixed(1)}, ${placeholder.position[1].toFixed(1)}, ${placeholder.position[2].toFixed(1)}]`} 
+                text={`${placeholder.name}${placeholder.isEmptyContainer ? ' 📦' : ''}\nSize: [${placeholder.size[0].toFixed(1)} × ${placeholder.size[1].toFixed(1)} × ${placeholder.size[2].toFixed(1)}]\nPos: [${placeholder.position[0].toFixed(1)}, ${placeholder.position[1].toFixed(1)}, ${placeholder.position[2].toFixed(1)}]${isForest(placeholder.name) ? '' : `\nRot: [${(placeholder.rotation[0] * 180 / Math.PI).toFixed(0)}°, ${(placeholder.rotation[1] * 180 / Math.PI).toFixed(0)}°, ${(placeholder.rotation[2] * 180 / Math.PI).toFixed(0)}°]`}`} 
                 position={[0, placeholder.size[1] / 2 + 0.5, 0]}
                 color={getColorForElement(placeholder.name)}
               />
@@ -432,6 +497,7 @@ function TextLabel({ text, position, color }) {
   )
 }
 
-// Preload the model
+// Preload the models
 useGLTF.preload('/models/world1.glb')
+useGLTF.preload('/models/houses/house1.glb')
 
