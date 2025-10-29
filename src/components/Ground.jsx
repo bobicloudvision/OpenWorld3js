@@ -24,7 +24,8 @@ export default function Ground(props) {
     
     // Get the intersection point from the event
     const point = event.point
-    const targetPosition = [point.x, 0, point.z]
+    // Use the actual intersection Y from the GLB surface instead of forcing 0
+    const targetPosition = [point.x, point.y, point.z]
     console.log('Ground click position:', targetPosition)
     
     // Show click effect at clicked position

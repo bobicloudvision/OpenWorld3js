@@ -24,7 +24,8 @@ export default function ClickToCast({ playerPositionRef }) {
     
     // Get the intersection point from the event (same as Ground component)
     const point = event.point
-    const targetPosition = [point.x, 0, point.z]
+    // Use the actual intersection Y from the clicked surface (e.g., GLB terrain)
+    const targetPosition = [point.x, point.y, point.z]
     
     console.log(`ClickToCast: Click position: [${targetPosition[0].toFixed(2)}, ${targetPosition[2].toFixed(2)}]`)
     
