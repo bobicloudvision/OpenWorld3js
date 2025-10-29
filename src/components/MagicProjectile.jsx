@@ -44,6 +44,7 @@ export default function MagicProjectile({
       case 'fire': return '#ff4444'
       case 'ice': return '#44aaff'
       case 'freeze': return '#00ffff'
+      case 'blizzard': return '#88ddff'
       case 'lightning': return '#ffff44'
       case 'bomb': return '#ff00ff'
       case 'poison': return '#88ff00'

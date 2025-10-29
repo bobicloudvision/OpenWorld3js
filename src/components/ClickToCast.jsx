@@ -38,51 +38,23 @@ export default function ClickToCast({ playerPositionRef }) {
       const playerPosition = playerPositionRef.current
       console.log(`Casting ${player.selectedMagic} at player position [${playerPosition[0].toFixed(2)}, ${playerPosition[2].toFixed(2)}]`)
       
+      // Get magic properties to use affectRange
+      const magic = magicTypes[player.selectedMagic]
+      const aoeRadius = magic.affectRange || 0
+      
       // Show magic effect at player location
       if (window.addMagicEffect) {
-        // Different effect sizes for different spells
-        const effectRadius = {
-          fire: 3,
-          ice: 2.5,
-          freeze: 2.5,
-          lightning: 4,
-          bomb: 4,
-          poison: 3,
-          chain: 3.5,
-          drain: 2.5,
-          slow: 3.5,
-          heal: 2,
-          meteor: 5,
-          shield: 1.5
-        }
-        
-        window.addMagicEffect(playerPosition, player.selectedMagic, effectRadius[player.selectedMagic] || 3)
+        window.addMagicEffect(playerPosition, player.selectedMagic, aoeRadius)
       }
       
       const result = castMagicAtPosition(player.selectedMagic, playerPosition, playerPosition)
       
       if (result.success) {
-        console.log(`Magic cast successful! Damage: ${result.damage}`)
+        console.log(`Magic cast successful! Damage: ${result.damage}, AoE Radius: ${aoeRadius}m`)
         if (player.selectedMagic === 'heal') {
           healPlayer(Math.abs(result.damage))
         } else {
-          // Find enemies in range of the player
-          const effectRadius = {
-            fire: 3,
-            ice: 2.5,
-            freeze: 2.5,
-            lightning: 4,
-            bomb: 4,
-            poison: 3,
-            chain: 3.5,
-            drain: 2.5,
-            slow: 3.5,
-            heal: 2,
-            meteor: 5,
-            shield: 1.5
-          }
-          
-          const aoeRadius = effectRadius[player.selectedMagic] || 3
+          // Find enemies in range of the player using affectRange
           
           const enemiesInRange = enemies.filter(enemy => {
             if (!enemy.alive) return false
@@ -94,9 +66,6 @@ export default function ClickToCast({ playerPositionRef }) {
           })
           
           console.log(`Found ${enemiesInRange.length} enemies in range of player magic (radius: ${aoeRadius}m)`)
-          
-          // Get magic properties
-          const magic = magicTypes[player.selectedMagic]
           
           // Damage all enemies in range
           enemiesInRange.forEach(enemy => {

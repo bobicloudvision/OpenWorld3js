@@ -329,16 +329,67 @@ s          color={
             </Box>
           ))}
           
-          {/* Frozen indicator text */}
-          <Text
-            position={[0, 3.5, 0]}
-            fontSize={0.3}
-            color="#00ffff"
-            anchorX="center"
-            anchorY="middle"
-          >
-            ❄️ FROZEN
-          </Text>
+          {/* Blizzard effect - Bigger ice crystals */}
+          {getStatusEffect('freeze')?.appliedAt && (() => {
+            const freezeEffect = getStatusEffect('freeze')
+            // Check if this was applied by blizzard (longer duration = blizzard)
+            const isBlizzard = freezeEffect.duration >= 5000
+            
+            if (isBlizzard) {
+              return (
+                <>
+                  {/* Additional larger ice crystals for blizzard */}
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                    <Box
+                      key={`blizzard-${i}`}
+                      args={[0.3, 0.3, 0.3]}
+                      position={[
+                        Math.cos(i * Math.PI / 4.5) * 1.2,
+                        0.8 + Math.sin(Date.now() / 300 + i) * 0.4,
+                        Math.sin(i * Math.PI / 4.5) * 1.2
+                      ]}
+                      rotation={[
+                        Math.sin(Date.now() / 800 + i) * 0.8,
+                        Date.now() / 800 + i,
+                        Math.cos(Date.now() / 800 + i) * 0.8
+                      ]}
+                    >
+                      <meshStandardMaterial 
+                        color="#88ddff"
+                        transparent
+                        opacity={0.8}
+                        emissive="#88ddff"
+                        emissiveIntensity={0.7}
+                      />
+                    </Box>
+                  ))}
+                  
+                  {/* Blizzard indicator text */}
+                  <Text
+                    position={[0, 4, 0]}
+                    fontSize={0.4}
+                    color="#88ddff"
+                    anchorX="center"
+                    anchorY="middle"
+                  >
+                    ❄️ BLIZZARD
+                  </Text>
+                </>
+              )
+            } else {
+              return (
+                <Text
+                  position={[0, 3.5, 0]}
+                  fontSize={0.3}
+                  color="#00ffff"
+                  anchorX="center"
+                  anchorY="middle"
+                >
+                  ❄️ FROZEN
+                </Text>
+              )
+            }
+          })()}
         </group>
       )}
       

@@ -50,7 +50,9 @@ export default function Ground(props) {
         Math.pow(targetPosition[2] - playerZ, 2)
       )
       
-      const magicRange = 15 // Magic range from gameStore
+      // Get magic properties to check range
+      const selectedMagicType = magicTypes[player.selectedMagic]
+      const magicRange = selectedMagicType ? selectedMagicType.range : 15
       
       console.log(`Player position: [${playerX.toFixed(2)}, ${playerZ.toFixed(2)}]`)
       console.log(`Distance to player: ${distanceToPlayer.toFixed(2)}m, Magic range: ${magicRange}m`)
@@ -59,51 +61,23 @@ export default function Ground(props) {
         // Cast the magic at clicked position
         console.log(`Casting ${player.selectedMagic} at clicked position [${targetPosition[0].toFixed(2)}, ${targetPosition[2].toFixed(2)}]`)
         
+        // Get magic properties to use affectRange
+        const magic = magicTypes[player.selectedMagic]
+        const aoeRadius = magic.affectRange || 0
+        
         // Show magic effect at clicked position
         if (window.addMagicEffect) {
-          // Different effect sizes for different spells
-          const effectRadius = {
-            fire: 3,
-            ice: 2.5,
-            freeze: 2.5,
-            lightning: 4,
-            bomb: 4,
-            poison: 3,
-            chain: 3.5,
-            drain: 2.5,
-            slow: 3.5,
-            heal: 2,
-            meteor: 5,
-            shield: 1.5
-          }
-          
-          window.addMagicEffect(targetPosition, player.selectedMagic, effectRadius[player.selectedMagic] || 3)
+          window.addMagicEffect(targetPosition, player.selectedMagic, aoeRadius)
         }
         
         const result = castMagicAtPosition(player.selectedMagic, targetPosition, [playerX, playerPos[1], playerZ])
         
         if (result.success) {
-          console.log(`Magic cast successful! Damage: ${result.damage}`)
+          console.log(`Magic cast successful! Damage: ${result.damage}, AoE Radius: ${aoeRadius}m`)
           if (player.selectedMagic === 'heal') {
             healPlayer(Math.abs(result.damage))
           } else {
-            // Find enemies in range of the clicked position
-            const effectRadius = {
-              fire: 3,
-              ice: 2.5,
-              freeze: 2.5,
-              lightning: 4,
-              bomb: 4,
-              poison: 3,
-              chain: 3.5,
-              drain: 2.5,
-              slow: 3.5,
-              heal: 2,
-              meteor: 5,
-              shield: 1.5
-            }
-            
-            const aoeRadius = effectRadius[player.selectedMagic] || 3
+            // Find enemies in range of the clicked position using affectRange
             
             const enemiesInRange = enemies.filter(enemy => {
               if (!enemy.alive) return false
@@ -115,9 +89,6 @@ export default function Ground(props) {
             })
             
             console.log(`Found ${enemiesInRange.length} enemies in range of clicked magic (radius: ${aoeRadius}m)`)
-            
-            // Get magic properties
-            const magic = magicTypes[player.selectedMagic]
             
             // Damage all enemies in range and apply status effects
             enemiesInRange.forEach(enemy => {

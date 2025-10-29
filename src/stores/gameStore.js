@@ -10,7 +10,8 @@ const MAGIC_TYPES = {
     cooldown: 2000, // 2 seconds
     color: '#ff4444',
     description: 'A powerful fire projectile',
-    range: 15, // Maximum range
+    range: 15, // Maximum casting range
+    affectRange: 2, // Area of effect radius
     icon: '🔥'
   },
   ice: {
@@ -21,6 +22,7 @@ const MAGIC_TYPES = {
     color: '#44aaff',
     description: 'Freezing ice projectile',
     range: 12,
+    affectRange: 1.5, // Small AoE
     icon: '❄️'
   },
   freeze: {
@@ -31,10 +33,26 @@ const MAGIC_TYPES = {
     color: '#00ffff',
     description: 'Freezes enemy in place',
     range: 10,
+    affectRange: 3, // Freezes enemies in small area
     icon: '🧊',
     statusEffect: {
       type: 'freeze',
       duration: 10000 // 10 seconds frozen
+    }
+  },
+  blizzard: {
+    name: 'Blizzard',
+    damage: 20,
+    powerCost: 50,
+    cooldown: 15000, // 15 seconds
+    color: '#88ddff',
+    description: 'Massive freeze storm',
+    range: 25,
+    affectRange: 8, // Large AoE storm
+    icon: '❄️',
+    statusEffect: {
+      type: 'freeze',
+      duration: 8000 // 8 seconds frozen
     }
   },
   lightning: {
@@ -45,6 +63,7 @@ const MAGIC_TYPES = {
     color: '#ffff44',
     description: 'Fast lightning attack',
     range: 20,
+    affectRange: 2, // Small shock radius
     icon: '⚡'
   },
   bomb: {
@@ -55,6 +74,7 @@ const MAGIC_TYPES = {
     color: '#ff00ff',
     description: 'Explosive force that knocks back enemies',
     range: 12,
+    affectRange: 6, // Large explosion radius
     icon: '💣',
     statusEffect: {
       type: 'knockback',
@@ -69,6 +89,7 @@ const MAGIC_TYPES = {
     color: '#88ff00',
     description: 'Deals damage over time',
     range: 10,
+    affectRange: 5, // Poison cloud spreads
     icon: '☠️',
     statusEffect: {
       type: 'poison',
@@ -85,6 +106,7 @@ const MAGIC_TYPES = {
     color: '#4444ff',
     description: 'Bounces between nearby enemies',
     range: 15,
+    affectRange: 2, // Initial hit area
     icon: '⚡️',
     statusEffect: {
       type: 'chain',
@@ -100,6 +122,7 @@ const MAGIC_TYPES = {
     color: '#ff0088',
     description: 'Steal life from enemies',
     range: 12,
+    affectRange: 1, // Single target focused
     icon: '🩸',
     statusEffect: {
       type: 'lifesteal',
@@ -114,6 +137,7 @@ const MAGIC_TYPES = {
     color: '#8844ff',
     description: 'Slows enemy movement',
     range: 15,
+    affectRange: 4, // Time warp field
     icon: '⏰',
     statusEffect: {
       type: 'slow',
@@ -129,6 +153,7 @@ const MAGIC_TYPES = {
     color: '#44ff44',
     description: 'Restore health',
     range: 8, // Heal range
+    affectRange: 0, // Self-heal only
     icon: '💚'
   },
   meteor: {
@@ -139,6 +164,7 @@ const MAGIC_TYPES = {
     color: '#ff8800',
     description: 'Devastating meteor strike',
     range: 25,
+    affectRange: 7, // Massive impact crater
     icon: '☄️'
   },
   shield: {
@@ -149,6 +175,7 @@ const MAGIC_TYPES = {
     color: '#8888ff',
     description: 'Protective barrier',
     range: 5,
+    affectRange: 0, // Self-shield only
     icon: '🛡️'
   }
 }
@@ -171,6 +198,7 @@ const useGameStore = create(
           fire: 0,
           ice: 0,
           freeze: 0,
+          blizzard: 0,
           lightning: 0,
           bomb: 0,
           poison: 0,
@@ -554,6 +582,7 @@ const useGameStore = create(
               fire: 0,
               ice: 0,
               freeze: 0,
+              blizzard: 0,
               lightning: 0,
               bomb: 0,
               poison: 0,
