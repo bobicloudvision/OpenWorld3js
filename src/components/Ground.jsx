@@ -132,6 +132,8 @@ export default function Ground(props) {
       <primitive 
         object={scene} 
         scale={1}
+        metalness={0.1}
+        roughness={0.8}
         position={[0, -10, 0]}
         onClick={handleGroundClick}
       />

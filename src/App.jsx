@@ -18,6 +18,7 @@ import MagicPalette from './components/MagicPalette'
 import ClickToCast from './components/ClickToCast'
 import MagicEffectsManager from './components/MagicEffectsManager'
 import ClickEffectsManager from './components/ClickEffectsManager'
+import HiddenElementPlaceholders from './components/HiddenElementPlaceholders'
 import './App.css'
 import './components/GameUI.css'
 
@@ -57,10 +58,10 @@ export default function App() {
           
           <Environment files="models/night.hdr" ground={{ scale: 100 }} />
 
-          <directionalLight intensity={0.6} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
+          <directionalLight intensity={0.4} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
         
           </directionalLight>
-          <ambientLight intensity={0.8} />
+          <ambientLight intensity={0.7} />
 
           <Physics 
             timeStep="vary" 
@@ -89,6 +90,7 @@ export default function App() {
          
 
           <Ground playerPositionRef={playerPositionRef} />
+          <HiddenElementPlaceholders />
           <GameManager playerPositionRef={playerPositionRef} />
 
           </Physics>
