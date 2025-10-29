@@ -100,11 +100,13 @@ export default function ClickToCast({ playerPositionRef }) {
           
           // Damage all enemies in range
           enemiesInRange.forEach(enemy => {
+            console.log(`Attacking enemy ${enemy.id} with ${player.selectedMagic}`)
             attackEnemy(enemy.id, result.damage)
             
             // Apply status effects if the magic has any
             if (magic.statusEffect) {
               const statusEffect = magic.statusEffect
+              console.log(`Applying status effect to enemy ${enemy.id}:`, statusEffect)
               
               // Handle knockback effect
               if (statusEffect.type === 'knockback') {

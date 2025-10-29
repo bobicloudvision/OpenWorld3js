@@ -27,14 +27,14 @@ const MAGIC_TYPES = {
     name: 'Deep Freeze',
     damage: 10,
     powerCost: 25,
-    cooldown: 6000, // 6 seconds
+    cooldown: 10000, // 10 seconds
     color: '#00ffff',
     description: 'Freezes enemy in place',
     range: 10,
     icon: '🧊',
     statusEffect: {
       type: 'freeze',
-      duration: 3000 // 3 seconds frozen
+      duration: 10000 // 10 seconds frozen
     }
   },
   lightning: {
@@ -369,6 +369,8 @@ const useGameStore = create(
       applyStatusEffect: (enemyId, statusEffect, magicType) => {
         const now = Date.now()
         
+        console.log(`[GameStore] Applying ${statusEffect.type} to enemy ${enemyId}`)
+        
         set((state) => ({
           enemies: state.enemies.map(enemy => {
             if (enemy.id !== enemyId) return enemy
@@ -380,9 +382,12 @@ const useGameStore = create(
               expiresAt: now + (statusEffect.duration || 0)
             }
             
+            console.log(`[GameStore] Adding effect to enemy ${enemyId}:`, newEffect)
+            console.log(`[GameStore] Enemy had ${enemy.statusEffects?.length || 0} effects before`)
+            
             return {
               ...enemy,
-              statusEffects: [...enemy.statusEffects, newEffect]
+              statusEffects: [...(enemy.statusEffects || []), newEffect]
             }
           }),
           combatLog: [
@@ -662,6 +667,24 @@ if (typeof window !== 'undefined') {
       if (parsed.state?.player?.health <= 0) {
         console.log('Clearing defeated game state from localStorage')
         localStorage.removeItem('ow3-game')
+      }
+      
+      // Migration: Add statusEffects to enemies if they don't have it
+      if (parsed.state?.enemies) {
+        let needsUpdate = false
+        const updatedEnemies = parsed.state.enemies.map(enemy => {
+          if (!enemy.statusEffects) {
+            needsUpdate = true
+            return { ...enemy, statusEffects: [] }
+          }
+          return enemy
+        })
+        
+        if (needsUpdate) {
+          console.log('Migrating enemy data to include statusEffects')
+          parsed.state.enemies = updatedEnemies
+          localStorage.setItem('ow3-game', JSON.stringify(parsed))
+        }
       }
     } catch (e) {
       console.log('Error parsing saved state, clearing localStorage')
