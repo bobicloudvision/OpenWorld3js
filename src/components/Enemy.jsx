@@ -11,6 +11,19 @@ export default function Enemy({ enemy, playerPositionRef }) {
   
   const attackRange = 3 // Attack range
   const magicRange = 8 // Magic range
+  const detectionRange = 25 // Detection/scanning range
+  
+  // Movement speed based on enemy type
+  const getMovementSpeed = (enemyType) => {
+    switch(enemyType) {
+      case 'melee': return 2.5 // Fast melee
+      case 'caster': return 1.5 // Slow caster
+      case 'tank': return 1.8 // Medium tank
+      default: return 2.0
+    }
+  }
+  
+  const movementSpeed = getMovementSpeed(enemy.type)
   
   useFrame((state, delta) => {
     if (!enemy.alive) return
@@ -29,40 +42,75 @@ export default function Enemy({ enemy, playerPositionRef }) {
       // console.log(`Enemy world pos: [${enemy.position[0].toFixed(2)}, ${enemy.position[2].toFixed(2)}], Player pos: [${playerPosition[0].toFixed(2)}, ${playerPosition[2].toFixed(2)}]`)
     }
     
-    // Enemy AI behavior
-    if (distanceToPlayer <= attackRange) {
-      // In melee range - attack
-      if (now - enemy.lastAttack > enemy.attackCooldown) {
-        const damage = Math.max(1, enemy.attack - 5) // Basic damage calculation
-        console.log(`Enemy ${enemy.id} attacking player! Distance: ${distanceToPlayer.toFixed(2)}m, Damage: ${damage}`)
-        enemyAttackPlayer(enemy.id, damage)
+    // Enemy AI behavior with scanning and movement
+    if (distanceToPlayer <= detectionRange) {
+      // Player detected - scan and react
+      
+      if (distanceToPlayer <= attackRange) {
+        // In melee range - stop and attack
+        if (now - enemy.lastAttack > enemy.attackCooldown) {
+          const damage = Math.max(1, enemy.attack - 5) // Basic damage calculation
+          console.log(`Enemy ${enemy.id} attacking player! Distance: ${distanceToPlayer.toFixed(2)}m, Damage: ${damage}`)
+          enemyAttackPlayer(enemy.id, damage)
+          
+          // Update enemy's last attack time
+          useGameStore.setState((state) => ({
+            enemies: state.enemies.map(e => 
+              e.id === enemy.id 
+                ? { ...e, lastAttack: now }
+                : e
+            )
+          }))
+        }
+      } else if (distanceToPlayer <= magicRange && enemy.magicTypes.length > 0) {
+        // In magic range - stop and cast magic
+        if (now - enemy.lastAttack > enemy.attackCooldown) {
+          const magicDamage = Math.max(1, enemy.attack + 5) // Magic damage calculation
+          console.log(`Enemy ${enemy.id} casting magic! Distance: ${distanceToPlayer.toFixed(2)}m, Damage: ${magicDamage}`)
+          enemyAttackPlayer(enemy.id, magicDamage)
+          
+          // Update enemy's last attack time
+          useGameStore.setState((state) => ({
+            enemies: state.enemies.map(e => 
+              e.id === enemy.id 
+                ? { ...e, lastAttack: now }
+                : e
+            )
+          }))
+        }
+      } else {
+        // Move towards player
+        const directionX = playerPosition[0] - enemy.position[0]
+        const directionZ = playerPosition[2] - enemy.position[2]
+        const magnitude = Math.sqrt(directionX * directionX + directionZ * directionZ)
         
-        // Update enemy's last attack time
-        useGameStore.setState((state) => ({
-          enemies: state.enemies.map(e => 
-            e.id === enemy.id 
-              ? { ...e, lastAttack: now }
-              : e
-          )
-        }))
-      }
-    } else if (distanceToPlayer <= magicRange && enemy.magicTypes.length > 0) {
-      // In magic range - cast magic (simplified)
-      if (now - enemy.lastAttack > enemy.attackCooldown) {
-        const magicDamage = Math.max(1, enemy.attack + 5) // Magic damage calculation
-        console.log(`Enemy ${enemy.id} casting magic! Distance: ${distanceToPlayer.toFixed(2)}m, Damage: ${magicDamage}`)
-        enemyAttackPlayer(enemy.id, magicDamage)
-        
-        // Update enemy's last attack time
-        useGameStore.setState((state) => ({
-          enemies: state.enemies.map(e => 
-            e.id === enemy.id 
-              ? { ...e, lastAttack: now }
-              : e
-          )
-        }))
+        if (magnitude > 0) {
+          // Normalize direction
+          const normalizedX = directionX / magnitude
+          const normalizedZ = directionZ / magnitude
+          
+          // Calculate movement
+          const moveX = normalizedX * movementSpeed * delta
+          const moveZ = normalizedZ * movementSpeed * delta
+          
+          // Update enemy position in store
+          const newPosition = [
+            enemy.position[0] + moveX,
+            enemy.position[1],
+            enemy.position[2] + moveZ
+          ]
+          
+          useGameStore.setState((state) => ({
+            enemies: state.enemies.map(e => 
+              e.id === enemy.id 
+                ? { ...e, position: newPosition }
+                : e
+            )
+          }))
+        }
       }
     }
+    // If player is outside detection range, enemy stays idle
   })
   
   if (!enemy.alive) {
@@ -124,13 +172,27 @@ export default function Enemy({ enemy, playerPositionRef }) {
         </Box>
       </group>
       
-      {/* Range indicator (for debugging) */}
+      {/* Attack range indicator (for debugging) */}
       <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[attackRange - 0.1, attackRange + 0.1, 32]} />
         <meshBasicMaterial color="#ff0000" transparent opacity={0.3} />
       </mesh>
       
-      {/* Distance text (for debugging) */}
+      {/* Magic range indicator (for debugging) */}
+      {enemy.magicTypes.length > 0 && (
+        <mesh position={[0, 0.1, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[magicRange - 0.1, magicRange + 0.1, 32]} />
+          <meshBasicMaterial color="#ff8800" transparent opacity={0.2} />
+        </mesh>
+      )}
+      
+      {/* Detection range indicator (for debugging) */}
+      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[detectionRange - 0.2, detectionRange + 0.2, 64]} />
+        <meshBasicMaterial color="#44aaff" transparent opacity={0.15} />
+      </mesh>
+      
+      {/* Distance and AI state text (for debugging) */}
       {groupRef.current && (() => {
         const playerPosition = playerPositionRef.current
         const distance = Math.sqrt(
@@ -141,19 +203,24 @@ export default function Enemy({ enemy, playerPositionRef }) {
         
         let textColor = "yellow"
         let textContent = ""
+        let aiState = ""
         
-        if (distance <= attackRange) {
+        if (distance > detectionRange) {
+          textColor = "gray"
+          aiState = "IDLE"
+          textContent = `${aiState} (${roundedDistance}m)`
+        } else if (distance <= attackRange) {
           textColor = "red"
-          textContent = `VERY CLOSE (${roundedDistance}m)`
-        } else if (distance <= magicRange) {
+          aiState = "ATTACKING"
+          textContent = `${aiState} (${roundedDistance}m)`
+        } else if (distance <= magicRange && enemy.magicTypes.length > 0) {
           textColor = "orange"
-          textContent = `CLOSE (${roundedDistance}m)`
-        } else if (distance <= 15) {
-          textColor = "yellow"
-          textContent = `NEARBY (${roundedDistance}m)`
+          aiState = "CASTING"
+          textContent = `${aiState} (${roundedDistance}m)`
         } else {
-          textColor = "lightblue"
-          textContent = `FAR (${roundedDistance}m)`
+          textColor = "lime"
+          aiState = "CHASING"
+          textContent = `${aiState} (${roundedDistance}m)`
         }
         
         return (
