@@ -369,8 +369,6 @@ const useGameStore = create(
       applyStatusEffect: (enemyId, statusEffect, magicType) => {
         const now = Date.now()
         
-        console.log(`[GameStore] Applying ${statusEffect.type} to enemy ${enemyId}`)
-        
         set((state) => ({
           enemies: state.enemies.map(enemy => {
             if (enemy.id !== enemyId) return enemy
@@ -381,9 +379,6 @@ const useGameStore = create(
               appliedAt: now,
               expiresAt: now + (statusEffect.duration || 0)
             }
-            
-            console.log(`[GameStore] Adding effect to enemy ${enemyId}:`, newEffect)
-            console.log(`[GameStore] Enemy had ${enemy.statusEffects?.length || 0} effects before`)
             
             return {
               ...enemy,
