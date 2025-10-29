@@ -11,7 +11,10 @@ export default function ClickToCast({ playerPositionRef }) {
     exitCastingMode, 
     healPlayer,
     attackEnemy,
-    enemies
+    enemies,
+    applyStatusEffect,
+    knockbackEnemy,
+    magicTypes
   } = useGameStore()
   
   const handleClick = (event) => {
@@ -41,7 +44,13 @@ export default function ClickToCast({ playerPositionRef }) {
         const effectRadius = {
           fire: 3,
           ice: 2.5,
+          freeze: 2.5,
           lightning: 4,
+          bomb: 4,
+          poison: 3,
+          chain: 3.5,
+          drain: 2.5,
+          slow: 3.5,
           heal: 2,
           meteor: 5,
           shield: 1.5
@@ -61,7 +70,13 @@ export default function ClickToCast({ playerPositionRef }) {
           const effectRadius = {
             fire: 3,
             ice: 2.5,
+            freeze: 2.5,
             lightning: 4,
+            bomb: 4,
+            poison: 3,
+            chain: 3.5,
+            drain: 2.5,
+            slow: 3.5,
             heal: 2,
             meteor: 5,
             shield: 1.5
@@ -80,9 +95,31 @@ export default function ClickToCast({ playerPositionRef }) {
           
           console.log(`Found ${enemiesInRange.length} enemies in range of player magic (radius: ${aoeRadius}m)`)
           
+          // Get magic properties
+          const magic = magicTypes[player.selectedMagic]
+          
           // Damage all enemies in range
           enemiesInRange.forEach(enemy => {
             attackEnemy(enemy.id, result.damage)
+            
+            // Apply status effects if the magic has any
+            if (magic.statusEffect) {
+              const statusEffect = magic.statusEffect
+              
+              // Handle knockback effect
+              if (statusEffect.type === 'knockback') {
+                knockbackEnemy(enemy.id, playerPosition, statusEffect.force)
+              }
+              
+              // Apply status effect to enemy
+              applyStatusEffect(enemy.id, statusEffect, player.selectedMagic)
+              
+              // Handle lifesteal effect
+              if (statusEffect.type === 'lifesteal') {
+                const healAmount = Math.floor(result.damage * (statusEffect.healPercent / 100))
+                healPlayer(healAmount)
+              }
+            }
           })
         }
         

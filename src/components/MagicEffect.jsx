@@ -16,7 +16,13 @@ export default function MagicEffect({
     switch (type) {
       case 'fire': return '#ff4444'
       case 'ice': return '#44aaff'
+      case 'freeze': return '#00ffff'
       case 'lightning': return '#ffff44'
+      case 'bomb': return '#ff00ff'
+      case 'poison': return '#88ff00'
+      case 'chain': return '#4444ff'
+      case 'drain': return '#ff0088'
+      case 'slow': return '#8844ff'
       case 'heal': return '#44ff44'
       case 'meteor': return '#ff8800'
       case 'shield': return '#8888ff'

@@ -23,6 +23,20 @@ const MAGIC_TYPES = {
     range: 12,
     icon: '❄️'
   },
+  freeze: {
+    name: 'Deep Freeze',
+    damage: 10,
+    powerCost: 25,
+    cooldown: 6000, // 6 seconds
+    color: '#00ffff',
+    description: 'Freezes enemy in place',
+    range: 10,
+    icon: '🧊',
+    statusEffect: {
+      type: 'freeze',
+      duration: 3000 // 3 seconds frozen
+    }
+  },
   lightning: {
     name: 'Lightning Bolt',
     damage: 30,
@@ -32,6 +46,80 @@ const MAGIC_TYPES = {
     description: 'Fast lightning attack',
     range: 20,
     icon: '⚡'
+  },
+  bomb: {
+    name: 'Arcane Bomb',
+    damage: 35,
+    powerCost: 30,
+    cooldown: 4000, // 4 seconds
+    color: '#ff00ff',
+    description: 'Explosive force that knocks back enemies',
+    range: 12,
+    icon: '💣',
+    statusEffect: {
+      type: 'knockback',
+      force: 8 // Knockback distance
+    }
+  },
+  poison: {
+    name: 'Poison Cloud',
+    damage: 15, // Initial damage
+    powerCost: 20,
+    cooldown: 3500,
+    color: '#88ff00',
+    description: 'Deals damage over time',
+    range: 10,
+    icon: '☠️',
+    statusEffect: {
+      type: 'poison',
+      duration: 5000, // 5 seconds
+      tickDamage: 5, // Damage per tick
+      tickRate: 1000 // Every 1 second
+    }
+  },
+  chain: {
+    name: 'Chain Lightning',
+    damage: 20,
+    powerCost: 35,
+    cooldown: 5000,
+    color: '#4444ff',
+    description: 'Bounces between nearby enemies',
+    range: 15,
+    icon: '⚡️',
+    statusEffect: {
+      type: 'chain',
+      bounces: 3, // Hits 3 additional targets
+      chainRange: 8 // Range to next target
+    }
+  },
+  drain: {
+    name: 'Life Drain',
+    damage: 25,
+    powerCost: 20,
+    cooldown: 4000,
+    color: '#ff0088',
+    description: 'Steal life from enemies',
+    range: 12,
+    icon: '🩸',
+    statusEffect: {
+      type: 'lifesteal',
+      healPercent: 50 // Heal for 50% of damage dealt
+    }
+  },
+  slow: {
+    name: 'Time Warp',
+    damage: 5,
+    powerCost: 20,
+    cooldown: 5000,
+    color: '#8844ff',
+    description: 'Slows enemy movement',
+    range: 15,
+    icon: '⏰',
+    statusEffect: {
+      type: 'slow',
+      duration: 4000, // 4 seconds
+      slowPercent: 50 // 50% movement speed reduction
+    }
   },
   heal: {
     name: 'Heal',
@@ -82,7 +170,13 @@ const useGameStore = create(
         magicCooldowns: {
           fire: 0,
           ice: 0,
+          freeze: 0,
           lightning: 0,
+          bomb: 0,
+          poison: 0,
+          chain: 0,
+          drain: 0,
+          slow: 0,
           heal: 0,
           meteor: 0,
           shield: 0
@@ -105,7 +199,8 @@ const useGameStore = create(
           type: 'melee',
           magicTypes: ['fire'],
           lastAttack: 0,
-          attackCooldown: 2000
+          attackCooldown: 2000,
+          statusEffects: [] // Active status effects
         },
         {
           id: 2,
@@ -121,7 +216,8 @@ const useGameStore = create(
           type: 'caster',
           magicTypes: ['ice', 'lightning'],
           lastAttack: 0,
-          attackCooldown: 3000
+          attackCooldown: 3000,
+          statusEffects: []
         },
         {
           id: 3,
@@ -137,7 +233,8 @@ const useGameStore = create(
           type: 'tank',
           magicTypes: [],
           lastAttack: 0,
-          attackCooldown: 1500
+          attackCooldown: 1500,
+          statusEffects: []
         },
         {
           id: 4,
@@ -153,7 +250,8 @@ const useGameStore = create(
           type: 'melee',
           magicTypes: [],
           lastAttack: 0,
-          attackCooldown: 2000
+          attackCooldown: 2000,
+          statusEffects: []
         }
       ],
       
@@ -265,6 +363,76 @@ const useGameStore = create(
       // Set target position for casting
       setTargetPosition: (position) => {
         set({ targetPosition: position })
+      },
+      
+      // Apply status effect to enemy
+      applyStatusEffect: (enemyId, statusEffect, magicType) => {
+        const now = Date.now()
+        
+        set((state) => ({
+          enemies: state.enemies.map(enemy => {
+            if (enemy.id !== enemyId) return enemy
+            
+            // Create the status effect object
+            const newEffect = {
+              ...statusEffect,
+              appliedAt: now,
+              expiresAt: now + (statusEffect.duration || 0)
+            }
+            
+            return {
+              ...enemy,
+              statusEffects: [...enemy.statusEffects, newEffect]
+            }
+          }),
+          combatLog: [
+            ...state.combatLog.slice(-9),
+            { 
+              type: 'status', 
+              message: `Enemy ${enemyId} affected by ${statusEffect.type}!`,
+              timestamp: now
+            }
+          ]
+        }))
+      },
+      
+      // Remove expired status effects
+      updateStatusEffects: () => {
+        const now = Date.now()
+        
+        set((state) => ({
+          enemies: state.enemies.map(enemy => ({
+            ...enemy,
+            statusEffects: enemy.statusEffects.filter(effect => 
+              !effect.expiresAt || effect.expiresAt > now
+            )
+          }))
+        }))
+      },
+      
+      // Knockback enemy
+      knockbackEnemy: (enemyId, playerPosition, force) => {
+        set((state) => ({
+          enemies: state.enemies.map(enemy => {
+            if (enemy.id !== enemyId) return enemy
+            
+            // Calculate knockback direction
+            const dx = enemy.position[0] - playerPosition[0]
+            const dz = enemy.position[2] - playerPosition[2]
+            const distance = Math.sqrt(dx * dx + dz * dz)
+            
+            if (distance === 0) return enemy
+            
+            // Normalize and apply force
+            const newX = enemy.position[0] + (dx / distance) * force
+            const newZ = enemy.position[2] + (dz / distance) * force
+            
+            return {
+              ...enemy,
+              position: [newX, enemy.position[1], newZ]
+            }
+          })
+        }))
       },
       
       // Attack enemy
@@ -385,8 +553,16 @@ const useGameStore = create(
             magicCooldowns: {
               fire: 0,
               ice: 0,
+              freeze: 0,
               lightning: 0,
-              heal: 0
+              bomb: 0,
+              poison: 0,
+              chain: 0,
+              drain: 0,
+              slow: 0,
+              heal: 0,
+              meteor: 0,
+              shield: 0
             }
           },
           enemies: [
@@ -404,7 +580,8 @@ const useGameStore = create(
               type: 'melee',
               magicTypes: ['fire'],
               lastAttack: 0,
-              attackCooldown: 2000
+              attackCooldown: 2000,
+              statusEffects: []
             },
             {
               id: 2,
@@ -420,7 +597,8 @@ const useGameStore = create(
               type: 'caster',
               magicTypes: ['ice', 'lightning'],
               lastAttack: 0,
-              attackCooldown: 3000
+              attackCooldown: 3000,
+              statusEffects: []
             },
             {
               id: 3,
@@ -436,7 +614,8 @@ const useGameStore = create(
               type: 'tank',
               magicTypes: [],
               lastAttack: 0,
-              attackCooldown: 1500
+              attackCooldown: 1500,
+              statusEffects: []
             },
             {
               id: 4,
@@ -452,7 +631,8 @@ const useGameStore = create(
               type: 'melee',
               magicTypes: [],
               lastAttack: 0,
-              attackCooldown: 2000
+              attackCooldown: 2000,
+              statusEffects: []
             }
           ],
           gameState: 'playing',

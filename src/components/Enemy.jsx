@@ -1,17 +1,28 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useRapier } from '@react-three/rapier'
-import { Box, Text } from '@react-three/drei'
+import { Box, Text, Sphere, Ring } from '@react-three/drei'
 import * as THREE from 'three'
 import useGameStore from '../stores/gameStore'
 
 export default function Enemy({ enemy, playerPositionRef }) {
   const groupRef = useRef()
-  const { enemyAttackPlayer } = useGameStore()
+  const { enemyAttackPlayer, updateStatusEffects } = useGameStore()
+  const [poisonTickTime, setPoisonTickTime] = useState(0)
   
   const attackRange = 3 // Attack range
   const magicRange = 8 // Magic range
   const detectionRange = 25 // Detection/scanning range
+  
+  // Helper function to check if enemy has a specific status effect
+  const hasStatusEffect = (effectType) => {
+    return enemy.statusEffects?.some(effect => effect.type === effectType) || false
+  }
+  
+  // Get status effect data
+  const getStatusEffect = (effectType) => {
+    return enemy.statusEffects?.find(effect => effect.type === effectType)
+  }
   
   // Random wandering state
   const wanderDirection = useRef({
@@ -70,6 +81,47 @@ export default function Enemy({ enemy, playerPositionRef }) {
     )
     
     const now = Date.now()
+    
+    // Update status effects (remove expired ones)
+    updateStatusEffects()
+    
+    // Check for freeze effect
+    const isFrozen = hasStatusEffect('freeze')
+    
+    // Check for slow effect
+    const slowEffect = getStatusEffect('slow')
+    const slowMultiplier = slowEffect ? (1 - (slowEffect.slowPercent || 50) / 100) : 1
+    
+    // Handle poison damage over time
+    const poisonEffect = getStatusEffect('poison')
+    if (poisonEffect && now - poisonTickTime >= (poisonEffect.tickRate || 1000)) {
+      const poisonDamage = poisonEffect.tickDamage || 5
+      useGameStore.setState((state) => ({
+        enemies: state.enemies.map(e => 
+          e.id === enemy.id 
+            ? { 
+                ...e, 
+                health: Math.max(0, e.health - poisonDamage),
+                alive: e.health - poisonDamage > 0
+              }
+            : e
+        ),
+        combatLog: [
+          ...state.combatLog.slice(-9),
+          { 
+            type: 'damage', 
+            message: `Enemy ${enemy.id} takes ${poisonDamage} poison damage`,
+            timestamp: now
+          }
+        ]
+      }))
+      setPoisonTickTime(now)
+    }
+    
+    // If frozen, skip all movement and actions
+    if (isFrozen) {
+      return
+    }
     
     // Check if player is visible (in FOV and within detection range)
     const playerVisible = distanceToPlayer <= detectionRange && 
@@ -146,9 +198,9 @@ export default function Enemy({ enemy, playerPositionRef }) {
           const normalizedX = directionX / magnitude
           const normalizedZ = directionZ / magnitude
           
-          // Calculate movement
-          const moveX = normalizedX * movementSpeed * delta
-          const moveZ = normalizedZ * movementSpeed * delta
+          // Calculate movement (apply slow effect)
+          const moveX = normalizedX * movementSpeed * slowMultiplier * delta
+          const moveZ = normalizedZ * movementSpeed * slowMultiplier * delta
           
           // Update enemy position in store
           const newPosition = [
@@ -191,9 +243,9 @@ export default function Enemy({ enemy, playerPositionRef }) {
         // Update facing direction to wander direction
         facingAngle.current = Math.atan2(normalizedZ, normalizedX)
         
-        // Calculate wandering movement
-        const moveX = normalizedX * wanderSpeed * delta
-        const moveZ = normalizedZ * wanderSpeed * delta
+        // Calculate wandering movement (apply slow effect)
+        const moveX = normalizedX * wanderSpeed * slowMultiplier * delta
+        const moveZ = normalizedZ * wanderSpeed * slowMultiplier * delta
         
         // Update enemy position in store
         const newPosition = [
@@ -237,9 +289,124 @@ export default function Enemy({ enemy, playerPositionRef }) {
         receiveShadow
       >
         <meshStandardMaterial 
-          color={enemy.type === 'melee' ? '#8B4513' : enemy.type === 'caster' ? '#4B0082' : '#2F4F4F'}
+s          color={
+            hasStatusEffect('freeze') ? '#00ffff' : // Cyan when frozen
+            hasStatusEffect('poison') ? '#88ff00' : // Green when poisoned
+            hasStatusEffect('slow') ? '#8844ff' : // Purple when slowed
+            enemy.type === 'melee' ? '#8B4513' : 
+            enemy.type === 'caster' ? '#4B0082' : 
+            '#2F4F4F'
+          }
         />
       </Box>
+      
+      {/* Freeze effect - Ice crystals */}
+      {hasStatusEffect('freeze') && (
+        <group>
+          {/* Ice cubes around enemy */}
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <Box
+              key={i}
+              args={[0.2, 0.2, 0.2]}
+              position={[
+                Math.cos(i * Math.PI / 3) * 0.8,
+                0.5 + Math.sin(Date.now() / 500 + i) * 0.3,
+                Math.sin(i * Math.PI / 3) * 0.8
+              ]}
+              rotation={[
+                Math.sin(Date.now() / 1000 + i) * 0.5,
+                Date.now() / 1000 + i,
+                Math.cos(Date.now() / 1000 + i) * 0.5
+              ]}
+            >
+              <meshStandardMaterial 
+                color="#00ffff"
+                transparent
+                opacity={0.7}
+                emissive="#00ffff"
+                emissiveIntensity={0.5}
+              />
+            </Box>
+          ))}
+          
+          {/* Frozen indicator text */}
+          <Text
+            position={[0, 3.5, 0]}
+            fontSize={0.3}
+            color="#00ffff"
+            anchorX="center"
+            anchorY="middle"
+          >
+            ❄️ FROZEN
+          </Text>
+        </group>
+      )}
+      
+      {/* Poison effect - Toxic particles */}
+      {hasStatusEffect('poison') && (
+        <group>
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <Sphere
+              key={i}
+              args={[0.1, 8, 8]}
+              position={[
+                Math.cos(i * Math.PI / 4 + Date.now() / 1000) * 0.6,
+                1 + Math.sin(Date.now() / 800 + i) * 0.5,
+                Math.sin(i * Math.PI / 4 + Date.now() / 1000) * 0.6
+              ]}
+            >
+              <meshBasicMaterial 
+                color="#88ff00"
+                transparent
+                opacity={0.6}
+              />
+            </Sphere>
+          ))}
+          
+          {/* Poison indicator text */}
+          <Text
+            position={[0, 3.5, 0]}
+            fontSize={0.3}
+            color="#88ff00"
+            anchorX="center"
+            anchorY="middle"
+          >
+            ☠️ POISONED
+          </Text>
+        </group>
+      )}
+      
+      {/* Slow effect - Time distortion rings */}
+      {hasStatusEffect('slow') && (
+        <group>
+          {[0, 1, 2].map((i) => (
+            <Ring
+              key={i}
+              args={[0.5 + i * 0.3, 0.6 + i * 0.3, 32]}
+              position={[0, 1 + i * 0.3, 0]}
+              rotation={[Math.PI / 2, 0, Date.now() / 1000 + i]}
+            >
+              <meshBasicMaterial 
+                color="#8844ff"
+                transparent
+                opacity={0.4 - i * 0.1}
+                side={THREE.DoubleSide}
+              />
+            </Ring>
+          ))}
+          
+          {/* Slow indicator text */}
+          <Text
+            position={[0, 3.5, 0]}
+            fontSize={0.3}
+            color="#8844ff"
+            anchorX="center"
+            anchorY="middle"
+          >
+            ⏰ SLOWED
+          </Text>
+        </group>
+      )}
       
       {/* Eyes - two glowing spheres on front of body */}
       <group position={[0.45, 0.3, 0]}>

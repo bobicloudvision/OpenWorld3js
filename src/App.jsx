@@ -42,7 +42,7 @@ export default function App() {
     {/* <GameInstructions /> */}
     <GameUI playerPositionRef={playerPositionRef} />
     <MagicPalette />
-    <ModeIndicator />
+    {/* <ModeIndicator /> */}
     <KeyboardShapeCreator />
     <MaterialPalette />
     
