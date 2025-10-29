@@ -55,12 +55,12 @@ export default function App() {
         }}
       >
           
-          <Sky sunPosition={[100, 20, 100]} />
+          <Environment files="models/night.hdr" ground={{ scale: 100 }} />
 
-          <directionalLight intensity={2.5} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
+          <directionalLight intensity={0.6} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
         
           </directionalLight>
-          <ambientLight intensity={5} />
+          <ambientLight intensity={0.8} />
 
           <Physics 
             timeStep="vary" 

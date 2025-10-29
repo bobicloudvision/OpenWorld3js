@@ -1,12 +1,9 @@
-import * as THREE from "three"
-import { useTexture } from "@react-three/drei"
-import { CuboidCollider, RigidBody } from "@react-three/rapier"
+import { useGLTF } from "@react-three/drei"
+import { RigidBody } from "@react-three/rapier"
 import useGameStore from '../stores/gameStore'
-import grass from "/textures/grass.png"
 
 export default function Ground(props) {
-  const texture = useTexture(grass)
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+  const { scene } = useGLTF('/models/world1.glb')
   
   const { 
     castingMode, 
@@ -130,20 +127,13 @@ export default function Ground(props) {
     <RigidBody 
       {...props} 
       type="fixed"
-      colliders="cuboid" 
+      colliders="trimesh"
     >
-      <mesh 
-        receiveShadow 
-        position={[0, 0, 0]} 
-        rotation-x={-Math.PI / 2}
+      <primitive 
+        object={scene} 
+        scale={1}
+        position={[0, -10, 0]}
         onClick={handleGroundClick}
-      >
-        <planeGeometry args={[1000, 1000]} />
-        <meshStandardMaterial map={texture} map-repeat={[240, 240]} color="green" />
-      </mesh>
-      <CuboidCollider 
-        args={[1000, 0.4, 1000]} 
-        position={[0, 0, 0]} 
       />
     </RigidBody>
   )

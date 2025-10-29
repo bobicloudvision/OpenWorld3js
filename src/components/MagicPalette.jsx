@@ -44,6 +44,29 @@ export default function MagicPalette() {
     return player.power >= magicTypes[magicType].powerCost
   }
   
+  const getBorderColor = (magicType) => {
+    const magic = magicTypes[magicType]
+    const opacity = canAfford(magicType) ? 0.3 : 0.1
+    
+    // Convert hex color to rgba with opacity
+    const color = magic.color
+    if (color.startsWith('#')) {
+      const hex = color.replace('#', '')
+      const r = parseInt(hex.substring(0, 2), 16)
+      const g = parseInt(hex.substring(2, 4), 16)
+      const b = parseInt(hex.substring(4, 6), 16)
+      return `rgba(${r}, ${g}, ${b}, ${opacity})`
+    }
+    // If already rgb/rgba, modify opacity
+    if (color.startsWith('rgb')) {
+      return color.replace(/rgba?\(([^)]+)\)/, (match, values) => {
+        const parts = values.split(',').map(v => v.trim())
+        return `rgba(${parts[0]}, ${parts[1]}, ${parts[2]}, ${opacity})`
+      })
+    }
+    return color
+  }
+  
   return (
     <>
       {/* Magic Palette */}
@@ -55,7 +78,7 @@ export default function MagicPalette() {
               className={`magic-slot ${castingMode && player.selectedMagic === key ? 'casting' : ''} ${!canAfford(key) ? 'insufficient-power' : ''}`}
               onClick={() => handleMagicClick(key)}
               style={{ 
-                backgroundColor: magic.color,
+                border: `2px solid ${getBorderColor(key)}`,
                 opacity: canAfford(key) ? 1 : 0.5
               }}
             >
