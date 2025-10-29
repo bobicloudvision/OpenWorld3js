@@ -304,11 +304,68 @@ const useGameStore = create(
       // Game state
       gameState: 'playing', // 'playing', 'victory', 'defeat'
       combatLog: [],
+      playerAttackingAt: 0, // timestamp used to signal player attack animation
       
       // Magic system
       magicTypes: MAGIC_TYPES,
       castingMode: false, // Whether player is in casting mode
       targetPosition: null, // Where magic will be cast
+
+      // Trigger player attack animation
+      triggerPlayerAttack: () => {
+        set({ playerAttackingAt: Date.now() })
+      },
+
+      // Centralized cast resolution: applies damage, status effects, heals, visuals triggers
+      performCastWithCenter: (magicType, centerPosition, playerPosition) => {
+        const state = get()
+        const result = state.castMagicAtPosition(magicType, centerPosition, playerPosition)
+        if (!result.success) return result
+
+        const magic = result.magic
+        const damage = result.damage
+
+        // Heal self-cast
+        if (magicType === 'heal') {
+          get().healPlayer(Math.abs(damage))
+        } else {
+          // Trigger player attack animation
+          set({ playerAttackingAt: Date.now() })
+
+          const aoeRadius = magic.affectRange || 0
+          const enemiesInRange = get().enemies.filter(enemy => {
+            if (!enemy.alive) return false
+            const dx = enemy.position[0] - centerPosition[0]
+            const dz = enemy.position[2] - centerPosition[2]
+            const dist = Math.sqrt(dx * dx + dz * dz)
+            return dist <= aoeRadius
+          })
+
+          enemiesInRange.forEach(enemy => {
+            get().attackEnemy(enemy.id, damage)
+
+            if (magic.statusEffect) {
+              const statusEffect = magic.statusEffect
+
+              if (statusEffect.type === 'knockback') {
+                get().knockbackEnemy(enemy.id, playerPosition, statusEffect.force)
+              }
+
+              get().applyStatusEffect(enemy.id, statusEffect, magicType)
+
+              if (statusEffect.type === 'lifesteal') {
+                const healAmount = Math.floor(damage * (statusEffect.healPercent / 100))
+                get().healPlayer(healAmount)
+              }
+            }
+          })
+        }
+
+        // Exit casting mode
+        set({ castingMode: false, targetPosition: null })
+
+        return { success: true, magic, damage }
+      },
       
       // Player actions
       castMagic: (magicType, targetId = null) => {

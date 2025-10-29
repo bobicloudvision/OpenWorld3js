@@ -7,14 +7,9 @@ export default function ClickToCast({ playerPositionRef }) {
   const { 
     castingMode, 
     player, 
-    castMagicAtPosition, 
-    exitCastingMode, 
-    healPlayer,
-    attackEnemy,
-    enemies,
-    applyStatusEffect,
-    knockbackEnemy,
-    magicTypes
+    performCastWithCenter,
+    magicTypes,
+    exitCastingMode
   } = useGameStore()
   
   const handleClick = (event) => {
@@ -28,7 +23,7 @@ export default function ClickToCast({ playerPositionRef }) {
     const targetPosition = [point.x, point.y, point.z]
     
     console.log(`ClickToCast: Click position: [${targetPosition[0].toFixed(2)}, ${targetPosition[2].toFixed(2)}]`)
-    
+  
     // Show click effect at clicked position
     if (window.addClickEffect) {
       window.addClickEffect(targetPosition)
@@ -47,54 +42,9 @@ export default function ClickToCast({ playerPositionRef }) {
       if (window.addMagicEffect) {
         window.addMagicEffect(playerPosition, player.selectedMagic, aoeRadius)
       }
-      
-      const result = castMagicAtPosition(player.selectedMagic, playerPosition, playerPosition)
-      
-      if (result.success) {
-        console.log(`Magic cast successful! Damage: ${result.damage}, AoE Radius: ${aoeRadius}m`)
-        if (player.selectedMagic === 'heal') {
-          healPlayer(Math.abs(result.damage))
-        } else {
-          // Find enemies in range of the player using affectRange
-          
-          const enemiesInRange = enemies.filter(enemy => {
-            if (!enemy.alive) return false
-            const distance = Math.sqrt(
-              Math.pow(enemy.position[0] - playerPosition[0], 2) +
-              Math.pow(enemy.position[2] - playerPosition[2], 2)
-            )
-            return distance <= aoeRadius
-          })
-          
-          console.log(`Found ${enemiesInRange.length} enemies in range of player magic (radius: ${aoeRadius}m)`)
-          
-          // Damage all enemies in range
-          enemiesInRange.forEach(enemy => {
-            attackEnemy(enemy.id, result.damage)
-            
-            // Apply status effects if the magic has any
-            if (magic.statusEffect) {
-              const statusEffect = magic.statusEffect
-              
-              // Handle knockback effect
-              if (statusEffect.type === 'knockback') {
-                knockbackEnemy(enemy.id, playerPosition, statusEffect.force)
-              }
-              
-              // Apply status effect to enemy
-              applyStatusEffect(enemy.id, statusEffect, player.selectedMagic)
-              
-              // Handle lifesteal effect
-              if (statusEffect.type === 'lifesteal') {
-                const healAmount = Math.floor(result.damage * (statusEffect.healPercent / 100))
-                healPlayer(healAmount)
-              }
-            }
-          })
-        }
-        
-        exitCastingMode()
-      } else {
+
+      const result = performCastWithCenter(player.selectedMagic, playerPosition, playerPosition)
+      if (!result.success) {
         console.log(`Magic cast failed: ${result.message}`)
       }
     }

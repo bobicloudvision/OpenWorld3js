@@ -25,6 +25,7 @@ export function useAvatarAnimations(modelPath = '/models/avatars/NightshadeJFrie
   const { animations: idleAnimations } = useGLTF('/models/animations/ManIdle1.glb')
   const { animations: walkAnimations } = useGLTF('/models/animations/PohodkaTarikat.glb')
   const { animations: jumpAnimations } = useGLTF('/models/animations/Jump.glb')
+  const { animations: attackAnimations } = useGLTF('/models/animations/Attack2.glb') 
   
   // Initialize mixer and animations when clone is ready
   useEffect(() => {
@@ -52,13 +53,20 @@ export function useAvatarAnimations(modelPath = '/models/avatars/NightshadeJFrie
         animationActions.current.push(jumpAction)
       }
 
+      // Add attack animation (from GLB)
+      if (attackAnimations && attackAnimations.length > 0) {
+        const attackAction = mixer.current.clipAction(attackAnimations[0])
+        attackAction.setEffectiveTimeScale(2)
+        animationActions.current.push(attackAction)
+      }
+
       // Start with idle animation
       if (animationActions.current.length > 0) {
         activeAction.current = animationActions.current[0]
         activeAction.current.reset().play()
       }
     }
-  }, [clone, idleAnimations, walkAnimations, jumpAnimations])
+  }, [clone, idleAnimations, walkAnimations, jumpAnimations, attackAnimations])
   
   // Animation switching function
   const setAction = (toAction, fadeTime = 0.5) => {
@@ -85,6 +93,8 @@ export function useAvatarAnimations(modelPath = '/models/avatars/NightshadeJFrie
         return animationActions.current[1]
       case 'jump':
         return animationActions.current[2]
+      case 'attack':
+        return animationActions.current[3]
       default:
         return animationActions.current[0]
     }
@@ -109,12 +119,14 @@ export function useAvatarAnimations(modelPath = '/models/avatars/NightshadeJFrie
 }
 
 // Preload models
-useGLTF.preload('/models/avatars/Avatar1.glb')
+useGLTF.preload('/models/animations/Attack2.glb')
 useGLTF.preload('/models/animations/ManIdle1.glb')
 useGLTF.preload('/models/animations/PohodkaTarikat.glb')
 useGLTF.preload('/models/animations/Jump.glb')
 
+
 // Preload enemy avatar models
+useGLTF.preload('/models/avatars/Avatar1.glb')
 useGLTF.preload('/models/avatars/DemonTWiezzorek.glb')
 useGLTF.preload('/models/avatars/GanfaulMAure.glb')
 useGLTF.preload('/models/avatars/Mutant.glb')

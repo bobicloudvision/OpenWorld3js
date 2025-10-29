@@ -1,15 +1,16 @@
-import React, { useRef } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useKeyboardControls } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
  
 import { useAvatarAnimations } from '../hooks/useAvatarAnimations'
+import useGameStore from '../stores/gameStore'
 
 export default function Player({ onPositionChange }) {
   const group = useRef()
   
   // Use shared avatar animations hook
-  const { clone, animationActions, setAction, updateMixer } = useAvatarAnimations()
+  const { clone, animationActions, setAction, updateMixer, getAnimationByName } = useAvatarAnimations()
   
   // Get keyboard controls state
   const [, get] = useKeyboardControls()
@@ -24,12 +25,27 @@ export default function Player({ onPositionChange }) {
     return [worldPosition.x, worldPosition.y, worldPosition.z]
   }
   
+  const attackUntil = useRef(0)
+  const playerAttackingAt = useGameStore((s) => s.playerAttackingAt)
+
+  useEffect(() => {
+    if (!playerAttackingAt) return
+    attackUntil.current = Date.now() + 700 // play attack for ~0.7s
+    setAction(animationActions.current[3], 0.1)
+  }, [playerAttackingAt, setAction])
+
   useFrame((state, delta) => {
     if (!clone || animationActions.current.length === 0) return
     
     // Update the mixer
     updateMixer(delta)
     
+    // If currently in attack window, force attack animation
+    if (Date.now() < attackUntil.current) {
+      setAction(animationActions.current[3], 0.05)
+      return
+    }
+
     // Check if any movement keys are pressed
     const { forward, backward, leftward, rightward, jump } = get()
     const currentlyMoving = forward || backward || leftward || rightward
