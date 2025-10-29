@@ -376,6 +376,32 @@
   border-left: 3px solid #00ffff;
 }
 
+.log-message.exp {
+  background: rgba(255, 170, 0, 0.2);
+  border-left: 3px solid #ffaa00;
+}
+
+.log-message.levelup {
+  background: rgba(255, 215, 0, 0.3);
+  border-left: 3px solid #ffd700;
+  font-weight: bold;
+  animation: levelup-glow 2s ease-in-out;
+}
+
+@keyframes levelup-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+  }
+}
+
+.log-message.status {
+  background: rgba(138, 68, 255, 0.2);
+  border-left: 3px solid #8844ff;
+}
+
 /* Enemy Status */
 .enemy-status {
   position: absolute;

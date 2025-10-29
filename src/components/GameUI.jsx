@@ -7,7 +7,8 @@ export default function GameUI({ playerPositionRef }) {
     enemies, 
     gameState, 
     combatLog, 
-    resetGame 
+    resetGame,
+    getExpForNextLevel 
   } = useGameStore()
   
   
@@ -60,6 +61,19 @@ export default function GameUI({ playerPositionRef }) {
               style={{ 
                 width: `${(player.power / player.maxPower) * 100}%`,
                 backgroundColor: '#4444ff'
+              }}
+            />
+          </div>
+        </div>
+        
+        <div className="stat-bar">
+          <label>Experience: {player.experience}/{getExpForNextLevel(player.level)} (Level {player.level})</label>
+          <div className="bar exp-bar">
+            <div 
+              className="bar-fill" 
+              style={{ 
+                width: `${(player.experience / getExpForNextLevel(player.level)) * 100}%`,
+                backgroundColor: '#ffaa00'
               }}
             />
           </div>

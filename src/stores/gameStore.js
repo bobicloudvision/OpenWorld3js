@@ -465,6 +465,10 @@ const useGameStore = create(
       
       // Attack enemy
       attackEnemy: (enemyId, damage) => {
+        // Get enemy info before applying damage
+        const enemyBefore = get().enemies.find(e => e.id === enemyId)
+        const wasAlive = enemyBefore && enemyBefore.alive && enemyBefore.health > 0
+        
         set((state) => ({
           enemies: state.enemies.map(enemy => 
             enemy.id === enemyId 
@@ -487,17 +491,23 @@ const useGameStore = create(
         
         // Check if enemy died
         const enemy = get().enemies.find(e => e.id === enemyId)
-        if (enemy && enemy.health - damage <= 0) {
+        if (enemy && enemy.health <= 0 && wasAlive) {
+          // Calculate XP reward based on enemy max health and level
+          const expReward = Math.floor(enemy.maxHealth * 0.5 + enemy.attack * 2)
+          
           set((state) => ({
             combatLog: [
               ...state.combatLog.slice(-9),
               { 
                 type: 'victory', 
-                message: `Enemy ${enemyId} defeated!`,
+                message: `${enemy.name} defeated!`,
                 timestamp: Date.now()
               }
             ]
           }))
+          
+          // Award experience
+          get().gainExperience(expReward)
         }
       },
       
@@ -546,6 +556,79 @@ const useGameStore = create(
             power: Math.min(state.player.maxPower, state.player.power + 1)
           }
         }))
+      },
+      
+      // Calculate experience needed for next level
+      getExpForNextLevel: (level) => {
+        // Formula: 100 * level^1.5
+        return Math.floor(100 * Math.pow(level, 1.5))
+      },
+      
+      // Gain experience
+      gainExperience: (amount) => {
+        const state = get()
+        const newExp = state.player.experience + amount
+        const expNeeded = state.getExpForNextLevel(state.player.level)
+        
+        set((state) => ({
+          player: {
+            ...state.player,
+            experience: newExp
+          },
+          combatLog: [
+            ...state.combatLog.slice(-9),
+            { 
+              type: 'exp', 
+              message: `Gained ${amount} XP!`,
+              timestamp: Date.now()
+            }
+          ]
+        }))
+        
+        // Check if player leveled up
+        if (newExp >= expNeeded) {
+          get().levelUp()
+        }
+      },
+      
+      // Level up
+      levelUp: () => {
+        set((state) => {
+          const newLevel = state.player.level + 1
+          const expNeeded = state.getExpForNextLevel(state.player.level)
+          const remainingExp = state.player.experience - expNeeded
+          
+          // Stat increases per level
+          const healthIncrease = 20
+          const powerIncrease = 10
+          const attackIncrease = 3
+          const defenseIncrease = 2
+          
+          const newMaxHealth = state.player.maxHealth + healthIncrease
+          const newMaxPower = state.player.maxPower + powerIncrease
+          
+          return {
+            player: {
+              ...state.player,
+              level: newLevel,
+              experience: remainingExp,
+              maxHealth: newMaxHealth,
+              health: newMaxHealth, // Heal to full on level up
+              maxPower: newMaxPower,
+              power: newMaxPower, // Restore power to full on level up
+              attack: state.player.attack + attackIncrease,
+              defense: state.player.defense + defenseIncrease
+            },
+            combatLog: [
+              ...state.combatLog.slice(-9),
+              { 
+                type: 'levelup', 
+                message: `🎉 LEVEL UP! Now level ${newLevel}! (+${healthIncrease} HP, +${powerIncrease} Power, +${attackIncrease} Attack, +${defenseIncrease} Defense)`,
+                timestamp: Date.now()
+              }
+            ]
+          }
+        })
       },
       
       // Set selected magic
@@ -612,57 +695,57 @@ const useGameStore = create(
               attackCooldown: 2000,
               statusEffects: []
             },
-            {
-              id: 2,
-              name: 'Dark Mage',
-              health: 40,
-              maxHealth: 40,
-              power: 80,
-              maxPower: 80,
-              attack: 8,
-              defense: 2,
-              position: [-30, 1, -30],
-              alive: true,
-              type: 'caster',
-              magicTypes: ['ice', 'lightning'],
-              lastAttack: 0,
-              attackCooldown: 3000,
-              statusEffects: []
-            },
-            {
-              id: 3,
-              name: 'Orc Berserker',
-              health: 120,
-              maxHealth: 120,
-              power: 30,
-              maxPower: 30,
-              attack: 20,
-              defense: 8,
-              position: [0, 1, 40],
-              alive: true,
-              type: 'tank',
-              magicTypes: [],
-              lastAttack: 0,
-              attackCooldown: 1500,
-              statusEffects: []
-            },
-            {
-              id: 4,
-              name: 'Test Enemy',
-              health: 50,
-              maxHealth: 50,
-              power: 30,
-              maxPower: 30,
-              attack: 5,
-              defense: 1,
-              position: [25, 1, 25],
-              alive: true,
-              type: 'melee',
-              magicTypes: [],
-              lastAttack: 0,
-              attackCooldown: 2000,
-              statusEffects: []
-            }
+            // {
+            //   id: 2,
+            //   name: 'Dark Mage',
+            //   health: 40,
+            //   maxHealth: 40,
+            //   power: 80,
+            //   maxPower: 80,
+            //   attack: 8,
+            //   defense: 2,
+            //   position: [-30, 1, -30],
+            //   alive: true,
+            //   type: 'caster',
+            //   magicTypes: ['ice', 'lightning'],
+            //   lastAttack: 0,
+            //   attackCooldown: 3000,
+            //   statusEffects: []
+            // },
+            // {
+            //   id: 3,
+            //   name: 'Orc Berserker',
+            //   health: 120,
+            //   maxHealth: 120,
+            //   power: 30,
+            //   maxPower: 30,
+            //   attack: 20,
+            //   defense: 8,
+            //   position: [0, 1, 40],
+            //   alive: true,
+            //   type: 'tank',
+            //   magicTypes: [],
+            //   lastAttack: 0,
+            //   attackCooldown: 1500,
+            //   statusEffects: []
+            // },
+            // {
+            //   id: 4,
+            //   name: 'Test Enemy',
+            //   health: 50,
+            //   maxHealth: 50,
+            //   power: 30,
+            //   maxPower: 30,
+            //   attack: 5,
+            //   defense: 1,
+            //   position: [25, 1, 25],
+            //   alive: true,
+            //   type: 'melee',
+            //   magicTypes: [],
+            //   lastAttack: 0,
+            //   attackCooldown: 2000,
+            //   statusEffects: []
+            // }
           ],
           gameState: 'playing',
           combatLog: []
