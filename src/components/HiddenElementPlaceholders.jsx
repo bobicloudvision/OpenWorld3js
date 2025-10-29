@@ -4,22 +4,32 @@ import { RigidBody, CuboidCollider, CylinderCollider } from '@react-three/rapier
 import { Box3, Vector3 } from 'three'
 
 /**
- * Component that visualizes hidden elements in world1.glb as wireframe placeholders
- * These placeholders show where elements like houses and forests should be
+ * Component that visualizes specific elements from world1.glb as wireframe placeholders
+ * Detects elements by name patterns (house, forest, etc.) regardless of visibility
+ * These placeholders show where elements are located and provide collision boxes
  * so they can be replaced dynamically in the future
  */
 export default function HiddenElementPlaceholders() {
   const { scene } = useGLTF('/models/world1.glb')
   const showBoundingBox = false
   
-  // Names of hidden elements we want to visualize
-  const hiddenElementNames = [
-    'forest',
-    'forest.001',
-    'house',
-    'house.001',
-    'house.002'
-  ]
+  // Regex patterns for elements we want to visualize (detects by name, not visibility)
+  const elementPatterns = {
+    forest: /^forest(\.\d+|\d+)?$/i,  // Matches: forest, forest001, forest.001, etc.
+    house: /^house(\.\d+|\d+)?$/i      // Matches: house, house001, house.001, etc.
+  }
+  
+  // Check if element name matches any pattern
+  const isTargetElement = (name) => {
+    return Object.values(elementPatterns).some(pattern => pattern.test(name))
+  }
+  
+  // Get element type (house or forest)
+  const getElementType = (name) => {
+    if (elementPatterns.forest.test(name)) return 'forest'
+    if (elementPatterns.house.test(name)) return 'house'
+    return 'unknown'
+  }
   
   // Extract positions and sizes of hidden elements
   const placeholders = useMemo(() => {
@@ -31,8 +41,8 @@ export default function HiddenElementPlaceholders() {
     }
     
     scene.traverse((child) => {
-      // Check if this object matches one of our hidden element names
-      if (hiddenElementNames.includes(child.name)) {
+      // Check if this object matches our element patterns (by name, not visibility)
+      if (isTargetElement(child.name)) {
         try {
           // Store original visibility state
           const wasVisible = child.visible
@@ -71,8 +81,8 @@ export default function HiddenElementPlaceholders() {
             const scaleZ = child.scale.z || 1
             
             // Apply minimum height for houses
-            const isHouse = child.name.includes('house')
-            const minHeight = isHouse ? 4 : 2
+            const elementType = getElementType(child.name)
+            const minHeight = elementType === 'house' ? 4 : 2
             
             finalSize = [
               scaleX * 2,
@@ -108,8 +118,9 @@ export default function HiddenElementPlaceholders() {
           console.log(`🏠 FOUND ELEMENT: ${child.name}`)
           console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
           console.log('📊 Element Properties:')
+          console.log(`  Name Pattern Match: ${getElementType(child.name)}`)
           console.log(`  Type: ${child.type}`)
-          console.log(`  Was Hidden: ${!wasVisible}`)
+          console.log(`  Visible: ${wasVisible}`)
           console.log(`  Has Geometry: ${!!child.geometry}`)
           console.log(`  Has Material: ${!!child.material}`)
           console.log(`  Is Empty Container: ${!hasValidSize}`)
@@ -212,14 +223,14 @@ export default function HiddenElementPlaceholders() {
     
     // Summary log
     console.log('╔════════════════════════════════════════════╗')
-    console.log('║         HIDDEN ELEMENTS SUMMARY            ║')
+    console.log('║      PLACEHOLDER ELEMENTS SUMMARY          ║')
     console.log('╚════════════════════════════════════════════╝')
-    console.log(`Found ${foundElements.length} hidden elements:\n`)
+    console.log(`Found ${foundElements.length} elements by name pattern:\n`)
     foundElements.forEach((elem, idx) => {
       console.log(`${idx + 1}. ${elem.name}${elem.isEmptyContainer ? ' 📦 (empty container)' : ''}`)
+      console.log(`   Type: ${getElementType(elem.name)}`)
       console.log(`   Position: [${elem.position[0].toFixed(2)}, ${elem.position[1].toFixed(2)}, ${elem.position[2].toFixed(2)}]`)
       console.log(`   Size [W×H×D]: [${elem.size[0].toFixed(2)} × ${elem.size[1].toFixed(2)} × ${elem.size[2].toFixed(2)}]`)
-      console.log(`   Hidden: ${elem.wasHidden ? 'YES' : 'NO'}`)
       
       // Verify the size values
       if (elem.size[0] && elem.size[1] && elem.size[2]) {
@@ -245,13 +256,14 @@ export default function HiddenElementPlaceholders() {
   
   // Color mapping for different element types
   const getColorForElement = (name) => {
-    if (name.includes('forest')) return '#00ff00' // Green for forests
-    if (name.includes('house')) return '#ff6600' // Orange for houses
+    const type = getElementType(name)
+    if (type === 'forest') return '#00ff00' // Green for forests
+    if (type === 'house') return '#ff6600' // Orange for houses
     return '#ffff00' // Yellow for others
   }
   
-  // Check if element is a forest
-  const isForest = (name) => name.includes('forest')
+  // Check if element is a forest (using regex)
+  const isForest = (name) => elementPatterns.forest.test(name)
   
   return (
     <>
@@ -374,7 +386,7 @@ export default function HiddenElementPlaceholders() {
               
               {/* Label to show element name and size */}
               <TextLabel 
-                text={`${placeholder.name}${placeholder.wasHidden ? ' (hidden)' : ''}${placeholder.isEmptyContainer ? ' 📦' : ''}\nSize: [${placeholder.size[0].toFixed(1)} × ${placeholder.size[1].toFixed(1)} × ${placeholder.size[2].toFixed(1)}]\nPos: [${placeholder.position[0].toFixed(1)}, ${placeholder.position[1].toFixed(1)}, ${placeholder.position[2].toFixed(1)}]`} 
+                text={`${placeholder.name}${placeholder.isEmptyContainer ? ' 📦' : ''}\nSize: [${placeholder.size[0].toFixed(1)} × ${placeholder.size[1].toFixed(1)} × ${placeholder.size[2].toFixed(1)}]\nPos: [${placeholder.position[0].toFixed(1)}, ${placeholder.position[1].toFixed(1)}, ${placeholder.position[2].toFixed(1)}]`} 
                 position={[0, placeholder.size[1] / 2 + 0.5, 0]}
                 color={getColorForElement(placeholder.name)}
               />
