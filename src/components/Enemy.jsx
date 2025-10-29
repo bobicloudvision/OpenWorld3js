@@ -4,15 +4,36 @@ import { useRapier } from '@react-three/rapier'
 import { Box, Text, Sphere, Ring } from '@react-three/drei'
 import * as THREE from 'three'
 import useGameStore from '../stores/gameStore'
+import { useAvatarAnimations } from '../hooks/useAvatarAnimations'
 
 export default function Enemy({ enemy, playerPositionRef }) {
   const groupRef = useRef()
   const { enemyAttackPlayer, updateStatusEffects } = useGameStore()
   const [poisonTickTime, setPoisonTickTime] = useState(0)
+  const [currentAnimation, setCurrentAnimation] = useState('idle')
+  
+  // Load the 3D model with animations using the hook
+  const { clone, updateMixer, getAnimationByName, setAction } = useAvatarAnimations(enemy.model)
+  
+  // Configure shadows on the model
+  useEffect(() => {
+    if (clone) {
+      clone.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true
+          child.receiveShadow = true
+        }
+      })
+    }
+  }, [clone])
   
   const attackRange = 3 // Attack range
   const magicRange = 8 // Magic range
   const detectionRange = 25 // Detection/scanning range
+  
+  // Track last position to determine if actually moving
+  const lastPosition = useRef([...enemy.position])
+  const isMoving = useRef(false)
   
   // Helper function to check if enemy has a specific status effect
   const hasStatusEffect = (effectType) => {
@@ -73,6 +94,15 @@ export default function Enemy({ enemy, playerPositionRef }) {
   
   useFrame((state, delta) => {
     if (!enemy.alive) return
+    
+    // Update animation mixer
+    updateMixer(delta)
+    
+    // Update group position and rotation to match enemy state
+    if (groupRef.current) {
+      groupRef.current.position.set(enemy.position[0], enemy.position[1], enemy.position[2])
+      groupRef.current.rotation.y = facingAngle.current
+    }
     
     const playerPosition = playerPositionRef.current
     const distanceToPlayer = Math.sqrt(
@@ -263,6 +293,34 @@ export default function Enemy({ enemy, playerPositionRef }) {
         }))
       }
     }
+    
+    // Detect actual movement by comparing positions
+    const movementThreshold = 0.001 // Minimum movement to consider as "moving"
+    const positionChanged = Math.abs(enemy.position[0] - lastPosition.current[0]) > movementThreshold ||
+                           Math.abs(enemy.position[2] - lastPosition.current[2]) > movementThreshold
+    
+    isMoving.current = positionChanged
+    lastPosition.current = [...enemy.position]
+    
+    // Update animations based on actual movement
+    let newAnimation = 'idle'
+    
+    if (isFrozen) {
+      newAnimation = 'idle' // Frozen stays idle
+    } else if (isMoving.current) {
+      newAnimation = 'walk' // Moving (chasing or wandering)
+    } else {
+      newAnimation = 'idle' // Standing still (attacking, casting, or stopped)
+    }
+    
+    // Switch animation if needed
+    if (newAnimation !== currentAnimation) {
+      const action = getAnimationByName(newAnimation)
+      if (action) {
+        setAction(action, 0.3) // Faster fade time for more responsive animations
+        setCurrentAnimation(newAnimation)
+      }
+    }
   })
   
   if (!enemy.alive) {
@@ -270,7 +328,7 @@ export default function Enemy({ enemy, playerPositionRef }) {
   }
   
   return (
-    <group ref={groupRef} position={enemy.position} rotation={[0, facingAngle.current, 0]}>
+    <group ref={groupRef}>
       {/* Debug: Show actual enemy position */}
       <Text
         position={[0, 4, 0]}
@@ -283,22 +341,34 @@ export default function Enemy({ enemy, playerPositionRef }) {
       </Text>
       
       {/* Enemy body */}
-      <Box
-        args={[1, 2, 1]}
-        castShadow
-        receiveShadow
-      >
-        <meshStandardMaterial 
-s          color={
-            hasStatusEffect('freeze') ? '#00ffff' : // Cyan when frozen
-            hasStatusEffect('poison') ? '#88ff00' : // Green when poisoned
-            hasStatusEffect('slow') ? '#8844ff' : // Purple when slowed
-            enemy.type === 'melee' ? '#8B4513' : 
-            enemy.type === 'caster' ? '#4B0082' : 
-            '#2F4F4F'
-          }
-        />
-      </Box>
+      {clone ? (
+        <group 
+          position={[0, 0, 0]} 
+          rotation={enemy.modelRotation || [0, -Math.PI / 2, 0]}
+        >
+          <primitive 
+            object={clone} 
+            scale={enemy.modelScale || 1}
+          />
+        </group>
+      ) : (
+        <Box
+          args={[1, 2, 1]}
+          castShadow
+          receiveShadow
+        >
+          <meshStandardMaterial 
+            color={
+              hasStatusEffect('freeze') ? '#00ffff' : // Cyan when frozen
+              hasStatusEffect('poison') ? '#88ff00' : // Green when poisoned
+              hasStatusEffect('slow') ? '#8844ff' : // Purple when slowed
+              enemy.type === 'melee' ? '#8B4513' : 
+              enemy.type === 'caster' ? '#4B0082' : 
+              '#2F4F4F'
+            }
+          />
+        </Box>
+      )}
       
       {/* Freeze effect - Ice crystals */}
       {hasStatusEffect('freeze') && (

@@ -1,6 +1,93 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
+// Initial enemies configuration
+const INITIAL_ENEMIES = [
+  {
+    id: 1,
+    name: 'Goblin Warrior', 
+    health: 60,
+    maxHealth: 60,
+    power: 50,
+    maxPower: 50,
+    attack: 12,
+    defense: 3,
+    position: [3, 1, 5],
+    alive: true,
+    type: 'melee',
+    magicTypes: ['fire'],
+    lastAttack: 0,
+    attackCooldown: 2000,
+    statusEffects: [],
+    model: '/models/avatars/GanfaulMAure.glb',
+    modelScale:1,
+    modelRotation: [0, -Math.PI / 2, 0]
+  },
+  {
+    id: 2,
+    name: 'Dark Mage',
+    health: 40,
+    maxHealth: 40,
+    power: 80,
+    maxPower: 80,
+    attack: 8,
+    defense: 2,
+    position: [-30, 1, -30],
+    alive: true,
+    type: 'caster',
+    magicTypes: ['ice', 'lightning'],
+    lastAttack: 0,
+    attackCooldown: 3000,
+    statusEffects: [],
+    model: '/models/avatars/NightshadeJFriedrich.glb',
+    modelScale: 1,
+    modelRotation: [0, -Math.PI / 2, 0]
+  },
+  {
+    id: 3,
+    name: 'Orc Berserker',
+    health: 120,
+    maxHealth: 120,
+    power: 30,
+    maxPower: 30,
+    attack: 20,
+    defense: 8,
+    position: [0, 1, 40],
+    alive: true,
+    type: 'tank',
+    magicTypes: [],
+    lastAttack: 0,
+    attackCooldown: 1500,
+    statusEffects: [],
+    model: '/models/avatars/WarrokWKurniawan.glb',
+    modelScale: 1,
+    modelRotation: [0, -Math.PI / 2, 0]
+  },
+  {
+    id: 4,
+    name: 'Test Enemy',
+    health: 50,
+    maxHealth: 50,
+    power: 30,
+    maxPower: 30,
+    attack: 5,
+    defense: 1,
+    position: [25, 1, 25],
+    alive: true,
+    type: 'melee',
+    magicTypes: [],
+    lastAttack: 0,
+    attackCooldown: 2000,
+    statusEffects: [],
+    model: '/models/avatars/Mutant.glb',
+    modelScale: 1,
+    modelRotation: [0, -Math.PI / 2, 0]
+  }
+]
+
+// Helper function to create a deep copy of enemies
+const getInitialEnemies = () => JSON.parse(JSON.stringify(INITIAL_ENEMIES))
+
 // Magic types and their properties
 const MAGIC_TYPES = {
   fire: {
@@ -212,76 +299,7 @@ const useGameStore = create(
       },
       
       // Enemy stats
-      enemies: [
-        {
-          id: 1,
-          name: 'Goblin Warrior',
-          health: 60,
-          maxHealth: 60,
-          power: 50,
-          maxPower: 50,
-          attack: 12,
-          defense: 3,
-          position: [30, 1, 30],
-          alive: true,
-          type: 'melee',
-          magicTypes: ['fire'],
-          lastAttack: 0,
-          attackCooldown: 2000,
-          statusEffects: [] // Active status effects
-        },
-        {
-          id: 2,
-          name: 'Dark Mage',
-          health: 40,
-          maxHealth: 40,
-          power: 80,
-          maxPower: 80,
-          attack: 8,
-          defense: 2,
-          position: [-30, 1, -30],
-          alive: true,
-          type: 'caster',
-          magicTypes: ['ice', 'lightning'],
-          lastAttack: 0,
-          attackCooldown: 3000,
-          statusEffects: []
-        },
-        {
-          id: 3,
-          name: 'Orc Berserker',
-          health: 120,
-          maxHealth: 120,
-          power: 30,
-          maxPower: 30,
-          attack: 20,
-          defense: 8,
-          position: [0, 1, 40],
-          alive: true,
-          type: 'tank',
-          magicTypes: [],
-          lastAttack: 0,
-          attackCooldown: 1500,
-          statusEffects: []
-        },
-        {
-          id: 4,
-          name: 'Test Enemy',
-          health: 50,
-          maxHealth: 50,
-          power: 30,
-          maxPower: 30,
-          attack: 5,
-          defense: 1,
-          position: [25, 1, 25],
-          alive: true,
-          type: 'melee',
-          magicTypes: [],
-          lastAttack: 0,
-          attackCooldown: 2000,
-          statusEffects: []
-        }
-      ],
+      enemies: getInitialEnemies(),
       
       // Game state
       gameState: 'playing', // 'playing', 'victory', 'defeat'
@@ -677,76 +695,7 @@ const useGameStore = create(
               shield: 0
             }
           },
-          enemies: [
-            {
-              id: 1,
-              name: 'Goblin Warrior',
-              health: 60,
-              maxHealth: 60,
-              power: 50,
-              maxPower: 50,
-              attack: 12,
-              defense: 3,
-              position: [30, 1, 30],
-              alive: true,
-              type: 'melee',
-              magicTypes: ['fire'],
-              lastAttack: 0,
-              attackCooldown: 2000,
-              statusEffects: []
-            },
-            // {
-            //   id: 2,
-            //   name: 'Dark Mage',
-            //   health: 40,
-            //   maxHealth: 40,
-            //   power: 80,
-            //   maxPower: 80,
-            //   attack: 8,
-            //   defense: 2,
-            //   position: [-30, 1, -30],
-            //   alive: true,
-            //   type: 'caster',
-            //   magicTypes: ['ice', 'lightning'],
-            //   lastAttack: 0,
-            //   attackCooldown: 3000,
-            //   statusEffects: []
-            // },
-            // {
-            //   id: 3,
-            //   name: 'Orc Berserker',
-            //   health: 120,
-            //   maxHealth: 120,
-            //   power: 30,
-            //   maxPower: 30,
-            //   attack: 20,
-            //   defense: 8,
-            //   position: [0, 1, 40],
-            //   alive: true,
-            //   type: 'tank',
-            //   magicTypes: [],
-            //   lastAttack: 0,
-            //   attackCooldown: 1500,
-            //   statusEffects: []
-            // },
-            // {
-            //   id: 4,
-            //   name: 'Test Enemy',
-            //   health: 50,
-            //   maxHealth: 50,
-            //   power: 30,
-            //   maxPower: 30,
-            //   attack: 5,
-            //   defense: 1,
-            //   position: [25, 1, 25],
-            //   alive: true,
-            //   type: 'melee',
-            //   magicTypes: [],
-            //   lastAttack: 0,
-            //   attackCooldown: 2000,
-            //   statusEffects: []
-            // }
-          ],
+          enemies: getInitialEnemies(),
           gameState: 'playing',
           combatLog: []
         })
@@ -795,7 +744,7 @@ if (typeof window !== 'undefined') {
       }
     } catch (e) {
       console.log('Error parsing saved state, clearing localStorage')
-      localStorage.removeItem('ow3-game')
+      localStorage.removeItem('ow3-game') 
     }
   }
 }

@@ -7,15 +7,16 @@ import * as THREE from 'three'
 /**
  * Custom hook to handle avatar animations
  * Encapsulates common animation logic used by both Player and RemotePlayer
+ * @param {string} modelPath - Path to the avatar model (optional, defaults to Avatar1)
  */
-export function useAvatarAnimations() {
+export function useAvatarAnimations(modelPath = '/models/avatars/Avatar1.glb') {
   const mixer = useRef()
   const animationActions = useRef([])
   const activeAction = useRef()
   const lastAction = useRef()
   
   // Load avatar model (base model without animations)
-  const { scene } = useGLTF('/models/avatars/Avatar1.glb')
+  const { scene } = useGLTF(modelPath)
   
   // Clone the scene properly with its skeleton
   const clone = useMemo(() => SkeletonUtils.clone(scene), [scene])
@@ -112,3 +113,10 @@ useGLTF.preload('/models/avatars/Avatar1.glb')
 useGLTF.preload('/models/animations/ManIdle1.glb')
 useGLTF.preload('/models/animations/PohodkaTarikat.glb')
 useGLTF.preload('/models/animations/Jump.glb')
+
+// Preload enemy avatar models
+useGLTF.preload('/models/avatars/DemonTWiezzorek.glb')
+useGLTF.preload('/models/avatars/GanfaulMAure.glb')
+useGLTF.preload('/models/avatars/Mutant.glb')
+useGLTF.preload('/models/avatars/NightshadeJFriedrich.glb')
+useGLTF.preload('/models/avatars/WarrokWKurniawan.glb')
