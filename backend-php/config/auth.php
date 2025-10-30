@@ -40,6 +40,10 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+        'game' => [
+            'driver'=>'session',
+            'provider'=>'players'
+        ]
     ],
 
     /*
@@ -64,6 +68,13 @@ return [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
+
+        'players' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Player::class,
+        ],
+
+
 
         // 'users' => [
         //     'driver' => 'database',
@@ -94,6 +105,12 @@ return [
         'users' => [
             'provider' => 'users',
             'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 60,
+            'throttle' => 60,
+        ],
+        'players' => [
+            'provider' => 'players',
+            'table' => 'player_password_reset_tokens',
             'expire' => 60,
             'throttle' => 60,
         ],

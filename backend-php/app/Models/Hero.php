@@ -28,4 +28,27 @@ class Hero extends Model
     {
         return $this->belongsToMany(Spell::class, 'hero_spells')->withTimestamps();
     }
+
+    /**
+     * Get all player instances that own this hero.
+     */
+    public function playerHeroes()
+    {
+        return $this->hasMany(PlayerHero::class);
+    }
+
+    /**
+     * Get all players that own this hero.
+     */
+    public function players()
+    {
+        return $this->hasManyThrough(
+            Player::class,
+            PlayerHero::class,
+            'hero_id', // Foreign key on player_heroes
+            'id', // Foreign key on players
+            'id', // Local key on heroes
+            'player_id' // Local key on player_heroes
+        );
+    }
 }
