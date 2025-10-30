@@ -1,7 +1,7 @@
 import React from 'react'
 import { register as registerPlayer, login as loginPlayer } from '../services/authService'
 
-export default function AuthModal({ open, onClose, onAuthenticated }) {
+export default function AuthOverlay({ open, onClose, onAuthenticated }) {
   const [mode, setMode] = React.useState('login') // 'login' | 'signup'
   const [name, setName] = React.useState('')
   const [email, setEmail] = React.useState('')
@@ -40,8 +40,9 @@ export default function AuthModal({ open, onClose, onAuthenticated }) {
   }
 
   return (
-    <div style={styles.backdrop} onClick={onClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div style={styles.backdrop}>
+      <div style={styles.modal}>
+        <div style={styles.card}>
         <div style={styles.header}>
           <button
             style={{ ...styles.tab, ...(mode === 'login' ? styles.tabActive : {}) }}
@@ -55,7 +56,6 @@ export default function AuthModal({ open, onClose, onAuthenticated }) {
           >
             Sign Up
           </button>
-          <button style={styles.close} onClick={onClose}>✕</button>
         </div>
 
         <form onSubmit={handleSubmit} style={styles.form}>
@@ -102,6 +102,7 @@ export default function AuthModal({ open, onClose, onAuthenticated }) {
             {loading ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Login'}
           </button>
         </form>
+        </div>
       </div>
     </div>
   )
@@ -111,13 +112,22 @@ const styles = {
   backdrop: {
     position: 'fixed',
     inset: 0,
-    background: 'rgba(0,0,0,0.5)',
+    background: 'rgba(3,7,18,0.9)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
   },
   modal: {
+    width: '100%',
+    height: '100%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'transparent',
+    color: '#e5e7eb',
+  },
+  card: {
     width: '360px',
     background: '#111827',
     border: '1px solid #374151',

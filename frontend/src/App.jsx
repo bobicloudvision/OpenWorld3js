@@ -22,7 +22,7 @@ import ClickEffectsManager from './components/ClickEffectsManager'
 import HiddenElementPlaceholders from './components/HiddenElementPlaceholders'
 import './App.css'
 import './components/GameUI.css'
-import AuthModal from './components/AuthModal'
+import AuthOverlay from './components/AuthOverlay'
 
 export default function App() {
   const playerPositionRef = React.useRef([0, 0, 0]);
@@ -36,8 +36,9 @@ export default function App() {
         setPlayer(me)
       } else {
         console.log('No valid player session');
+        setAuthOpen(true)
       }
-    }).catch(() => console.log('Auth check failed'));
+    }).catch(() => { console.log('Auth check failed'); setAuthOpen(true) });
   }, []);
   
   const keyboardMap = [
@@ -60,7 +61,7 @@ export default function App() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span style={{ color: '#e5e7eb', fontSize: 12 }}>Hi, {player.name}</span>
           <button
-            onClick={async () => { await playerLogout(); setPlayer(null); }}
+            onClick={async () => { await playerLogout(); setPlayer(null); setAuthOpen(true); }}
             style={{ padding: '6px 10px', fontSize: 12, background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: 6 }}
           >
             Logout
@@ -75,68 +76,72 @@ export default function App() {
         </button>
       )}
     </div>
-    <AuthModal
+    <AuthOverlay
       open={authOpen}
       onClose={() => setAuthOpen(false)}
       onAuthenticated={(p) => { setPlayer(p); setAuthOpen(false); }}
     />
     {/* <GameInstructions /> */}
-    <GameUI playerPositionRef={playerPositionRef} />
-    <MagicPalette />
-    {/* <ModeIndicator /> */}
-    <KeyboardShapeCreator />
-    <MaterialPalette />
-    
-    <EcctrlJoystick />
-      <Canvas 
-        shadows
-        onClick={(event) => {
-          // Handle click events globally
-          console.log('Canvas click detected!')
-        }}
-      >
-          
-          <Environment files="models/night.hdr" ground={{ scale: 100 }} />
-
-          <directionalLight intensity={0.4} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
+    {player && (
+      <>
+        <GameUI playerPositionRef={playerPositionRef} />
+        <MagicPalette />
+        {/* <ModeIndicator /> */}
+        <KeyboardShapeCreator />
+        <MaterialPalette />
         
-          </directionalLight>
-          <ambientLight intensity={0.7} />
-
-          <Physics 
-            timeStep="vary" 
-            gravity={[0, -20, 0]}
-            paused={false}
-            debug={false}
-          >
-          <KeyboardControls map={keyboardMap}>
-            <Ecctrl 
-              maxVelLimit={6}
+        <EcctrlJoystick />
+        <Canvas 
+          shadows
+          onClick={(event) => {
+            // Handle click events globally
+            console.log('Canvas click detected!')
+          }}
+        >
+            
+            <Environment files="models/night.hdr" ground={{ scale: 100 }} />
+            
+            <directionalLight intensity={0.4} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
+          
+            </directionalLight>
+            <ambientLight intensity={0.7} />
+            
+            <Physics 
+              timeStep="vary" 
+              gravity={[0, -20, 0]}
+              paused={false}
+              debug={false}
             >
-              <Player onPositionChange={function(position) {
-                playerPositionRef.current = position; 
-              }} />
-
-            </Ecctrl> 
-
-            <Shapes />
-            <Enemies playerPositionRef={playerPositionRef} />
-            <CombatController playerPositionRef={playerPositionRef} />
-            <ClickToCast playerPositionRef={playerPositionRef} />
-            <MagicEffectsManager />
-            <ClickEffectsManager />
-
-          </KeyboardControls>    
-         
-
-          <Ground playerPositionRef={playerPositionRef} />
-          <HiddenElementPlaceholders />
-          <GameManager playerPositionRef={playerPositionRef} />
-
-          </Physics>
-      
-
-      </Canvas>
+            <KeyboardControls map={keyboardMap}>
+              <Ecctrl 
+                maxVelLimit={6}
+              >
+                <Player onPositionChange={function(position) {
+                  playerPositionRef.current = position; 
+                }} />
+                
+              </Ecctrl> 
+              
+              <Shapes />
+              <Enemies playerPositionRef={playerPositionRef} />
+              <CombatController playerPositionRef={playerPositionRef} />
+              <ClickToCast playerPositionRef={playerPositionRef} />
+              <MagicEffectsManager />
+              <ClickEffectsManager />
+              
+            </KeyboardControls>    
+          
+            
+            <Ground playerPositionRef={playerPositionRef} />
+            <HiddenElementPlaceholders />
+            <GameManager playerPositionRef={playerPositionRef} />
+            
+            </Physics>
+        
+            
+        </Canvas>
+      </>
+    )}
       </>
   )
 }
