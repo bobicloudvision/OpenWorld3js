@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react'
+import { me as fetchMe, logout as playerLogout } from './services/authService'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Environment, Fisheye, KeyboardControls, OrbitControls, PointerLockControls, Sky } from '@react-three/drei'
@@ -21,50 +22,18 @@ import ClickEffectsManager from './components/ClickEffectsManager'
 import HiddenElementPlaceholders from './components/HiddenElementPlaceholders'
 import './App.css'
 import './components/GameUI.css'
+import AuthModal from './components/AuthModal'
 
 export default function App() {
   const playerPositionRef = React.useRef([0, 0, 0]);
-  const API = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-  async function playerRegister({ name, email, password }) {
-    const res = await fetch(`${API}/api/player/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, password })
-    });
-    if (!res.ok) throw new Error('Register failed');
-    const data = await res.json();
-    localStorage.setItem('playerToken', data.token);
-    return data;
-  }
-
-  async function playerLogin({ email, password }) {
-    const res = await fetch(`${API}/api/player/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    if (!res.ok) throw new Error('Login failed');
-    const data = await res.json();
-    localStorage.setItem('playerToken', data.token);
-    return data;
-  }
-
-  async function fetchMe() {
-    const token = localStorage.getItem('playerToken');
-    if (!token) return null;
-    const res = await fetch(`${API}/api/player/me`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) return null;
-    return await res.json();
-  }
-
+  const [authOpen, setAuthOpen] = React.useState(false)
+  const [player, setPlayer] = React.useState(null)
   useEffect(() => {
     // Validate stored token on load (non-blocking, logs only)
     fetchMe().then((me) => {
       if (me) {
         console.log('Authenticated player:', me);
+        setPlayer(me)
       } else {
         console.log('No valid player session');
       }
@@ -86,6 +55,31 @@ export default function App() {
   ]
   return (
     <>
+    <div style={{ position: 'fixed', top: 12, right: 12, zIndex: 100 }}>
+      {player ? (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ color: '#e5e7eb', fontSize: 12 }}>Hi, {player.name}</span>
+          <button
+            onClick={async () => { await playerLogout(); setPlayer(null); }}
+            style={{ padding: '6px 10px', fontSize: 12, background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: 6 }}
+          >
+            Logout
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => setAuthOpen(true)}
+          style={{ padding: '8px 12px', fontSize: 12, background: '#2563eb', color: 'white', border: 'none', borderRadius: 6 }}
+        >
+          Login / Sign Up
+        </button>
+      )}
+    </div>
+    <AuthModal
+      open={authOpen}
+      onClose={() => setAuthOpen(false)}
+      onAuthenticated={(p) => { setPlayer(p); setAuthOpen(false); }}
+    />
     {/* <GameInstructions /> */}
     <GameUI playerPositionRef={playerPositionRef} />
     <MagicPalette />
