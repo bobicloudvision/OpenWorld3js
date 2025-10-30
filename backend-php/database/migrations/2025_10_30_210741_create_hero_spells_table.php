@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('hero_spells', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('hero_id')->constrained('heroes')->cascadeOnDelete();
+            $table->foreignId('spell_id')->constrained('spells')->cascadeOnDelete();
+            $table->unique(['hero_id', 'spell_id']);
             $table->timestamps();
         });
     }

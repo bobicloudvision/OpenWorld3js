@@ -13,6 +13,16 @@ return new class extends Migration
     {
         Schema::create('heroes', function (Blueprint $table) {
             $table->id();
+            $table->string('name');
+            $table->unsignedInteger('health')->default(100);
+            $table->unsignedInteger('max_health')->default(100);
+            $table->unsignedInteger('power')->default(100);
+            $table->unsignedInteger('max_power')->default(100);
+            $table->unsignedInteger('attack')->default(10);
+            $table->unsignedInteger('defense')->default(5);
+            $table->string('model')->nullable();
+            $table->float('model_scale')->default(1);
+            $table->json('model_rotation')->nullable();
             $table->timestamps();
         });
     }

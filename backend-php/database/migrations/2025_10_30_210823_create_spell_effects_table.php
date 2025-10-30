@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('spell_effects', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('spell_id')->constrained('spells')->cascadeOnDelete();
+            $table->foreignId('effect_id')->constrained('effects')->cascadeOnDelete();
+            $table->unique(['spell_id', 'effect_id']);
             $table->timestamps();
         });
     }
