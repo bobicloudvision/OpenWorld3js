@@ -1,4 +1,5 @@
 import React from 'react'
+import HeroModelPreview from './HeroModelPreview'
 
 export default function HeroSelection({ player, playerHeroes, availableHeroes, socket, onHeroSelected, onHeroesUpdate }) {
   const [loading, setLoading] = React.useState(false)
@@ -96,6 +97,11 @@ export default function HeroSelection({ player, playerHeroes, availableHeroes, s
                       ...(player?.active_hero_id === hero.playerHeroId ? styles.heroCardActive : {})
                     }}
                   >
+                    <HeroModelPreview
+                      modelPath={hero.model}
+                      modelScale={hero.modelScale ?? 1}
+                      modelRotation={hero.modelRotation ?? [0, -1.5707963267948966, 0]}
+                    />
                     <div style={styles.heroName}>{hero.name}</div>
                     <div style={styles.heroInfo}>
                       <div>Level {hero.level}</div>
@@ -135,6 +141,11 @@ export default function HeroSelection({ player, playerHeroes, availableHeroes, s
                   
                   return (
                     <div key={hero.id} style={styles.heroCard}>
+                      <HeroModelPreview
+                        modelPath={hero.model}
+                        modelScale={hero.modelScale ?? 1}
+                        modelRotation={hero.modelRotation ?? [0, -1.5707963267948966, 0]}
+                      />
                       <div style={styles.heroName}>{hero.name}</div>
                       <div style={styles.heroInfo}>
                         <div>HP: {hero.maxHealth}</div>
