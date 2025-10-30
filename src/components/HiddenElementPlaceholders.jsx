@@ -354,15 +354,15 @@ export default function HiddenElementPlaceholders() {
                     {/* Origin marker and label for forest */}
                     <group>
                       <mesh position={[0, 0, 0]}>
-                        <sphereGeometry args={[0.5, 16, 16]} />
+                        {/* <sphereGeometry args={[0.5, 16, 16]} /> */}
                         <meshBasicMaterial color={getColorForElement(placeholder.name)} />
                       </mesh>
                       
-                      <TextLabel 
+                      {/* <TextLabel 
                         text={`${placeholder.name}\nSize: [${placeholder.size[0].toFixed(1)} × ${placeholder.size[1].toFixed(1)} × ${placeholder.size[2].toFixed(1)}]\nPos: [${placeholder.position[0].toFixed(1)}, ${placeholder.position[1].toFixed(1)}, ${placeholder.position[2].toFixed(1)}]`} 
                         position={[0, placeholder.size[1] / 2 + 0.5, 0]}
                         color={getColorForElement(placeholder.name)}
-                      />
+                      /> */}
                     </group>
                   </group>
                 ) : (
@@ -444,25 +444,25 @@ export default function HiddenElementPlaceholders() {
                       
                       {/* Visual axis helpers */}
                       {/* X axis - red */}
-                      <mesh position={[placeholder.size[0] / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+                      {/* <mesh position={[placeholder.size[0] / 2, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
                         <cylinderGeometry args={[0.1, 0.1, placeholder.size[0], 8]} />
                         <meshBasicMaterial color="#ff0000" transparent={true} opacity={0.5} />
-                      </mesh>
+                      </mesh> */}
                       {/* Y axis - green */}
-                      <mesh position={[0, placeholder.size[1] / 2, 0]}>
+                      {/* <mesh position={[0, placeholder.size[1] / 2, 0]}>
                         <cylinderGeometry args={[0.1, 0.1, placeholder.size[1], 8]} />
                         <meshBasicMaterial color="#00ff00" transparent={true} opacity={0.5} />
-                      </mesh>
+                      </mesh> */}
                       {/* Z axis - blue */}
-                      <mesh position={[0, 0, placeholder.size[2] / 2]} rotation={[Math.PI / 2, 0, 0]}>
+                      {/* <mesh position={[0, 0, placeholder.size[2] / 2]} rotation={[Math.PI / 2, 0, 0]}>
                         <cylinderGeometry args={[0.1, 0.1, placeholder.size[2], 8]} />
                         <meshBasicMaterial color="#0000ff" transparent={true} opacity={0.5} />
-                      </mesh>
+                      </mesh> */}
                       
                       {/* Label to show element name and size */}
-                      <TextLabel 
+                      <TextLabel
                         text={`${placeholder.name}${placeholder.isEmptyContainer ? ' 📦' : ''}\nSize: [${placeholder.size[0].toFixed(1)} × ${placeholder.size[1].toFixed(1)} × ${placeholder.size[2].toFixed(1)}]\nPos: [${placeholder.position[0].toFixed(1)}, ${placeholder.position[1].toFixed(1)}, ${placeholder.position[2].toFixed(1)}]\nRot: [${(placeholder.rotation[0] * 180 / Math.PI).toFixed(0)}°, ${(placeholder.rotation[1] * 180 / Math.PI).toFixed(0)}°, ${(placeholder.rotation[2] * 180 / Math.PI).toFixed(0)}°]`} 
-                        position={[0, placeholder.size[1] / 2 + 0.5, 0]}
+                        position={[0, placeholder.size[1]/2, 0]}
                         color={getColorForElement(placeholder.name)}
                       />
                     </group>
