@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('model')->nullable();
             $table->float('model_scale')->default(1);
             $table->json('model_rotation')->nullable();
+            $table->unsignedInteger('price')->nullable(); // Gold/coins cost to purchase this hero
             $table->timestamps();
         });
     }

@@ -1,29 +1,11 @@
 import React, { useRef, useEffect } from 'react'
 import { io } from 'socket.io-client'
 import { me as fetchMe, logout as playerLogout } from './services/authService'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Physics } from '@react-three/rapier'
-import { Environment, Fisheye, KeyboardControls, OrbitControls, PointerLockControls, Sky } from '@react-three/drei'
-import Player from './components/Player'
-import Ecctrl, { EcctrlJoystick } from 'ecctrl'
-import Ground from './components/Ground'
-import { Shapes } from './components/Shapes'
-import { ModeIndicator } from './components/ModeIndicator'
-import { KeyboardShapeCreator } from './components/KeyboardShapeCreator'
-import { MaterialPalette } from './components/MaterialPalette'
-import GameUI from './components/GameUI'
-import Enemies from './components/Enemies'
-import GameManager from './components/GameManager'
-import CombatController from './components/CombatController'
-import GameInstructions from './components/GameInstructions'
-import MagicPalette from './components/MagicPalette'
-import ClickToCast from './components/ClickToCast'
-import MagicEffectsManager from './components/MagicEffectsManager'
-import ClickEffectsManager from './components/ClickEffectsManager'
-import HiddenElementPlaceholders from './components/HiddenElementPlaceholders'
 import './App.css'
 import './components/GameUI.css'
 import AuthOverlay from './components/AuthOverlay'
+import HeroSelection from './components/HeroSelection'
+import GameplayScene from './components/GameplayScene'
 
 export default function App() {
   const playerPositionRef = React.useRef([0, 0, 0]);
@@ -31,6 +13,9 @@ export default function App() {
   const [player, setPlayer] = React.useState(null)
   const socketRef = React.useRef(null)
   const [socketReady, setSocketReady] = React.useState(false)
+  const [playerHeroes, setPlayerHeroes] = React.useState([])
+  const [availableHeroes, setAvailableHeroes] = React.useState([])
+  const [loadingHeroes, setLoadingHeroes] = React.useState(false)
   useEffect(() => {
     // Validate stored token on load (non-blocking, logs only)
     fetchMe().then((me) => {
@@ -70,10 +55,29 @@ export default function App() {
       setPlayer(socketPlayer);
       setSocketReady(true);
       socket.emit('get:player');
+      // Fetch heroes when authenticated
+      socket.emit('get:player:heroes');
+      socket.emit('get:heroes:available');
     });
 
     socket.on('player', (socketPlayer) => {
       if (socketPlayer) setPlayer(socketPlayer);
+    });
+
+    socket.on('player:heroes', (heroes) => {
+      setPlayerHeroes(heroes || []);
+      setLoadingHeroes(false);
+    });
+
+    socket.on('heroes:available', (heroes) => {
+      setAvailableHeroes(heroes || []);
+    });
+
+    // Handle hero selection response
+    socket.on('hero:set:active:ok', ({ player: updatedPlayer }) => {
+      setPlayer(updatedPlayer);
+      // Refresh heroes list
+      socket.emit('get:player:heroes');
     });
 
     socket.on('auth:error', (err) => {
@@ -141,62 +145,26 @@ export default function App() {
     )}
     {player && socketReady && (
       <>
-        <GameUI playerPositionRef={playerPositionRef} />
-        <MagicPalette />
-        {/* <ModeIndicator /> */}
-        <KeyboardShapeCreator />
-        <MaterialPalette />
-        
-        <EcctrlJoystick />
-        <Canvas 
-          shadows
-          onClick={(event) => {
-            // Handle click events globally
-            console.log('Canvas click detected!')
-          }}
-        >
-            
-            <Environment files="models/night.hdr" ground={{ scale: 100 }} />
-            
-            <directionalLight intensity={0.4} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
-          
-            </directionalLight>
-            <ambientLight intensity={0.7} />
-            
-            <Physics 
-              timeStep="vary" 
-              gravity={[0, -20, 0]}
-              paused={false}
-              debug={false}
-            >
-            <KeyboardControls map={keyboardMap}>
-              <Ecctrl 
-                maxVelLimit={6}
-              >
-                <Player onPositionChange={function(position) {
-                  playerPositionRef.current = position; 
-                }} />
-                
-              </Ecctrl> 
-              
-              <Shapes />
-              <Enemies playerPositionRef={playerPositionRef} />
-              <CombatController playerPositionRef={playerPositionRef} />
-              <ClickToCast playerPositionRef={playerPositionRef} />
-              <MagicEffectsManager />
-              <ClickEffectsManager />
-              
-            </KeyboardControls>    
-          
-            
-            <Ground playerPositionRef={playerPositionRef} />
-            <HiddenElementPlaceholders />
-            <GameManager playerPositionRef={playerPositionRef} />
-            
-            </Physics>
-        
-            
-        </Canvas>
+        {!player.active_hero_id ? (
+          <HeroSelection
+            player={player}
+            playerHeroes={playerHeroes}
+            availableHeroes={availableHeroes}
+            socket={socketRef.current}
+            onHeroSelected={(updatedPlayer) => {
+              setPlayer(updatedPlayer);
+            }}
+            onHeroesUpdate={(updatedPlayerHeroes, updatedAvailableHeroes) => {
+              setPlayerHeroes(updatedPlayerHeroes);
+              setAvailableHeroes(updatedAvailableHeroes);
+            }}
+          />
+        ) : (
+          <GameplayScene
+            playerPositionRef={playerPositionRef}
+            keyboardMap={keyboardMap}
+          />
+        )}
       </>
     )}
       </>
