@@ -14,31 +14,22 @@ class EffectsTable
     {
         return $table
             ->columns([
+                TextColumn::make('type')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('primary'),
                 TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('duration')
-                    ->numeric()
+                    ->searchable()
                     ->sortable(),
-                TextColumn::make('force')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('tick_damage')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('tick_rate')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('heal_percent')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('slow_percent')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('bounces')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('chain_range')
-                    ->numeric()
+                TextColumn::make('description')
+                    ->searchable()
+                    ->limit(50),
+                TextColumn::make('icon')
+                    ->label('Icon'),
+                TextColumn::make('spells_count')
+                    ->counts('spells')
+                    ->label('Used in Spells')
                     ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()

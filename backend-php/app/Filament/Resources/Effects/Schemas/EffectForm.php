@@ -13,25 +13,16 @@ class EffectForm
         return $schema
             ->components([
                 TextInput::make('type')
-                    ->required(),
-                TextInput::make('duration')
-                    ->numeric(),
-                TextInput::make('force')
-                    ->numeric(),
-                TextInput::make('tick_damage')
-                    ->numeric(),
-                TextInput::make('tick_rate')
-                    ->numeric(),
-                TextInput::make('heal_percent')
-                    ->numeric(),
-                TextInput::make('slow_percent')
-                    ->numeric(),
-                TextInput::make('bounces')
-                    ->numeric(),
-                TextInput::make('chain_range')
-                    ->numeric(),
-                Textarea::make('config')
-                    ->columnSpanFull(),
+                    ->required()
+                    ->unique(ignoreRecord: true)
+                    ->helperText('Unique effect type identifier (e.g., freeze, poison, slow)'),
+                TextInput::make('name')
+                    ->required()
+                    ->helperText('Display name for the effect'),
+                Textarea::make('description')
+                    ->helperText('Brief description of what this effect does'),
+                TextInput::make('icon')
+                    ->helperText('Emoji or icon for the effect'),
             ]);
     }
 }

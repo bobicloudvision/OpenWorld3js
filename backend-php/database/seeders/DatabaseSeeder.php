@@ -24,109 +24,252 @@ class DatabaseSeeder extends Seeder
 //            'email' => 'test@example.com',
 //        ]);
 
-        // Seed spells and effects mapped from frontend MAGIC_TYPES
+        // First, seed all effect types (reusable definitions)
+        $effectTypes = [
+            ['type' => 'freeze', 'name' => 'Freeze', 'description' => 'Immobilizes target', 'icon' => '🧊'],
+            ['type' => 'knockback', 'name' => 'Knockback', 'description' => 'Pushes target away', 'icon' => '💥'],
+            ['type' => 'poison', 'name' => 'Poison', 'description' => 'Damage over time', 'icon' => '☠️'],
+            ['type' => 'chain', 'name' => 'Chain', 'description' => 'Bounces to nearby targets', 'icon' => '⚡'],
+            ['type' => 'lifesteal', 'name' => 'Lifesteal', 'description' => 'Heal from damage dealt', 'icon' => '🩸'],
+            ['type' => 'slow', 'name' => 'Slow', 'description' => 'Reduces movement speed', 'icon' => '⏰'],
+        ];
+
+        foreach ($effectTypes as $effectData) {
+            Effect::firstOrCreate(
+                ['type' => $effectData['type']],
+                $effectData
+            );
+        }
+
+        // Seed spells with base stats and scaling
         $magicTypes = [
             'fire' => [
-                'name' => 'Fireball', 'damage' => 25, 'power_cost' => 20, 'cooldown' => 2000, 'color' => '#ff4444', 'description' => 'A powerful fire projectile', 'range' => 15, 'affect_range' => 2, 'icon' => '🔥',
+                'name' => 'Fireball',
+                'base_damage' => 25,
+                'damage_per_level' => 2,
+                'base_power_cost' => 20,
+                'base_cooldown' => 2000,
+                'base_range' => 15,
+                'base_affect_range' => 2,
+                'color' => '#ff4444',
+                'description' => 'A powerful fire projectile',
+                'icon' => '🔥',
             ],
             'ice' => [
-                'name' => 'Ice Shard', 'damage' => 20, 'power_cost' => 15, 'cooldown' => 1500, 'color' => '#44aaff', 'description' => 'Freezing ice projectile', 'range' => 12, 'affect_range' => 1.5, 'icon' => '❄️',
+                'name' => 'Ice Shard',
+                'base_damage' => 20,
+                'damage_per_level' => 1.5,
+                'base_power_cost' => 15,
+                'base_cooldown' => 1500,
+                'base_range' => 12,
+                'base_affect_range' => 1.5,
+                'color' => '#44aaff',
+                'description' => 'Freezing ice projectile',
+                'icon' => '❄️',
             ],
             'freeze' => [
-                'name' => 'Deep Freeze', 'damage' => 10, 'power_cost' => 25, 'cooldown' => 10000, 'color' => '#00ffff', 'description' => 'Freezes enemy in place', 'range' => 10, 'affect_range' => 3, 'icon' => '🧊',
-                'statusEffect' => ['type' => 'freeze', 'duration' => 10000],
+                'name' => 'Deep Freeze',
+                'base_damage' => 10,
+                'damage_per_level' => 1,
+                'base_power_cost' => 25,
+                'base_cooldown' => 10000,
+                'base_range' => 10,
+                'base_affect_range' => 3,
+                'color' => '#00ffff',
+                'description' => 'Freezes enemy in place',
+                'icon' => '🧊',
+                'effects' => [
+                    ['type' => 'freeze', 'base_duration' => 10000, 'duration_per_level' => 200],
+                ],
             ],
             'blizzard' => [
-                'name' => 'Blizzard', 'damage' => 20, 'power_cost' => 50, 'cooldown' => 15000, 'color' => '#88ddff', 'description' => 'Massive freeze storm', 'range' => 25, 'affect_range' => 8, 'icon' => '❄️',
-                'statusEffect' => ['type' => 'freeze', 'duration' => 8000],
+                'name' => 'Blizzard',
+                'base_damage' => 20,
+                'damage_per_level' => 2,
+                'base_power_cost' => 50,
+                'base_cooldown' => 15000,
+                'base_range' => 25,
+                'base_affect_range' => 8,
+                'color' => '#88ddff',
+                'description' => 'Massive freeze storm',
+                'icon' => '❄️',
+                'effects' => [
+                    ['type' => 'freeze', 'base_duration' => 8000, 'duration_per_level' => 100],
+                ],
             ],
             'lightning' => [
-                'name' => 'Lightning Bolt', 'damage' => 30, 'power_cost' => 25, 'cooldown' => 3000, 'color' => '#ffff44', 'description' => 'Fast lightning attack', 'range' => 20, 'affect_range' => 2, 'icon' => '⚡',
+                'name' => 'Lightning Bolt',
+                'base_damage' => 30,
+                'damage_per_level' => 2.5,
+                'base_power_cost' => 25,
+                'base_cooldown' => 3000,
+                'base_range' => 20,
+                'base_affect_range' => 2,
+                'color' => '#ffff44',
+                'description' => 'Fast lightning attack',
+                'icon' => '⚡',
             ],
             'bomb' => [
-                'name' => 'Arcane Bomb', 'damage' => 35, 'power_cost' => 30, 'cooldown' => 4000, 'color' => '#ff00ff', 'description' => 'Explosive force that knocks back enemies', 'range' => 12, 'affect_range' => 6, 'icon' => '💣',
-                'statusEffect' => ['type' => 'knockback', 'force' => 8],
+                'name' => 'Arcane Bomb',
+                'base_damage' => 35,
+                'damage_per_level' => 3,
+                'base_power_cost' => 30,
+                'base_cooldown' => 4000,
+                'base_range' => 12,
+                'base_affect_range' => 6,
+                'color' => '#ff00ff',
+                'description' => 'Explosive force that knocks back enemies',
+                'icon' => '💣',
+                'effects' => [
+                    ['type' => 'knockback', 'base_force' => 8, 'force_per_level' => 0.2],
+                ],
             ],
             'poison' => [
-                'name' => 'Poison Cloud', 'damage' => 15, 'power_cost' => 20, 'cooldown' => 3500, 'color' => '#88ff00', 'description' => 'Deals damage over time', 'range' => 10, 'affect_range' => 5, 'icon' => '☠️',
-                'statusEffect' => ['type' => 'poison', 'duration' => 5000, 'tick_damage' => 5, 'tick_rate' => 1000],
+                'name' => 'Poison Cloud',
+                'base_damage' => 15,
+                'damage_per_level' => 1,
+                'base_power_cost' => 20,
+                'base_cooldown' => 3500,
+                'base_range' => 10,
+                'base_affect_range' => 5,
+                'color' => '#88ff00',
+                'description' => 'Deals damage over time',
+                'icon' => '☠️',
+                'effects' => [
+                    ['type' => 'poison', 'base_duration' => 5000, 'base_tick_damage' => 5, 'base_tick_rate' => 1000, 'tick_damage_per_level' => 0.5],
+                ],
             ],
             'chain' => [
-                'name' => 'Chain Lightning', 'damage' => 20, 'power_cost' => 35, 'cooldown' => 5000, 'color' => '#4444ff', 'description' => 'Bounces between nearby enemies', 'range' => 15, 'affect_range' => 2, 'icon' => '⚡️',
-                'statusEffect' => ['type' => 'chain', 'bounces' => 3, 'chain_range' => 8],
+                'name' => 'Chain Lightning',
+                'base_damage' => 20,
+                'damage_per_level' => 2,
+                'base_power_cost' => 35,
+                'base_cooldown' => 5000,
+                'base_range' => 15,
+                'base_affect_range' => 2,
+                'color' => '#4444ff',
+                'description' => 'Bounces between nearby enemies',
+                'icon' => '⚡️',
+                'effects' => [
+                    ['type' => 'chain', 'base_bounces' => 3, 'base_chain_range' => 8, 'chain_range_per_level' => 0.1],
+                ],
             ],
             'drain' => [
-                'name' => 'Life Drain', 'damage' => 25, 'power_cost' => 20, 'cooldown' => 4000, 'color' => '#ff0088', 'description' => 'Steal life from enemies', 'range' => 12, 'affect_range' => 1, 'icon' => '🩸',
-                'statusEffect' => ['type' => 'lifesteal', 'heal_percent' => 50],
+                'name' => 'Life Drain',
+                'base_damage' => 25,
+                'damage_per_level' => 2,
+                'base_power_cost' => 20,
+                'base_cooldown' => 4000,
+                'base_range' => 12,
+                'base_affect_range' => 1,
+                'color' => '#ff0088',
+                'description' => 'Steal life from enemies',
+                'icon' => '🩸',
+                'effects' => [
+                    ['type' => 'lifesteal', 'base_heal_percent' => 50],
+                ],
             ],
             'slow' => [
-                'name' => 'Time Warp', 'damage' => 5, 'power_cost' => 20, 'cooldown' => 5000, 'color' => '#8844ff', 'description' => 'Slows enemy movement', 'range' => 15, 'affect_range' => 4, 'icon' => '⏰',
-                'statusEffect' => ['type' => 'slow', 'duration' => 4000, 'slow_percent' => 50],
+                'name' => 'Time Warp',
+                'base_damage' => 5,
+                'damage_per_level' => 0.5,
+                'base_power_cost' => 20,
+                'base_cooldown' => 5000,
+                'base_range' => 15,
+                'base_affect_range' => 4,
+                'color' => '#8844ff',
+                'description' => 'Slows enemy movement',
+                'icon' => '⏰',
+                'effects' => [
+                    ['type' => 'slow', 'base_duration' => 4000, 'base_slow_percent' => 50, 'duration_per_level' => 100],
+                ],
             ],
             'heal' => [
-                'name' => 'Heal', 'damage' => -30, 'power_cost' => 30, 'cooldown' => 4000, 'color' => '#44ff44', 'description' => 'Restore health', 'range' => 8, 'affect_range' => 0, 'icon' => '💚',
+                'name' => 'Heal',
+                'base_damage' => -30,
+                'damage_per_level' => -2,
+                'base_power_cost' => 30,
+                'base_cooldown' => 4000,
+                'base_range' => 8,
+                'base_affect_range' => 0,
+                'color' => '#44ff44',
+                'description' => 'Restore health',
+                'icon' => '💚',
             ],
             'meteor' => [
-                'name' => 'Meteor', 'damage' => 50, 'power_cost' => 40, 'cooldown' => 5000, 'color' => '#ff8800', 'description' => 'Devastating meteor strike', 'range' => 25, 'affect_range' => 7, 'icon' => '☄️',
+                'name' => 'Meteor',
+                'base_damage' => 50,
+                'damage_per_level' => 4,
+                'base_power_cost' => 40,
+                'base_cooldown' => 5000,
+                'base_range' => 25,
+                'base_affect_range' => 7,
+                'color' => '#ff8800',
+                'description' => 'Devastating meteor strike',
+                'icon' => '☄️',
             ],
             'shield' => [
-                'name' => 'Magic Shield', 'damage' => 0, 'power_cost' => 25, 'cooldown' => 3000, 'color' => '#8888ff', 'description' => 'Protective barrier', 'range' => 5, 'affect_range' => 0, 'icon' => '🛡️',
+                'name' => 'Magic Shield',
+                'base_damage' => 0,
+                'base_power_cost' => 25,
+                'base_cooldown' => 3000,
+                'base_range' => 5,
+                'base_affect_range' => 0,
+                'color' => '#8888ff',
+                'description' => 'Protective barrier',
+                'icon' => '🛡️',
             ],
         ];
 
         foreach ($magicTypes as $key => $spellData) {
-            $effectId = null;
-            if (isset($spellData['statusEffect'])) {
-                $se = $spellData['statusEffect'];
-
-                // Normalize keys from camelCase (frontend) to snake_case (DB) to avoid missing params
-                $normalized = [
-                    'type' => $se['type'] ?? null,
-                    'duration' => $se['duration'] ?? ($se['Duration'] ?? null),
-                    'force' => $se['force'] ?? ($se['Force'] ?? null),
-                    'tick_damage' => $se['tick_damage'] ?? ($se['tickDamage'] ?? null),
-                    'tick_rate' => $se['tick_rate'] ?? ($se['tickRate'] ?? null),
-                    'heal_percent' => $se['heal_percent'] ?? ($se['healPercent'] ?? null),
-                    'slow_percent' => $se['slow_percent'] ?? ($se['slowPercent'] ?? null),
-                    'bounces' => $se['bounces'] ?? null,
-                    'chain_range' => $se['chain_range'] ?? ($se['chainRange'] ?? null),
-                ];
-
-                $effect = Effect::firstOrCreate(
-                    [
-                        'type' => $normalized['type'],
-                        'duration' => $normalized['type'] === 'knockback' ? null : ($normalized['duration'] ?? null),
-                    ],
-                    [
-                        'force' => $normalized['force'],
-                        'tick_damage' => $normalized['tick_damage'],
-                        'tick_rate' => $normalized['tick_rate'],
-                        'heal_percent' => $normalized['heal_percent'],
-                        'slow_percent' => $normalized['slow_percent'],
-                        'bounces' => $normalized['bounces'],
-                        'chain_range' => $normalized['chain_range'],
-                    ]
-                );
-                $effectId = $effect->id;
-            }
-
+            // Create/update spell with base stats
             $spell = Spell::updateOrCreate(
                 ['key' => $key],
                 [
                     'name' => $spellData['name'],
-                    'damage' => $spellData['damage'],
-                    'power_cost' => $spellData['power_cost'],
-                    'cooldown' => $spellData['cooldown'],
+                    'base_damage' => $spellData['base_damage'],
+                    'base_power_cost' => $spellData['base_power_cost'],
+                    'base_cooldown' => $spellData['base_cooldown'],
+                    'base_range' => $spellData['base_range'] ?? 0,
+                    'base_affect_range' => $spellData['base_affect_range'] ?? 0,
+                    'damage_per_level' => $spellData['damage_per_level'] ?? 0,
+                    'power_cost_per_level' => $spellData['power_cost_per_level'] ?? 0,
+                    'cooldown_per_level' => $spellData['cooldown_per_level'] ?? 0,
+                    'range_per_level' => $spellData['range_per_level'] ?? 0,
+                    'affect_range_per_level' => $spellData['affect_range_per_level'] ?? 0,
                     'color' => $spellData['color'] ?? null,
                     'description' => $spellData['description'] ?? null,
-                    'range' => $spellData['range'] ?? 0,
-                    'affect_range' => $spellData['affect_range'] ?? 0,
                     'icon' => $spellData['icon'] ?? null,
                 ]
             );
 
-            if ($effectId) {
-                $spell->effects()->syncWithoutDetaching([$effectId]);
+            // Attach effects with their pivot data
+            if (isset($spellData['effects'])) {
+                foreach ($spellData['effects'] as $effectData) {
+                    $effect = Effect::where('type', $effectData['type'])->first();
+                    if ($effect) {
+                        $pivotData = [
+                            'base_duration' => $effectData['base_duration'] ?? null,
+                            'base_tick_damage' => $effectData['base_tick_damage'] ?? null,
+                            'base_tick_rate' => $effectData['base_tick_rate'] ?? null,
+                            'base_force' => $effectData['base_force'] ?? null,
+                            'base_heal_percent' => $effectData['base_heal_percent'] ?? null,
+                            'base_slow_percent' => $effectData['base_slow_percent'] ?? null,
+                            'base_bounces' => $effectData['base_bounces'] ?? null,
+                            'base_chain_range' => $effectData['base_chain_range'] ?? null,
+                            'duration_per_level' => $effectData['duration_per_level'] ?? 0,
+                            'tick_damage_per_level' => $effectData['tick_damage_per_level'] ?? 0,
+                            'force_per_level' => $effectData['force_per_level'] ?? 0,
+                            'heal_percent_per_level' => $effectData['heal_percent_per_level'] ?? 0,
+                            'slow_percent_per_level' => $effectData['slow_percent_per_level'] ?? 0,
+                            'bounces_per_level' => $effectData['bounces_per_level'] ?? 0,
+                            'chain_range_per_level' => $effectData['chain_range_per_level'] ?? 0,
+                            'effect_order' => $effectData['effect_order'] ?? 0,
+                        ];
+                        
+                        $spell->effects()->syncWithoutDetaching([$effect->id => $pivotData]);
+                    }
+                }
             }
         }
 

@@ -15,14 +15,26 @@ return new class extends Migration
             $table->id();
             $table->string('key')->unique(); // e.g., fire, ice, lightning
             $table->string('name');
-            $table->integer('damage');
-            $table->unsignedInteger('power_cost');
-            $table->unsignedInteger('cooldown'); // ms
+            
+            // Base stats (at level 1)
+            $table->integer('base_damage');
+            $table->unsignedInteger('base_power_cost');
+            $table->unsignedInteger('base_cooldown'); // ms
+            $table->float('base_range')->default(0);
+            $table->float('base_affect_range')->default(0);
+            
+            // Scaling per hero level
+            $table->float('damage_per_level')->default(0);
+            $table->float('power_cost_per_level')->default(0);
+            $table->float('cooldown_per_level')->default(0); // can be negative to reduce cooldown
+            $table->float('range_per_level')->default(0);
+            $table->float('affect_range_per_level')->default(0);
+            
+            // Visual and metadata
             $table->string('color')->nullable();
             $table->text('description')->nullable();
-            $table->float('range')->default(0);
-            $table->float('affect_range')->default(0);
             $table->string('icon')->nullable();
+            
             $table->timestamps();
         });
     }

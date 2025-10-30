@@ -14,29 +14,41 @@ class SpellsTable
     {
         return $table
             ->columns([
-                TextColumn::make('key')
-                    ->searchable(),
-                TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('damage')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('power_cost')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('cooldown')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('color')
-                    ->searchable(),
-                TextColumn::make('range')
-                    ->numeric()
-                    ->sortable(),
-                TextColumn::make('affect_range')
-                    ->numeric()
-                    ->sortable(),
                 TextColumn::make('icon')
-                    ->searchable(),
+                    ->label(''),
+                TextColumn::make('key')
+                    ->searchable()
+                    ->sortable()
+                    ->badge()
+                    ->color('info'),
+                TextColumn::make('name')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('base_damage')
+                    ->numeric()
+                    ->sortable()
+                    ->label('Damage (Base)')
+                    ->description(fn ($record) => $record->damage_per_level > 0 ? "+{$record->damage_per_level}/lvl" : null),
+                TextColumn::make('base_power_cost')
+                    ->numeric()
+                    ->sortable()
+                    ->label('Power Cost'),
+                TextColumn::make('base_cooldown')
+                    ->numeric()
+                    ->sortable()
+                    ->label('Cooldown (ms)'),
+                TextColumn::make('base_range')
+                    ->numeric()
+                    ->sortable()
+                    ->label('Range'),
+                TextColumn::make('effects_count')
+                    ->counts('effects')
+                    ->label('Effects')
+                    ->sortable(),
+                TextColumn::make('heroes_count')
+                    ->counts('heroes')
+                    ->label('Used by Heroes')
+                    ->sortable(),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

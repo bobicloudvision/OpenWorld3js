@@ -13,16 +13,10 @@ return new class extends Migration
     {
         Schema::create('effects', function (Blueprint $table) {
             $table->id();
-            $table->string('type'); // e.g., freeze, knockback, poison, chain, lifesteal, slow
-            $table->unsignedInteger('duration')->nullable(); // ms
-            $table->float('force')->nullable(); // for knockback
-            $table->integer('tick_damage')->nullable();
-            $table->unsignedInteger('tick_rate')->nullable(); // ms
-            $table->unsignedInteger('heal_percent')->nullable(); // for lifesteal
-            $table->unsignedInteger('slow_percent')->nullable();
-            $table->unsignedInteger('bounces')->nullable(); // for chain
-            $table->float('chain_range')->nullable();
-            $table->json('config')->nullable();
+            $table->string('type')->unique(); // e.g., freeze, knockback, poison, chain, lifesteal, slow
+            $table->string('name'); // Display name
+            $table->text('description')->nullable();
+            $table->string('icon')->nullable();
             $table->timestamps();
         });
     }
