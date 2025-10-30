@@ -2,20 +2,37 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Laravel\Sanctum\HasApiTokens;
 
-class Player extends Model
+class Player extends Authenticatable
 {
+    use HasApiTokens;
     protected $fillable = [
         'name',
+        'email',
+        'password',
         'level',
         'experience',
         'currency',
         'active_hero_id',
     ];
+
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'password' => 'hashed',
+            'email_verified_at' => 'datetime',
+        ];
+    }
 
     /**
      * Get all heroes owned by this player (with their instance data).
