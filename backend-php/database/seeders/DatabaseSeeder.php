@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Spell;
 use App\Models\Effect;
+use App\Models\Hero;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -18,10 +19,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Seed default user
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+//        User::factory()->create([
+//            'name' => 'Test User',
+//            'email' => 'test@example.com',
+//        ]);
 
         // Seed spells and effects mapped from frontend MAGIC_TYPES
         $magicTypes = [
@@ -77,16 +78,33 @@ class DatabaseSeeder extends Seeder
             $effectId = null;
             if (isset($spellData['statusEffect'])) {
                 $se = $spellData['statusEffect'];
+
+                // Normalize keys from camelCase (frontend) to snake_case (DB) to avoid missing params
+                $normalized = [
+                    'type' => $se['type'] ?? null,
+                    'duration' => $se['duration'] ?? ($se['Duration'] ?? null),
+                    'force' => $se['force'] ?? ($se['Force'] ?? null),
+                    'tick_damage' => $se['tick_damage'] ?? ($se['tickDamage'] ?? null),
+                    'tick_rate' => $se['tick_rate'] ?? ($se['tickRate'] ?? null),
+                    'heal_percent' => $se['heal_percent'] ?? ($se['healPercent'] ?? null),
+                    'slow_percent' => $se['slow_percent'] ?? ($se['slowPercent'] ?? null),
+                    'bounces' => $se['bounces'] ?? null,
+                    'chain_range' => $se['chain_range'] ?? ($se['chainRange'] ?? null),
+                ];
+
                 $effect = Effect::firstOrCreate(
-                    ['type' => $se['type'], 'duration' => $se['type'] === 'knockback' ? null : ($se['duration'] ?? null)],
                     [
-                        'force' => $se['force'] ?? null,
-                        'tick_damage' => $se['tick_damage'] ?? null,
-                        'tick_rate' => $se['tick_rate'] ?? null,
-                        'heal_percent' => $se['heal_percent'] ?? null,
-                        'slow_percent' => $se['slow_percent'] ?? null,
-                        'bounces' => $se['bounces'] ?? null,
-                        'chain_range' => $se['chain_range'] ?? null,
+                        'type' => $normalized['type'],
+                        'duration' => $normalized['type'] === 'knockback' ? null : ($normalized['duration'] ?? null),
+                    ],
+                    [
+                        'force' => $normalized['force'],
+                        'tick_damage' => $normalized['tick_damage'],
+                        'tick_rate' => $normalized['tick_rate'],
+                        'heal_percent' => $normalized['heal_percent'],
+                        'slow_percent' => $normalized['slow_percent'],
+                        'bounces' => $normalized['bounces'],
+                        'chain_range' => $normalized['chain_range'],
                     ]
                 );
                 $effectId = $effect->id;
@@ -109,6 +127,88 @@ class DatabaseSeeder extends Seeder
 
             if ($effectId) {
                 $spell->effects()->syncWithoutDetaching([$effectId]);
+            }
+        }
+
+        // Seed heroes mirroring frontend INITIAL_ENEMIES and additional examples
+        $piOver2Negative = -1.5707963267948966; // -Math.PI / 2 equivalent
+
+        $heroes = [
+            [
+                'name' => 'Goblin Warrior',
+                'health' => 60,
+                'max_health' => 60,
+                'power' => 50,
+                'max_power' => 50,
+                'attack' => 12,
+                'defense' => 3,
+                'model' => '/models/avatars/GanfaulMAure.glb',
+                'model_scale' => 1,
+                'model_rotation' => [0, $piOver2Negative, 0],
+                'magic_types' => ['fire'],
+            ],
+            [
+                'name' => 'Dark Mage',
+                'health' => 40,
+                'max_health' => 40,
+                'power' => 80,
+                'max_power' => 80,
+                'attack' => 8,
+                'defense' => 2,
+                'model' => '/models/avatars/NightshadeJFriedrich.glb',
+                'model_scale' => 1,
+                'model_rotation' => [0, $piOver2Negative, 0],
+                'magic_types' => ['ice', 'lightning'],
+            ],
+            [
+                'name' => 'Orc Berserker',
+                'health' => 120,
+                'max_health' => 120,
+                'power' => 30,
+                'max_power' => 30,
+                'attack' => 20,
+                'defense' => 8,
+                'model' => '/models/avatars/WarrokWKurniawan.glb',
+                'model_scale' => 1,
+                'model_rotation' => [0, $piOver2Negative, 0],
+                'magic_types' => [],
+            ],
+            [
+                'name' => 'Mutant',
+                'health' => 50,
+                'max_health' => 50,
+                'power' => 30,
+                'max_power' => 30,
+                'attack' => 5,
+                'defense' => 1,
+                'model' => '/models/avatars/Mutant.glb',
+                'model_scale' => 1,
+                'model_rotation' => [0, $piOver2Negative, 0],
+                'magic_types' => [],
+            ],
+        ];
+
+        foreach ($heroes as $data) {
+            $hero = Hero::updateOrCreate(
+                ['name' => $data['name']],
+                [
+                    'health' => $data['health'],
+                    'max_health' => $data['max_health'],
+                    'power' => $data['power'],
+                    'max_power' => $data['max_power'],
+                    'attack' => $data['attack'],
+                    'defense' => $data['defense'],
+                    'model' => $data['model'],
+                    'model_scale' => $data['model_scale'],
+                    'model_rotation' => $data['model_rotation'],
+                ]
+            );
+
+            if (!empty($data['magic_types'])) {
+                $spellIds = Spell::whereIn('key', $data['magic_types'])->pluck('id')->all();
+                if (!empty($spellIds)) {
+                    $hero->spells()->syncWithoutDetaching($spellIds);
+                }
             }
         }
     }
