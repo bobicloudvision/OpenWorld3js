@@ -89,7 +89,7 @@ export default function App() {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [player]);
+  }, [!!player]);
   
   const keyboardMap = [
     { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
