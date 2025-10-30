@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react'
+import { io } from 'socket.io-client'
 import { me as fetchMe, logout as playerLogout } from './services/authService'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
@@ -28,6 +29,8 @@ export default function App() {
   const playerPositionRef = React.useRef([0, 0, 0]);
   const [authOpen, setAuthOpen] = React.useState(false)
   const [player, setPlayer] = React.useState(null)
+  const socketRef = React.useRef(null)
+  const [socketReady, setSocketReady] = React.useState(false)
   useEffect(() => {
     // Validate stored token on load (non-blocking, logs only)
     fetchMe().then((me) => {
@@ -40,6 +43,53 @@ export default function App() {
       }
     }).catch(() => { console.log('Auth check failed'); setAuthOpen(true) });
   }, []);
+
+  // Connect to socket server when authenticated
+  useEffect(() => {
+    if (!player) {
+      // If logging out or not authenticated, ensure socket is closed
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      setSocketReady(false);
+      return;
+    }
+
+    setSocketReady(false);
+    const token = localStorage.getItem('playerToken');
+    const socket = io('http://localhost:6060', { transports: ['websocket'] });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      socket.emit('auth', { token });
+    });
+
+    socket.on('auth:ok', ({ player: socketPlayer }) => {
+      // Keep frontend player snapshot in sync with backend-socket
+      setPlayer(socketPlayer);
+      setSocketReady(true);
+      socket.emit('get:player');
+    });
+
+    socket.on('player', (socketPlayer) => {
+      if (socketPlayer) setPlayer(socketPlayer);
+    });
+
+    socket.on('auth:error', (err) => {
+      console.error('Socket auth failed', err);
+      setSocketReady(false);
+    });
+
+    socket.on('disconnect', () => {
+      setSocketReady(false);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [player]);
   
   const keyboardMap = [
     { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
@@ -61,7 +111,7 @@ export default function App() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span style={{ color: '#e5e7eb', fontSize: 12 }}>Hi, {player.name}</span>
           <button
-            onClick={async () => { await playerLogout(); setPlayer(null); setAuthOpen(true); }}
+            onClick={async () => { await playerLogout(); if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; } setPlayer(null); setAuthOpen(true); }}
             style={{ padding: '6px 10px', fontSize: 12, background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: 6 }}
           >
             Logout
@@ -82,7 +132,14 @@ export default function App() {
       onAuthenticated={(p) => { setPlayer(p); setAuthOpen(false); }}
     />
     {/* <GameInstructions /> */}
-    {player && (
+    {player && !socketReady && (
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)', zIndex: 50 }}>
+        <div style={{ padding: '12px 16px', background: '#111827', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 8, fontSize: 13 }}>
+          Connecting to game server...
+        </div>
+      </div>
+    )}
+    {player && socketReady && (
       <>
         <GameUI playerPositionRef={playerPositionRef} />
         <MagicPalette />
