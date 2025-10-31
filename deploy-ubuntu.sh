@@ -104,6 +104,7 @@ apt-get install -y \
     php${PHP_VERSION}-cli \
     php${PHP_VERSION}-fpm \
     php${PHP_VERSION}-mysql \
+    php${PHP_VERSION}-sqlite3 \
     php${PHP_VERSION}-mbstring \
     php${PHP_VERSION}-xml \
     php${PHP_VERSION}-curl \
@@ -112,6 +113,32 @@ apt-get install -y \
     php${PHP_VERSION}-tokenizer \
     php${PHP_VERSION}-gd \
     php${PHP_VERSION}-intl
+
+# Set PHP version as default
+print_message "Setting PHP ${PHP_VERSION} as default..."
+update-alternatives --set php /usr/bin/php${PHP_VERSION} 2>/dev/null || update-alternatives --install /usr/bin/php php /usr/bin/php${PHP_VERSION} 100
+update-alternatives --set phar /usr/bin/phar${PHP_VERSION} 2>/dev/null || update-alternatives --install /usr/bin/phar phar /usr/bin/phar${PHP_VERSION} 100
+update-alternatives --set phar.phar /usr/bin/phar.phar${PHP_VERSION} 2>/dev/null || update-alternatives --install /usr/bin/phar.phar phar.phar /usr/bin/phar.phar${PHP_VERSION} 100
+[ -f /usr/bin/phpize${PHP_VERSION} ] && (update-alternatives --set phpize /usr/bin/phpize${PHP_VERSION} 2>/dev/null || update-alternatives --install /usr/bin/phpize phpize /usr/bin/phpize${PHP_VERSION} 100) || true
+[ -f /usr/bin/php-config${PHP_VERSION} ] && (update-alternatives --set php-config /usr/bin/php-config${PHP_VERSION} 2>/dev/null || update-alternatives --install /usr/bin/php-config php-config /usr/bin/php-config${PHP_VERSION} 100) || true
+
+# Verify PHP version
+print_message "Verifying PHP version..."
+php -v | head -n 1
+
+# Disable old PHP-FPM versions if they exist
+print_message "Managing PHP-FPM services..."
+for php_ver in 7.4 8.0 8.1 8.2 8.4; do
+    if systemctl is-active --quiet php${php_ver}-fpm 2>/dev/null; then
+        print_message "Stopping PHP ${php_ver}-FPM..."
+        systemctl stop php${php_ver}-fpm
+        systemctl disable php${php_ver}-fpm
+    fi
+done
+
+# Enable and start correct PHP-FPM version
+systemctl enable php${PHP_VERSION}-fpm
+systemctl start php${PHP_VERSION}-fpm || systemctl restart php${PHP_VERSION}-fpm
 
 # Install Composer
 print_message "Installing Composer..."
@@ -282,6 +309,40 @@ EOL
     php artisan key:generate --force
 else
     print_message "Using existing Laravel .env file..."
+    
+    # Update database configuration to use MySQL
+    print_message "Ensuring MySQL database configuration..."
+    
+    # Remove old DB config lines if they exist
+    sed -i '/^DB_CONNECTION=/d' .env
+    sed -i '/^DB_HOST=/d' .env
+    sed -i '/^DB_PORT=/d' .env
+    sed -i '/^DB_DATABASE=/d' .env
+    sed -i '/^DB_USERNAME=/d' .env
+    sed -i '/^DB_PASSWORD=/d' .env
+    
+    # Add new DB config after APP_URL or at the end
+    if grep -q "^APP_URL=" .env; then
+        sed -i "/^APP_URL=/a\\
+\\
+DB_CONNECTION=mysql\\
+DB_HOST=127.0.0.1\\
+DB_PORT=3306\\
+DB_DATABASE=${DB_NAME}\\
+DB_USERNAME=${DB_USER}\\
+DB_PASSWORD=${DB_PASSWORD}" .env
+    else
+        # If APP_URL doesn't exist, append at the end
+        cat >> .env << EOF
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=${DB_NAME}
+DB_USERNAME=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+EOF
+    fi
 fi
 
 # Run migrations (safe to run multiple times)

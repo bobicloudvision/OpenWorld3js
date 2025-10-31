@@ -23,7 +23,7 @@ return new class extends Migration
             $table->unsignedInteger('level')->default(1);
             $table->unsignedInteger('experience')->default(0);
             $table->unsignedInteger('currency')->default(0); // Gold/coins
-            $table->foreignId('active_hero_id')->nullable()->constrained('player_heroes')->nullOnDelete();
+            $table->foreignId('active_hero_id')->nullable(); //->constrained('player_heroes')->nullOnDelete();
             $table->timestamps();
         });
 
