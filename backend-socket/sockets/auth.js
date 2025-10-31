@@ -1,8 +1,9 @@
 import { findToken, isExpired, parseAbilities } from '../services/tokenService.js';
 import { getPlayerById } from '../services/playerService.js';
 import { bindSocket } from '../services/sessionService.js';
+import { registerMultiplayerHandlers } from './multiplayer.js';
 
-export function registerAuthHandlers(socket) {
+export function registerAuthHandlers(socket, io) {
   socket.on('auth', async (payload) => {
     try {
       const tokenPlain = payload?.token;
@@ -41,6 +42,9 @@ export function registerAuthHandlers(socket) {
 
       bindSocket(socket.id, player.id);
       socket.emit('auth:ok', { player });
+      
+      // Register multiplayer handlers after successful authentication
+      registerMultiplayerHandlers(socket, io);
     } catch (err) {
       socket.emit('auth:error', { message: 'Auth failed' });
     }

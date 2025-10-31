@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
 import { Environment, KeyboardControls } from '@react-three/drei'
 import Ecctrl, { EcctrlJoystick } from 'ecctrl'
 import Player from './Player'
+import OtherPlayers from './OtherPlayers'
 import Ground from './Ground'
 import { Shapes } from './Shapes'
 import Enemies from './Enemies'
@@ -22,8 +23,24 @@ export default function GameplayScene({
   playerPositionRef, 
   keyboardMap, 
   activeHero,
-  onOpenHeroSelection 
+  onOpenHeroSelection,
+  socket,
+  player
 }) {
+  const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      setIsTabVisible(!document.hidden)
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
+
   return (
     <>
       <GameUI 
@@ -50,9 +67,9 @@ export default function GameplayScene({
         <ambientLight intensity={0.7} />
         
         <Physics 
-          timeStep="vary" 
+          timeStep={isTabVisible ? "vary" : 1/60}
           gravity={[0, -20, 0]}
-          paused={false}
+          paused={!isTabVisible}
           debug={false}
         >
           <KeyboardControls map={keyboardMap}>
@@ -67,9 +84,13 @@ export default function GameplayScene({
                 heroModel={activeHero?.model}
                 heroModelScale={activeHero?.modelScale}
                 heroModelRotation={activeHero?.modelRotation}
+                socket={socket}
               />
               
-            </Ecctrl> 
+            </Ecctrl>
+            
+            {/* Render other players */}
+            <OtherPlayers socket={socket} currentPlayerId={player?.id} /> 
             
             <Shapes />
             {/* <Enemies playerPositionRef={playerPositionRef} /> */} 

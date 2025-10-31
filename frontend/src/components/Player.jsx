@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import { useAvatarAnimations } from '../hooks/useAvatarAnimations'
 import useGameStore from '../stores/gameStore'
 
-export default function Player({ onPositionChange, heroModel, heroModelScale, heroModelRotation }) {
+export default function Player({ onPositionChange, heroModel, heroModelScale, heroModelRotation, socket }) {
   const group = useRef()
   
   // Use shared avatar animations hook with dynamic model path
@@ -30,6 +30,8 @@ export default function Player({ onPositionChange, heroModel, heroModelScale, he
   
   const attackUntil = useRef(0)
   const playerAttackingAt = useGameStore((s) => s.playerAttackingAt)
+  const lastPositionUpdate = useRef(0)
+  const POSITION_UPDATE_INTERVAL = 100 // Send position updates every 100ms
 
   useEffect(() => {
     if (!playerAttackingAt) return
@@ -53,11 +55,26 @@ export default function Player({ onPositionChange, heroModel, heroModelScale, he
     const { forward, backward, leftward, rightward, jump } = get()
     const currentlyMoving = forward || backward || leftward || rightward
     
+    const currentPos = getCurrentPosition()
+    const now = Date.now()
+    
     // Update position when moving or when movement state changes
     if (currentlyMoving && onPositionChange) {
-      onPositionChange(getCurrentPosition())
+      onPositionChange(currentPos)
     } else if (!currentlyMoving && isMoving.current && onPositionChange) {
-      onPositionChange(getCurrentPosition())
+      onPositionChange(currentPos)
+    }
+    
+    // Send position updates to server for multiplayer
+    if (socket && (now - lastPositionUpdate.current > POSITION_UPDATE_INTERVAL || currentlyMoving)) {
+      const rotation = group.current 
+        ? [group.current.rotation.x, group.current.rotation.y, group.current.rotation.z]
+        : [0, 0, 0]
+      socket.emit('player:position:update', {
+        position: currentPos,
+        rotation: rotation,
+      })
+      lastPositionUpdate.current = now
     }
     
     // Track movement state

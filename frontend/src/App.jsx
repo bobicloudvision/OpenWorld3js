@@ -65,19 +65,34 @@ export default function App() {
       if (socketPlayer) setPlayer(socketPlayer);
     });
 
+    socket.on('heroes:available', (heroes) => {
+      setAvailableHeroes(heroes || []);
+    });
+
+    // Handle player heroes update
     socket.on('player:heroes', (heroes) => {
       setPlayerHeroes(heroes || []);
       setLoadingHeroes(false);
-    });
-
-    socket.on('heroes:available', (heroes) => {
-      setAvailableHeroes(heroes || []);
+      
+      // Notify other players about hero change if we have an active hero
+      const currentPlayer = player || {};
+      if (currentPlayer.active_hero_id && heroes) {
+        const activeHeroData = heroes.find(h => h.playerHeroId === currentPlayer.active_hero_id);
+        if (activeHeroData && socket) {
+          socket.emit('player:hero:update', {
+            activeHeroId: currentPlayer.active_hero_id,
+            heroModel: activeHeroData.model,
+            heroModelScale: activeHeroData.modelScale,
+            heroModelRotation: activeHeroData.modelRotation,
+          });
+        }
+      }
     });
 
     // Handle hero selection response
     socket.on('hero:set:active:ok', ({ player: updatedPlayer }) => {
       setPlayer(updatedPlayer);
-      // Refresh heroes list
+      // Refresh heroes list - the handler above will notify about hero change
       socket.emit('get:player:heroes');
     });
 
