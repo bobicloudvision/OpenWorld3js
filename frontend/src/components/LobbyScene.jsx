@@ -12,7 +12,7 @@ import GameManager from './GameManager'
 import Chat from './Chat'
 import Leaderboard from './Leaderboard'
 import HeroSwitcherModal from './HeroSwitcherModal'
-import HeroInfoPanel from './HeroInfoPanel'
+import HeroStatsPanel from './HeroStatsPanel'
 import { useHeroSwitcher } from '../hooks/useHeroSwitcher'
 
 export default function LobbyScene({ 
@@ -180,7 +180,10 @@ export default function LobbyScene({
       )}
 
       {/* Hero Info */}
-      <HeroInfoPanel activeHero={activeHero} />
+      <HeroStatsPanel 
+        activeHero={activeHero} 
+        onOpenHeroSelection={() => setShowHeroSwitcher(true)}
+      />
 
       <Chat socket={socket} currentPlayerId={player?.id} />
       
