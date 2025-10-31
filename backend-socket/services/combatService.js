@@ -908,25 +908,25 @@ export function endCombatInstance(combatInstanceId, result) {
     console.error('[combat] Error saving combat history:', error);
   }
   
-  return playerResults;
+  // Clean up participant combat states IMMEDIATELY (so regeneration can start)
+  if (combatInstance.participants.players) {
+    combatInstance.participants.players.forEach(playerId => {
+      playerCombatState.delete(playerId);
+    });
+  }
   
-  // Clean up after delay (for final state broadcasts)
+  if (combatInstance.participants.enemies) {
+    combatInstance.participants.enemies.forEach(enemyId => {
+      enemyCombatState.delete(enemyId);
+    });
+  }
+  
+  // Clean up combat instance after delay (for final state broadcasts)
   setTimeout(() => {
     combatInstances.delete(combatInstanceId);
-    
-    // Clean up participant states
-    if (combatInstance.participants.players) {
-      combatInstance.participants.players.forEach(playerId => {
-        playerCombatState.delete(playerId);
-      });
-    }
-    
-    if (combatInstance.participants.enemies) {
-      combatInstance.participants.enemies.forEach(enemyId => {
-        enemyCombatState.delete(enemyId);
-      });
-    }
-  }, 5000); // Keep state for 5 seconds after combat ends
+  }, 5000); // Keep instance data for 5 seconds for final broadcasts
+  
+  return playerResults;
 }
 
 /**
