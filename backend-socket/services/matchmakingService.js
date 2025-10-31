@@ -253,6 +253,46 @@ function startCountdown(matchId, io) {
 }
 
 /**
+ * Select the best arena zone for a match
+ * Considers: load balancing, player origin zones, and arena availability
+ */
+function selectBestArena(arenaZones, playerOriginZones) {
+  if (arenaZones.length === 0) return null;
+  if (arenaZones.length === 1) return arenaZones[0];
+  
+  // Get combat load for each arena
+  const arenaLoads = arenaZones.map(arena => {
+    const stats = zoneService.getZoneStats(arena.id);
+    return {
+      arena,
+      activeCombats: stats.combatCount || 0,
+      playerCount: stats.playerCount || 0
+    };
+  });
+  
+  // Sort by load (least busy first)
+  arenaLoads.sort((a, b) => {
+    // First priority: fewer active combats
+    if (a.activeCombats !== b.activeCombats) {
+      return a.activeCombats - b.activeCombats;
+    }
+    // Second priority: fewer players
+    return a.playerCount - b.playerCount;
+  });
+  
+  // Log selection decision
+  console.log('[matchmaking] Arena selection:');
+  arenaLoads.forEach(({ arena, activeCombats, playerCount }) => {
+    console.log(`  - ${arena.name} (ID: ${arena.id}): ${activeCombats} combats, ${playerCount} players`);
+  });
+  
+  const selectedArena = arenaLoads[0].arena;
+  console.log(`[matchmaking] Selected: ${selectedArena.name} (least busy)`);
+  
+  return selectedArena;
+}
+
+/**
  * Start the actual combat
  */
 async function startCombat(matchId, io) {
@@ -261,12 +301,21 @@ async function startCombat(matchId, io) {
 
   const config = QUEUE_TYPES[match.queueType];
 
-  // Find a suitable arena zone for PvP combat
+  // Get all available PvP arena zones
   const zones = await zoneService.getActiveZones();
-  const arenaZone = zones.find(z => z.type === 'pvp' && z.is_combat_zone);
+  const arenaZones = zones.filter(z => z.type === 'pvp' && z.is_combat_zone);
+  
+  if (arenaZones.length === 0) {
+    console.error('[matchmaking] No arena zones found!');
+    cancelMatch(matchId, io, 'No arena available');
+    return;
+  }
+
+  // Select best arena based on load balancing
+  const arenaZone = selectBestArena(arenaZones, match.playerOriginZones);
   
   if (!arenaZone) {
-    console.error('[matchmaking] No arena zone found!');
+    console.error('[matchmaking] Failed to select arena zone!');
     cancelMatch(matchId, io, 'No arena available');
     return;
   }

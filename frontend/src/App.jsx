@@ -329,18 +329,24 @@ export default function App() {
   // Keyboard shortcut: Press 'P' to open matchmaking
   React.useEffect(() => {
     const handleKeyPress = (e) => {
-      if ((e.key === 'p' || e.key === 'P') && player && socketReady) {
+      if ((e.key === 'p' || e.key === 'P') && player && socketReady && !isMatchmakingBattle) {
+        if (!currentZone) {
+          alert('You must be in a zone to join matchmaking. Please select a zone first.');
+          return;
+        }
         setShowMatchmaking(true)
       }
     }
     
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [player, socketReady])
+  }, [player, socketReady, currentZone, isMatchmakingBattle])
 
   // Handle combat rejoin
   const handleCombatRejoin = React.useCallback(async (combatInfo) => {
     console.log('[app] 🔄 Rejoining combat:', combatInfo.combatInstanceId);
+    console.log('[app] Combat zone:', combatInfo.zone?.name, '(ID:', combatInfo.zoneId, ')');
+    console.log('[app] Current zone before rejoin:', currentZone?.name);
     
     if (!socketRef.current || !combatInfo) {
       console.error('[app] Cannot rejoin: missing socket or combat info');
@@ -352,18 +358,28 @@ export default function App() {
     setIsMatchmakingBattle(combatInfo.isMatchmaking || false);
     setShowCombatRejoin(false);
     
+    // Update zone before joining combat if we have zone info
+    if (combatInfo.zone) {
+      console.log('[app] 🗺️ Updating zone for combat rejoin:', combatInfo.zone.name);
+      setCurrentZone(combatInfo.zone);
+    } else if (combatInfo.zoneId) {
+      console.log('[app] ⚠️ Have zoneId but no zone object, fetching zone data...');
+      // Fetch zone data if we only have the ID
+      socketRef.current.emit('zone:get', { zoneId: combatInfo.zoneId }, (zoneResponse) => {
+        if (zoneResponse?.ok && zoneResponse.zone) {
+          setCurrentZone(zoneResponse.zone);
+        }
+      });
+    }
+    
     // Join the combat instance
     socketRef.current.emit('combat:join-matchmaking', 
       { combatInstanceId: combatInfo.combatInstanceId }, 
       (response) => {
         if (response?.ok) {
           console.log('[app] ✅ Successfully rejoined combat');
+          console.log('[app] ✅ Fighting in zone:', combatInfo.zone?.name || combatInfo.zoneId);
           window.__inCombat = true;
-          
-          // Update zone if needed
-          if (combatInfo.zone) {
-            setCurrentZone(combatInfo.zone);
-          }
         } else {
           console.error('[app] ❌ Failed to rejoin combat:', response?.error);
           setInCombatMatch(false);
@@ -372,7 +388,7 @@ export default function App() {
         }
       }
     );
-  }, []);
+  }, [currentZone]);
   
   // Handle combat rejoin decline
   const handleCombatRejoinDecline = React.useCallback(() => {
@@ -398,6 +414,8 @@ export default function App() {
     console.log('='.repeat(60));
     console.log('[app] 🎮 MATCH STARTED - JOINING COMBAT');
     console.log('[app] Data received:', data);
+    console.log('[app] Previous zone:', currentZone?.name, currentZone?.id);
+    console.log('[app] New zone (arena):', data.zone?.name, data.zone?.id);
     console.log('='.repeat(60));
     const { combatInstanceId, zone, position } = data;
     
@@ -413,6 +431,7 @@ export default function App() {
       socketRef.current.emit('combat:join-matchmaking', { combatInstanceId }, (response) => {
         if (response?.ok) {
           console.log('[app] ✅ Successfully joined matchmaking combat instance:', combatInstanceId);
+          console.log('[app] ✅ Combat will take place in zone:', zone?.name || 'unknown');
           window.__inCombat = true;
         } else {
           console.error('[app] ❌ Failed to join matchmaking combat:', response?.error);
@@ -422,8 +441,9 @@ export default function App() {
       console.error('[app] ❌ Missing combatInstanceId or socket:', { combatInstanceId, hasSocket: !!socketRef.current });
     }
     
-    // Update zone if provided
+    // Update zone to arena zone if provided
     if (zone) {
+      console.log('[app] 🗺️ Updating current zone to arena:', zone.name);
       setCurrentZone(zone);
     }
     
@@ -431,7 +451,7 @@ export default function App() {
     if (position) {
       playerPositionRef.current = [position.x, position.y, position.z];
     }
-  }, []);
+  }, [currentZone]);
   
   const keyboardMap = [
     { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
@@ -488,20 +508,35 @@ export default function App() {
             {currentZone ? 'Change Zone' : '🗺️ Select Zone'}
           </button>
           <button
-            onClick={() => setShowMatchmaking(true)}
+            onClick={() => {
+              if (!currentZone) {
+                alert('You must be in a zone to join matchmaking. Please select a zone first.');
+                return;
+              }
+              setShowMatchmaking(true);
+            }}
+            disabled={!currentZone}
             style={{
               padding: '8px 16px',
               fontSize: 12,
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              background: currentZone 
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
+                : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
               color: 'white',
-              border: '2px solid #7f1d1d',
+              border: currentZone ? '2px solid #7f1d1d' : '2px solid #374151',
               borderRadius: 8,
-              cursor: 'pointer',
+              cursor: currentZone ? 'pointer' : 'not-allowed',
               fontWeight: 'bold',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              opacity: currentZone ? 1 : 0.6
             }}
-            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+            onMouseEnter={(e) => {
+              if (currentZone) e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              if (currentZone) e.target.style.transform = 'scale(1)';
+            }}
+            title={!currentZone ? 'You must be in a zone to find a match' : 'Find a PvP match'}
           >
             ⚔️ Find Match
           </button>
