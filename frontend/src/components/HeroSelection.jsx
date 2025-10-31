@@ -1,7 +1,7 @@
 import React from 'react'
 import HeroModelPreview from './HeroModelPreview'
 
-export default function HeroSelection({ player, playerHeroes, availableHeroes, socket, onHeroSelected, onHeroesUpdate }) {
+export default function HeroSelection({ player, playerHeroes, availableHeroes, socket, onHeroSelected, onHeroesUpdate, onClose }) {
   const [loading, setLoading] = React.useState(false)
   const [purchasingHeroId, setPurchasingHeroId] = React.useState(null)
   const [error, setError] = React.useState('')
@@ -76,12 +76,23 @@ export default function HeroSelection({ player, playerHeroes, availableHeroes, s
         <div style={styles.content}>
           <div style={styles.header}>
             <h1 style={styles.title}>Select Your Hero</h1>
-            {player && (
-              <div style={styles.currencyDisplay}>
-                <span style={styles.currencyLabel}>Gold:</span>
-                <span style={styles.currencyValue}>{player.currency || 0}</span>
-              </div>
-            )}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {player && (
+                <div style={styles.currencyDisplay}>
+                  <span style={styles.currencyLabel}>Gold:</span>
+                  <span style={styles.currencyValue}>{player.currency || 0}</span>
+                </div>
+              )}
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  style={styles.closeButton}
+                  title="Close"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
           {error && <div style={styles.error}>{error}</div>}
           
@@ -348,6 +359,21 @@ const styles = {
     marginTop: '10px',
     fontSize: '0.9em',
     color: '#6b7280',
+  },
+  closeButton: {
+    background: 'rgba(239, 68, 68, 0.2)',
+    border: '2px solid rgba(239, 68, 68, 0.5)',
+    borderRadius: '8px',
+    color: '#fca5a5',
+    fontSize: '1.5em',
+    fontWeight: 'bold',
+    width: '40px',
+    height: '40px',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.3s ease',
   },
 }
 
