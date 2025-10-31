@@ -23,12 +23,92 @@ import { enterCombat, leaveCombat } from '../services/regenerationService.js';
 // Global shared combat instance for PvP (for testing - in production use matchmaking)
 let globalCombatInstanceId = null;
 
+// Global combat tick system that processes all active combat instances
+let globalCombatTick = null;
+const activeCombatInstances = new Set();
+
+/**
+ * Start global combat tick system
+ */
+function startGlobalCombatTick(io) {
+  if (globalCombatTick) return; // Already running
+  
+  console.log('[combat] Starting global combat tick system');
+  globalCombatTick = setInterval(() => {
+    activeCombatInstances.forEach(combatInstanceId => {
+      try {
+        const combatInstance = getCombatInstance(combatInstanceId);
+        if (!combatInstance || !combatInstance.state.active) {
+          activeCombatInstances.delete(combatInstanceId);
+          return;
+        }
+        
+        // Process combat tick
+        processCombatTick(combatInstanceId);
+        
+        // Check win/loss conditions
+        const conditions = checkCombatConditions(combatInstanceId);
+        if (conditions.ended) {
+          console.log(`[combat] Combat ${combatInstanceId} ended:`, conditions);
+          const playerResults = endCombatInstance(combatInstanceId, conditions.result);
+          
+          // Mark all players as leaving combat (enables regeneration)
+          if (combatInstance?.participants?.players) {
+            combatInstance.participants.players.forEach(pid => leaveCombat(pid));
+          }
+          
+          // Broadcast combat ended
+          io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
+            result: conditions.result,
+            winners: conditions.winners,
+            losers: conditions.losers,
+            isMatchmaking: combatInstance.isMatchmaking || false
+          });
+          
+          // Broadcast level-ups to individual players
+          Object.entries(playerResults).forEach(([playerId, result]) => {
+            if (result.leveledUp) {
+              const playerSockets = Object.entries(io.sockets.sockets)
+                .filter(([_, s]) => getPlayerIdBySocket(s.id) === Number(playerId))
+                .map(([_, s]) => s);
+              
+              playerSockets.forEach(s => {
+                s.emit('hero:level-up', {
+                  oldLevel: result.oldLevel,
+                  newLevel: result.newLevel,
+                  newStats: result.newStats
+                });
+              });
+            }
+          });
+          
+          // Remove from active combats
+          activeCombatInstances.delete(combatInstanceId);
+          console.log(`[combat] Combat instance ${combatInstanceId} removed from active list`);
+        }
+      } catch (error) {
+        console.error(`[combat] Error processing combat tick for ${combatInstanceId}:`, error);
+      }
+    });
+  }, 1000); // Process every second
+}
+
+/**
+ * Register a combat instance for global tick processing
+ */
+export function registerCombatInstance(combatInstanceId) {
+  activeCombatInstances.add(combatInstanceId);
+  console.log(`[combat] Registered combat instance ${combatInstanceId} for tick processing`);
+}
+
 /**
  * Register combat socket handlers
  * @param {Socket} socket - The socket instance
  * @param {Server} io - The Socket.IO server instance
  */
 export function registerCombatHandlers(socket, io) {
+  // Start global tick system if not already running
+  startGlobalCombatTick(io);
   const playerId = getPlayerIdBySocket(socket.id);
   if (!playerId) {
     return; // Player not authenticated
@@ -92,6 +172,9 @@ export function registerCombatHandlers(socket, io) {
           }
         );
         globalCombatInstanceId = combatInstanceId;
+        
+        // Register with global tick system
+        registerCombatInstance(combatInstanceId);
 
         // Initialize player state
         const playerSession = getPlayerInGameSession(socket.id);
@@ -139,7 +222,8 @@ export function registerCombatHandlers(socket, io) {
               io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
                 result: conditions.result,
                 winners: conditions.winners,
-                losers: conditions.losers
+                losers: conditions.losers,
+                isMatchmaking: combatInstance.isMatchmaking || false
               });
               
               // Broadcast level-ups to individual players
@@ -372,7 +456,8 @@ export function registerCombatHandlers(socket, io) {
         io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
           result: conditions.result,
           winners: conditions.winners,
-          losers: conditions.losers
+          losers: conditions.losers,
+          isMatchmaking: combatInstance.isMatchmaking || false
         });
         
         // Broadcast level-ups to individual players

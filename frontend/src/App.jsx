@@ -9,6 +9,7 @@ import GameplayScene from './components/GameplayScene'
 import LobbyScene from './components/LobbyScene'
 import ZoneSelector from './components/ZoneSelector'
 import ZoneTransition from './components/ZoneTransition'
+import MatchmakingQueue from './components/MatchmakingQueue'
 
 export default function App() {
   const playerPositionRef = React.useRef([0, 0, 0]);
@@ -20,9 +21,10 @@ export default function App() {
   const [availableHeroes, setAvailableHeroes] = React.useState([])
   const [loadingHeroes, setLoadingHeroes] = React.useState(false)
   const [showHeroSelection, setShowHeroSelection] = React.useState(false)
-  const [currentScene, setCurrentScene] = React.useState('lobby') // 'lobby' or 'battle'
+  const [currentScene, setCurrentScene] = React.useState('battle') // 'lobby' or 'battle' - Start in battle mode
   const [currentZone, setCurrentZone] = React.useState(null)
   const [showZoneSelector, setShowZoneSelector] = React.useState(false)
+  const [showMatchmaking, setShowMatchmaking] = React.useState(false)
   useEffect(() => {
     // Validate stored token on load (non-blocking, logs only)
     fetchMe().then((me) => {
@@ -123,12 +125,50 @@ export default function App() {
       setSocketReady(false);
     });
 
+    // Listen for combat end - return to lobby after matchmaking battles
+    socket.on('combat:ended', (data) => {
+      console.log('[app] Combat ended:', data);
+      if (data.isMatchmaking) {
+        console.log('[app] Matchmaking battle ended, returning to lobby...');
+        // Wait a bit before switching to lobby (let players see the results)
+        setTimeout(() => {
+          setCurrentScene('lobby');
+          // Request to join a safe zone (lobby)
+          socket.emit('zone:list', {}, (response) => {
+            if (response.ok && response.zones) {
+              const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone);
+              if (lobby) {
+                socket.emit('zone:join', { zoneId: lobby.id }, (joinResponse) => {
+                  if (joinResponse.ok) {
+                    console.log('[app] Returned to lobby zone:', joinResponse.zone.name);
+                  }
+                });
+              }
+            }
+          });
+        }, 3000); // Wait 3 seconds for results screen
+      }
+    });
+
     return () => {
       socket.off('zone:joined');
+      socket.off('combat:ended');
       socket.disconnect();
       socketRef.current = null;
     };
   }, [!!player]);
+
+  // Keyboard shortcut: Press 'P' to open matchmaking
+  React.useEffect(() => {
+    const handleKeyPress = (e) => {
+      if ((e.key === 'p' || e.key === 'P') && player && socketReady) {
+        setShowMatchmaking(true)
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyPress)
+    return () => window.removeEventListener('keydown', handleKeyPress)
+  }, [player, socketReady])
 
   // Helper function to load zone data
   const loadZoneData = React.useCallback((socket) => {
@@ -229,6 +269,24 @@ export default function App() {
             onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
           >
             {currentZone ? 'Change Zone' : '🗺️ Select Zone'}
+          </button>
+          <button
+            onClick={() => setShowMatchmaking(true)}
+            style={{
+              padding: '8px 16px',
+              fontSize: 12,
+              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              color: 'white',
+              border: '2px solid #7f1d1d',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+          >
+            ⚔️ Find Match
           </button>
         </>
       )}
@@ -354,6 +412,14 @@ export default function App() {
           playerHeroes?.find(h => h.playerHeroId === player.active_hero_id)?.level || 1
         }
         onClose={() => setShowZoneSelector(false)}
+      />
+    )}
+    
+    {/* Matchmaking Modal */}
+    {player && socketReady && showMatchmaking && (
+      <MatchmakingQueue
+        socket={socketRef.current}
+        onClose={() => setShowMatchmaking(false)}
       />
     )}
     

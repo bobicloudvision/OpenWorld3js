@@ -17,9 +17,10 @@ const enemyCombatState = new Map(); // enemyId -> EnemyCombatState
  * @param {Object} participants - { teams: [], players: [], enemies: [] }
  * @param {Object} zone - { center: [x,y,z], radius: number }
  * @param {number} zoneId - Zone ID where combat takes place
+ * @param {boolean} isMatchmaking - Whether this is a matchmaking battle
  * @returns {string} combatInstanceId
  */
-export function initializeCombatInstance(combatType, participants, zone, zoneId = null) {
+export function initializeCombatInstance(combatType, participants, zone, zoneId = null, isMatchmaking = false) {
   const combatInstanceId = `combat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   
   const combatInstance = {
@@ -28,6 +29,7 @@ export function initializeCombatInstance(combatType, participants, zone, zoneId 
     participants,
     zone,
     zoneId,
+    isMatchmaking,
     state: {
       active: true,
       startTime: Date.now(),
@@ -555,6 +557,13 @@ export function checkCombatConditions(combatInstanceId) {
       return !playerState || playerState.health <= 0;
     });
     
+    // Debug logging
+    console.log(`[combat] PvP Check - Total: ${players.length}, Alive: ${alivePlayers.length}, Dead: ${deadPlayers.length}`);
+    players.forEach(playerId => {
+      const playerState = playerCombatState.get(playerId);
+      console.log(`[combat]   Player ${playerId}: HP ${playerState?.health || 0}/${playerState?.maxHealth || 0}`);
+    });
+    
     // If all players are dead (shouldn't happen but handle it)
     if (alivePlayers.length === 0) {
       console.log('[combat] PvP Draw - All players defeated');
@@ -578,6 +587,7 @@ export function checkCombatConditions(combatInstanceId) {
     }
     
     // If multiple players alive, combat continues
+    console.log('[combat] PvP continues - multiple players still alive');
     return { ended: false };
   }
   

@@ -5,6 +5,7 @@ import { registerMultiplayerHandlers } from './multiplayer.js';
 import { registerCombatHandlers } from './combat.js';
 import { registerTeamHandlers } from './team.js';
 import { registerZoneHandlers } from './zone.js';
+import { registerMatchmakingHandlers } from './matchmaking.js';
 import { unbindSocket } from '../services/sessionService.js';
 
 export function registerSocketHandlers(io) {
@@ -16,6 +17,7 @@ export function registerSocketHandlers(io) {
     registerCombatHandlers(socket, io);
     registerTeamHandlers(socket, io);
     registerZoneHandlers(socket, io);
+    registerMatchmakingHandlers(socket, io);
 
     socket.on('disconnect', () => {
       unbindSocket(socket.id);

@@ -185,12 +185,11 @@ export async function addPlayerToZone(playerId, zoneId, position = null) {
 
   // Update database
   try {
-    await query(
-      `UPDATE players 
-       SET current_zone_id = ?, zone_position = ?, zone_entered_at = NOW()
-       WHERE id = ?`,
-      [zoneId, JSON.stringify(spawnPos), playerId]
-    );
+    const db = getDb();
+    const stmt = db.prepare(`UPDATE players 
+       SET current_zone_id = ?, zone_position = ?, zone_entered_at = CURRENT_TIMESTAMP
+       WHERE id = ?`);
+    stmt.run(zoneId, JSON.stringify(spawnPos), playerId);
   } catch (error) {
     console.error('[zone] Error updating player zone in DB:', error);
   }
