@@ -17,12 +17,17 @@ function OtherPlayer({ otherPlayer }) {
   const [targetRotation, setTargetRotation] = useState(initialRot)
   
   // Use shared avatar animations hook with the player's hero model
-  const defaultModel = '/models/avatars/NightshadeJFriedrich.glb'
-  const modelPath = otherPlayer.heroModel || defaultModel
+  const modelPath = otherPlayer.heroModel || null
+  if (!modelPath) {
+    // console.log('No hero model found for player', otherPlayer.socketId)
+    return null
+  }
+
   const { clone, animationActions, setAction, updateMixer } = useAvatarAnimations(modelPath)
   
   // Smooth interpolation for position and rotation updates
   useFrame((state, delta) => {
+    // Don't return early - allow component to render even while model is loading
     if (!clone || animationActions.current.length === 0) return
     
     // Update the mixer
@@ -90,8 +95,8 @@ function OtherPlayer({ otherPlayer }) {
   const modelScale = otherPlayer.heroModelScale ?? 1
   const modelRotationOffset = otherPlayer.heroModelRotation || [0, 0, 0]
   
-  if (!clone) return null
-  
+  // Render even if clone is not ready - prevents disappearing during model loading
+  // The clone will be added when available (react-three-fiber handles this)
   return (
     <group 
       ref={group} 
@@ -99,12 +104,14 @@ function OtherPlayer({ otherPlayer }) {
       rotation={rotation}
     >
       <group rotation={modelRotationOffset}>
-        <primitive 
-          object={clone} 
-          castShadow 
-          receiveShadow
-          scale={modelScale} 
-        />
+        {clone && (
+          <primitive 
+            object={clone} 
+            castShadow 
+            receiveShadow
+            scale={modelScale} 
+          />
+        )}
       </group>
     </group>
   )
@@ -117,16 +124,22 @@ function OtherPlayer({ otherPlayer }) {
  */
 export default function OtherPlayers({ socket, currentPlayerId }) {
   const [otherPlayers, setOtherPlayers] = useState(new Map()) // socketId -> playerData
+  const playerLastUpdateRef = useRef(new Map()) // Track last update time for each player
   
   useEffect(() => {
     if (!socket) return
-    
+
+    // Request current players list on mount (in case we missed the initial event)
+    socket.emit('players:list:request')
+
     // Handle initial list of players when joining
     const handlePlayersJoined = (players) => {
       const playersMap = new Map()
+      const now = Date.now()
       players.forEach(player => {
         if (player.playerId !== currentPlayerId) {
           playersMap.set(player.socketId, player)
+          playerLastUpdateRef.current.set(player.socketId, now)
         }
       })
       setOtherPlayers(playersMap)
@@ -135,16 +148,17 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
     // Handle new player joining
     const handlePlayerJoined = (playerData) => {
       if (playerData.playerId === currentPlayerId) return
-      
       setOtherPlayers(prev => {
         const updated = new Map(prev)
         updated.set(playerData.socketId, playerData)
+        playerLastUpdateRef.current.set(playerData.socketId, Date.now())
         return updated
       })
     }
     
     // Handle player position updates
     const handlePositionChanged = ({ socketId, position, rotation }) => {
+      const now = Date.now()
       setOtherPlayers(prev => {
         const updated = new Map(prev)
         const player = updated.get(socketId)
@@ -154,6 +168,19 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
             position: position || player.position,
             rotation: rotation || player.rotation,
           })
+          playerLastUpdateRef.current.set(socketId, now)
+        } else {
+          // Player not in map yet - might have missed join event
+          // Create a minimal player entry to prevent data loss
+          // The full player data will come in a hero change or join event
+          updated.set(socketId, {
+            socketId,
+            playerId: null, // Will be set when full data arrives
+            position: position || [0, 0, 0],
+            rotation: rotation || [0, 0, 0],
+            name: `Player ${socketId.substring(0, 6)}`,
+          })
+          playerLastUpdateRef.current.set(socketId, now)
         }
         return updated
       })
@@ -161,6 +188,7 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
     
     // Handle player hero updates
     const handleHeroChanged = ({ socketId, ...heroData }) => {
+      const now = Date.now()
       setOtherPlayers(prev => {
         const updated = new Map(prev)
         const player = updated.get(socketId)
@@ -169,6 +197,17 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
             ...player,
             ...heroData,
           })
+          playerLastUpdateRef.current.set(socketId, now)
+        } else {
+          // Player not in map yet - create entry with hero data
+          // Position will be set when it arrives
+          updated.set(socketId, {
+            socketId,
+            ...heroData,
+            position: heroData.position || [0, 0, 0],
+            rotation: heroData.rotation || [0, 0, 0],
+          })
+          playerLastUpdateRef.current.set(socketId, now)
         }
         return updated
       })
@@ -179,6 +218,7 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
       setOtherPlayers(prev => {
         const updated = new Map(prev)
         updated.delete(socketId)
+        playerLastUpdateRef.current.delete(socketId)
         return updated
       })
     }
@@ -197,6 +237,46 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
       socket.off('player:left', handlePlayerLeft)
     }
   }, [socket, currentPlayerId])
+  
+  // Keep-alive mechanism: periodically check for stale players and refresh list
+  useEffect(() => {
+    if (!socket) return
+    
+    const KEEP_ALIVE_INTERVAL = 30000 // 30 seconds - check for stale players
+    const REFRESH_INTERVAL = 60000 // 60 seconds - refresh full player list
+    const STALE_THRESHOLD = 60000 // 60 seconds - consider player stale if no update
+    
+    // Check for stale players periodically
+    const keepAliveInterval = setInterval(() => {
+      const now = Date.now()
+      setOtherPlayers(prev => {
+        const updated = new Map(prev)
+        let hasChanges = false
+        
+        // Remove stale players
+        for (const [socketId, lastUpdate] of playerLastUpdateRef.current.entries()) {
+          if (now - lastUpdate > STALE_THRESHOLD) {
+            updated.delete(socketId)
+            playerLastUpdateRef.current.delete(socketId)
+            hasChanges = true
+            console.log(`Removed stale player: ${socketId}`)
+          }
+        }
+        
+        return hasChanges ? updated : prev
+      })
+    }, KEEP_ALIVE_INTERVAL)
+    
+    // Periodically request fresh player list to sync with server
+    const refreshInterval = setInterval(() => {
+      socket.emit('players:list:request')
+    }, REFRESH_INTERVAL)
+    
+    return () => {
+      clearInterval(keepAliveInterval)
+      clearInterval(refreshInterval)
+    }
+  }, [socket])
   
   return (
     <>

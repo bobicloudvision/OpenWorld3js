@@ -53,7 +53,11 @@ export default function Player({ onPositionChange, heroModel, heroModelScale, he
   const attackUntil = useRef(0)
   const playerAttackingAt = useGameStore((s) => s.playerAttackingAt)
   const lastPositionUpdate = useRef(0)
+  const lastSentPosition = useRef(null)
+  const lastSentRotation = useRef(null)
   const POSITION_UPDATE_INTERVAL = 100 // Send position updates every 100ms
+  const POSITION_THRESHOLD = 0.1 // Minimum distance change to send update
+  const ROTATION_THRESHOLD = 0.1 // Minimum rotation change (in radians) to send update
 
   useEffect(() => {
     if (!playerAttackingAt) return
@@ -90,11 +94,45 @@ export default function Player({ onPositionChange, heroModel, heroModelScale, he
     // Send position and rotation updates to server for multiplayer
     if (socket && (now - lastPositionUpdate.current > POSITION_UPDATE_INTERVAL || currentlyMoving)) {
       const currentRot = getCurrentRotation()
-      socket.emit('player:position:update', {
-        position: currentPos,
-        rotation: currentRot,
-      })
-      lastPositionUpdate.current = now
+      
+      // Calculate position change
+      let positionChanged = false
+      if (!lastSentPosition.current) {
+        positionChanged = true // First update, always send
+      } else {
+        const posDiff = new THREE.Vector3(
+          currentPos[0] - lastSentPosition.current[0],
+          currentPos[1] - lastSentPosition.current[1],
+          currentPos[2] - lastSentPosition.current[2]
+        )
+        const distance = posDiff.length()
+        positionChanged = distance > POSITION_THRESHOLD
+      }
+      
+      // Calculate rotation change
+      let rotationChanged = false
+      if (!lastSentRotation.current) {
+        rotationChanged = true // First update, always send
+      } else {
+        const rotDiff = new THREE.Vector3(
+          currentRot[0] - lastSentRotation.current[0],
+          currentRot[1] - lastSentRotation.current[1],
+          currentRot[2] - lastSentRotation.current[2]
+        )
+        const rotationDistance = rotDiff.length()
+        rotationChanged = rotationDistance > ROTATION_THRESHOLD
+      }
+      
+      // Only send if position or rotation changed significantly
+      if (positionChanged || rotationChanged) {
+        socket.emit('player:position:update', {
+          position: currentPos,
+          rotation: currentRot,
+        })
+        lastPositionUpdate.current = now
+        lastSentPosition.current = [...currentPos]
+        lastSentRotation.current = [...currentRot]
+      }
     }
     
     // Track movement state

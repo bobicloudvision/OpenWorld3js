@@ -57,6 +57,12 @@ export function registerMultiplayerHandlers(socket, io) {
     rotation: [0, 0, 0],
   });
 
+  // Handle request for current players list (for keep-alive and reconnection)
+  socket.on('players:list:request', () => {
+    const currentOtherPlayers = getOtherPlayersInGameSession(socket.id);
+    socket.emit('players:joined', currentOtherPlayers);
+  });
+
   // Handle position updates from this player
   socket.on('player:position:update', (data) => {
     const { position, rotation } = data;
