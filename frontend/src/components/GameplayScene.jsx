@@ -18,10 +18,19 @@ import MagicPalette from './MagicPalette'
 import { KeyboardShapeCreator } from './KeyboardShapeCreator'
 import { MaterialPalette } from './MaterialPalette'
 
-export default function GameplayScene({ playerPositionRef, keyboardMap }) {
+export default function GameplayScene({ 
+  playerPositionRef, 
+  keyboardMap, 
+  activeHero,
+  onOpenHeroSelection 
+}) {
   return (
     <>
-      <GameUI playerPositionRef={playerPositionRef} />
+      <GameUI 
+        playerPositionRef={playerPositionRef}
+        onOpenHeroSelection={onOpenHeroSelection}
+        activeHero={activeHero}
+      />
       <MagicPalette />
       <KeyboardShapeCreator />
       <MaterialPalette />
@@ -50,9 +59,14 @@ export default function GameplayScene({ playerPositionRef, keyboardMap }) {
             <Ecctrl 
               maxVelLimit={6}
             >
-              <Player onPositionChange={function(position) {
-                playerPositionRef.current = position; 
-              }} />
+              <Player 
+                onPositionChange={function(position) {
+                  playerPositionRef.current = position; 
+                }}
+                heroModel={activeHero?.model}
+                heroModelScale={activeHero?.modelScale}
+                heroModelRotation={activeHero?.modelRotation}
+              />
               
             </Ecctrl> 
             

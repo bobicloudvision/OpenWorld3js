@@ -27,46 +27,60 @@ export function useAvatarAnimations(modelPath = '/models/avatars/NightshadeJFrie
   const { animations: jumpAnimations } = useGLTF('/models/animations/Jump.glb')
   const { animations: attackAnimations } = useGLTF('/models/animations/Attack2.glb') 
   
-  // Initialize mixer and animations when clone is ready
+  // Initialize mixer and animations when clone is ready or when model changes
   useEffect(() => {
-    if (clone && !mixer.current) {
-      // Create mixer for the cloned scene
-      mixer.current = new THREE.AnimationMixer(clone)
-      
-      // Add idle animation
-      if (idleAnimations && idleAnimations.length > 0) {
-        const idleAction = mixer.current.clipAction(idleAnimations[0])
-        animationActions.current.push(idleAction)
-      }
-      
-      // Add walk animation
-      if (walkAnimations && walkAnimations.length > 0) {
-        const walkAction = mixer.current.clipAction(walkAnimations[0])
-        walkAction.setEffectiveTimeScale(2)
-        animationActions.current.push(walkAction)
-      }
-      
-      // Add jump animation
-      if (jumpAnimations && jumpAnimations.length > 0) {
-        const jumpAction = mixer.current.clipAction(jumpAnimations[0])
-        jumpAction.setEffectiveTimeScale(2)
-        animationActions.current.push(jumpAction)
-      }
-
-      // Add attack animation (from GLB)
-      if (attackAnimations && attackAnimations.length > 0) {
-        const attackAction = mixer.current.clipAction(attackAnimations[0])
-        attackAction.setEffectiveTimeScale(2)
-        animationActions.current.push(attackAction)
-      }
-
-      // Start with idle animation
-      if (animationActions.current.length > 0) {
-        activeAction.current = animationActions.current[0]
-        activeAction.current.reset().play()
-      }
+    if (!clone) return
+    
+    // Reset mixer and actions when model changes
+    if (mixer.current) {
+      // Stop all actions and release mixer
+      animationActions.current.forEach(action => {
+        if (action) {
+          action.stop()
+          action.reset()
+        }
+      })
+      animationActions.current = []
+      activeAction.current = null
+      lastAction.current = null
     }
-  }, [clone, idleAnimations, walkAnimations, jumpAnimations, attackAnimations])
+    
+    // Create mixer for the cloned scene
+    mixer.current = new THREE.AnimationMixer(clone)
+    
+    // Add idle animation
+    if (idleAnimations && idleAnimations.length > 0) {
+      const idleAction = mixer.current.clipAction(idleAnimations[0])
+      animationActions.current.push(idleAction)
+    }
+    
+    // Add walk animation
+    if (walkAnimations && walkAnimations.length > 0) {
+      const walkAction = mixer.current.clipAction(walkAnimations[0])
+      walkAction.setEffectiveTimeScale(2)
+      animationActions.current.push(walkAction)
+    }
+    
+    // Add jump animation
+    if (jumpAnimations && jumpAnimations.length > 0) {
+      const jumpAction = mixer.current.clipAction(jumpAnimations[0])
+      jumpAction.setEffectiveTimeScale(2)
+      animationActions.current.push(jumpAction)
+    }
+
+    // Add attack animation (from GLB)
+    if (attackAnimations && attackAnimations.length > 0) {
+      const attackAction = mixer.current.clipAction(attackAnimations[0])
+      attackAction.setEffectiveTimeScale(2)
+      animationActions.current.push(attackAction)
+    }
+
+    // Start with idle animation
+    if (animationActions.current.length > 0) {
+      activeAction.current = animationActions.current[0]
+      activeAction.current.reset().play()
+    }
+  }, [clone, idleAnimations, walkAnimations, jumpAnimations, attackAnimations, modelPath])
   
   // Animation switching function
   const setAction = (toAction, fadeTime = 0.5) => {

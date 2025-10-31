@@ -6,11 +6,14 @@ import * as THREE from 'three'
 import { useAvatarAnimations } from '../hooks/useAvatarAnimations'
 import useGameStore from '../stores/gameStore'
 
-export default function Player({ onPositionChange }) {
+export default function Player({ onPositionChange, heroModel, heroModelScale, heroModelRotation }) {
   const group = useRef()
   
-  // Use shared avatar animations hook
-  const { clone, animationActions, setAction, updateMixer, getAnimationByName } = useAvatarAnimations()
+  // Use shared avatar animations hook with dynamic model path
+  // Default to NightshadeJFriedrich if no hero model is provided
+  const defaultModel = '/models/avatars/NightshadeJFriedrich.glb'
+  const modelPath = heroModel || defaultModel
+  const { clone, animationActions, setAction, updateMixer, getAnimationByName } = useAvatarAnimations(modelPath)
   
   // Get keyboard controls state
   const [, get] = useKeyboardControls()
@@ -71,13 +74,21 @@ export default function Player({ onPositionChange }) {
   })
   
 
+  // Apply hero model scale and rotation
+  const modelScale = heroModelScale ?? 1
+  const rotation = heroModelRotation ?? [0, 0, 0]
+  
   return (
-    <group ref={group} position={[0, -0.94, 0]}>
+    <group 
+      ref={group} 
+      position={[0, -0.94, 0]}
+      rotation={rotation}
+    >
       <primitive 
         object={clone} 
         castShadow 
         receiveShadow
-        scale={1} 
+        scale={modelScale} 
       />
     </group>
   )
