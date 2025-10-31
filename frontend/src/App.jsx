@@ -420,6 +420,12 @@ export default function App() {
                 player={player}
                 socket={socketRef.current}
                 currentZone={currentZone}
+                onHeroSelected={(updatedPlayer) => {
+                  setPlayer(updatedPlayer);
+                }}
+                onHeroesUpdate={(updatedHeroes) => {
+                  setPlayerHeroes(updatedHeroes);
+                }}
               />
             )}
             {showHeroSelection && (

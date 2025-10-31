@@ -11,6 +11,8 @@ import HiddenElementPlaceholders from './HiddenElementPlaceholders'
 import GameManager from './GameManager'
 import Chat from './Chat'
 import Leaderboard from './Leaderboard'
+import HeroSwitcherModal from './HeroSwitcherModal'
+import { useHeroSwitcher } from '../hooks/useHeroSwitcher'
 
 export default function LobbyScene({ 
   playerPositionRef, 
@@ -19,11 +21,23 @@ export default function LobbyScene({
   socket,
   player,
   onEnterBattle,
-  currentZone
+  currentZone,
+  onHeroSelected,
+  onHeroesUpdate
 }) {
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [inCombat, setInCombat] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [showHeroSwitcher, setShowHeroSwitcher] = useState(false)
+  
+  // Use hero switcher hook
+  const { 
+    playerHeroes, 
+    loading: switchingHero, 
+    error: heroSwitchError,
+    fetchHeroes, 
+    switchHero 
+  } = useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate)
 
   // Listen for combat state changes
   useEffect(() => {
@@ -61,6 +75,27 @@ export default function LobbyScene({
     }
   }, [])
 
+  // Fetch player heroes when hero switcher is opened
+  useEffect(() => {
+    if (!socket || !showHeroSwitcher) return
+    fetchHeroes()
+  }, [socket, showHeroSwitcher, fetchHeroes])
+
+  // Show error alert when hero switch fails
+  useEffect(() => {
+    if (heroSwitchError) {
+      alert(`Failed to switch hero: ${heroSwitchError}`)
+    }
+  }, [heroSwitchError])
+
+  const handleSwitchHero = (playerHeroId) => {
+    const success = switchHero(playerHeroId)
+    if (success) {
+      // Close modal after initiating switch
+      setShowHeroSwitcher(false)
+    }
+  }
+
   return (
     <>
       {/* Leaderboard Button */}
@@ -95,6 +130,43 @@ export default function LobbyScene({
           socket={socket} 
           player={player}
           onClose={() => setShowLeaderboard(false)} 
+        />
+      )}
+
+      {/* Hero Switcher Button */}
+      <button
+        onClick={() => setShowHeroSwitcher(true)}
+        style={{
+          position: 'fixed',
+          top: 20,
+          right: 20,
+          zIndex: 1000,
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          border: '2px solid #667eea',
+          borderRadius: '8px',
+          padding: '10px 16px',
+          color: '#fff',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+          transition: 'transform 0.2s',
+          pointerEvents: 'auto'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        ⚔️ Switch Hero
+      </button>
+
+      {/* Hero Switcher Modal */}
+      {showHeroSwitcher && (
+        <HeroSwitcherModal
+          player={player}
+          playerHeroes={playerHeroes}
+          loading={switchingHero}
+          onSelectHero={handleSwitchHero}
+          onClose={() => setShowHeroSwitcher(false)}
         />
       )}
 

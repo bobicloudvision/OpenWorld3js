@@ -132,7 +132,7 @@ export function registerCombatHandlers(socket, io) {
   // Get combat instance ID from Map (persists across re-registrations)
   const getCombatInstanceId = () => {
     const id = socketCombatInstances.get(socket.id);
-    console.log(`[combat] getCombatInstanceId for socket ${socket.id}:`, id, 'Map size:', socketCombatInstances.size);
+    // console.log(`[combat] getCombatInstanceId for socket ${socket.id}:`, id, 'Map size:', socketCombatInstances.size);
     return id;
   };
   const setCombatInstanceId = (id) => {

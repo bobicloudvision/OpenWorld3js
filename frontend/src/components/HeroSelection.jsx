@@ -1,25 +1,21 @@
 import React from 'react'
 import HeroModelPreview from './HeroModelPreview'
+import { useHeroSwitcher } from '../hooks/useHeroSwitcher'
 
 export default function HeroSelection({ player, playerHeroes, availableHeroes, socket, onHeroSelected, onHeroesUpdate, onClose }) {
-  const [loading, setLoading] = React.useState(false)
   const [purchasingHeroId, setPurchasingHeroId] = React.useState(null)
-  const [error, setError] = React.useState('')
+  
+  // Use hero switcher hook for switching logic
+  const { 
+    loading, 
+    error, 
+    setError,
+    switchHero 
+  } = useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate)
 
+  // Handle hero purchase events
   React.useEffect(() => {
     if (!socket) return
-
-    const handleHeroSetActiveOk = ({ player: updatedPlayer }) => {
-      setLoading(false)
-      if (onHeroSelected) {
-        onHeroSelected(updatedPlayer)
-      }
-    }
-
-    const handleHeroSetActiveError = ({ message }) => {
-      setLoading(false)
-      setError(message || 'Failed to set active hero')
-    }
 
     const handleHeroPurchaseOk = ({ player: updatedPlayer, playerHeroes: updatedHeroes, availableHeroes: updatedAvailable }) => {
       setPurchasingHeroId(null)
@@ -37,24 +33,17 @@ export default function HeroSelection({ player, playerHeroes, availableHeroes, s
       setError(message || 'Failed to purchase hero')
     }
 
-    socket.on('hero:set:active:ok', handleHeroSetActiveOk)
-    socket.on('hero:set:active:error', handleHeroSetActiveError)
     socket.on('hero:purchase:ok', handleHeroPurchaseOk)
     socket.on('hero:purchase:error', handleHeroPurchaseError)
 
     return () => {
-      socket.off('hero:set:active:ok', handleHeroSetActiveOk)
-      socket.off('hero:set:active:error', handleHeroSetActiveError)
       socket.off('hero:purchase:ok', handleHeroPurchaseOk)
       socket.off('hero:purchase:error', handleHeroPurchaseError)
     }
   }, [socket, onHeroSelected, onHeroesUpdate])
 
   const handleSelectHero = (playerHeroId) => {
-    if (loading) return
-    setLoading(true)
-    setError('')
-    socket.emit('set:active:hero', { playerHeroId })
+    switchHero(playerHeroId)
   }
 
   const handlePurchaseHero = (heroId, price) => {
