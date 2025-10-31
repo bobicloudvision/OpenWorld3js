@@ -18,7 +18,7 @@ DB_NAME="openworld3js"
 DB_USER="openworld3js"
 DB_PASSWORD=$(openssl rand -base64 32)  # Generate random password
 SOCKET_PORT="3000"
-PHP_VERSION="8.2"
+PHP_VERSION="8.3"
 
 # Function to print colored messages
 print_message() {
@@ -234,7 +234,8 @@ mkdir -p bootstrap/cache
 
 # Install Laravel dependencies
 print_message "Installing Laravel dependencies..."
-composer install --no-dev --optimize-autoloader
+export COMPOSER_ALLOW_SUPERUSER=1
+composer install --no-dev --optimize-autoloader --no-interaction
 
 # Create .env file only if it doesn't exist
 if [ ! -f .env ]; then
