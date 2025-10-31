@@ -50,8 +50,10 @@ export default function GameplayScene({
         activeHero={activeHero}
       />
       <MagicPalette activeHero={activeHero} />
-      <KeyboardShapeCreator />
-      <MaterialPalette />
+      
+      {/* <KeyboardShapeCreator /> */}
+      {/* <MaterialPalette /> */}
+
       <Chat socket={socket} currentPlayerId={player?.id} />
       
       <EcctrlJoystick />
