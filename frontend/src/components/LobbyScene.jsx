@@ -17,7 +17,8 @@ export default function LobbyScene({
   activeHero,
   socket,
   player,
-  onEnterBattle
+  onEnterBattle,
+  currentZone
 }) {
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
 
@@ -143,7 +144,10 @@ export default function LobbyScene({
           }
         }}
       >
-        <Environment files="models/night.hdr" ground={{ scale: 100 }} />
+        <Environment 
+          files={currentZone?.environment_file || "models/night.hdr"} 
+          ground={{ scale: 100 }} 
+        />
         
         <directionalLight intensity={0.4} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
         </directionalLight>
@@ -179,7 +183,12 @@ export default function LobbyScene({
             
           </KeyboardControls>    
         
-          <Ground playerPositionRef={playerPositionRef} socket={socket} disableCombat={true} />
+          <Ground 
+            playerPositionRef={playerPositionRef} 
+            socket={socket} 
+            disableCombat={true}
+            mapFile={currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb'}
+          />
           <HiddenElementPlaceholders />
           <GameManager playerPositionRef={playerPositionRef} />
           

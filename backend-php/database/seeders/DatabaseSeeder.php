@@ -24,6 +24,9 @@ class DatabaseSeeder extends Seeder
 //            'email' => 'test@example.com',
 //        ]);
 
+        $this->call(ZoneSeeder::class);
+
+
         // First, seed all effect types (reusable definitions)
         $effectTypes = [
             ['type' => 'freeze', 'name' => 'Freeze', 'description' => 'Immobilizes target', 'icon' => '🧊'],

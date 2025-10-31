@@ -7,6 +7,8 @@ import AuthOverlay from './components/AuthOverlay'
 import HeroSelection from './components/HeroSelection'
 import GameplayScene from './components/GameplayScene'
 import LobbyScene from './components/LobbyScene'
+import ZoneSelector from './components/ZoneSelector'
+import ZoneTransition from './components/ZoneTransition'
 
 export default function App() {
   const playerPositionRef = React.useRef([0, 0, 0]);
@@ -19,6 +21,8 @@ export default function App() {
   const [loadingHeroes, setLoadingHeroes] = React.useState(false)
   const [showHeroSelection, setShowHeroSelection] = React.useState(false)
   const [currentScene, setCurrentScene] = React.useState('lobby') // 'lobby' or 'battle'
+  const [currentZone, setCurrentZone] = React.useState(null)
+  const [showZoneSelector, setShowZoneSelector] = React.useState(false)
   useEffect(() => {
     // Validate stored token on load (non-blocking, logs only)
     fetchMe().then((me) => {
@@ -61,6 +65,18 @@ export default function App() {
       // Fetch heroes when authenticated
       socket.emit('get:player:heroes');
       socket.emit('get:heroes:available');
+      // Load current zone or default to lobby
+      loadZoneData(socket);
+    });
+
+    // Handle zone changes
+    socket.on('zone:joined', ({ zone, position }) => {
+      console.log('[app] Zone changed:', zone.name);
+      setCurrentZone(zone);
+      // Update player position if needed
+      if (position) {
+        playerPositionRef.current = [position.x, position.y, position.z];
+      }
     });
 
     socket.on('player', (socketPlayer) => {
@@ -108,10 +124,40 @@ export default function App() {
     });
 
     return () => {
+      socket.off('zone:joined');
       socket.disconnect();
       socketRef.current = null;
     };
   }, [!!player]);
+
+  // Helper function to load zone data
+  const loadZoneData = React.useCallback((socket) => {
+    console.log('[app] Loading zone data...');
+    // Request list of zones to find default lobby
+    socket.emit('zone:list', {}, (response) => {
+      console.log('[app] Zone list response:', response);
+      if (response.ok && response.zones) {
+        const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone);
+        console.log('[app] Found lobby zone:', lobby);
+        if (lobby) {
+          // Auto-join lobby zone
+          socket.emit('zone:join', { zoneId: lobby.id }, (joinResponse) => {
+            console.log('[app] Zone join response:', joinResponse);
+            if (joinResponse.ok) {
+              setCurrentZone(joinResponse.zone);
+              console.log('[app] Auto-joined zone:', joinResponse.zone.name);
+            } else {
+              console.error('[app] Failed to join zone:', joinResponse.error);
+            }
+          });
+        } else {
+          console.warn('[app] No lobby zone found in zones list');
+        }
+      } else {
+        console.error('[app] Failed to get zone list:', response);
+      }
+    });
+  }, []);
   
   const keyboardMap = [
     { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
@@ -141,25 +187,74 @@ export default function App() {
   
   return (
     <>
-    <div style={{ position: 'fixed', top: 12, right: 12, zIndex: 100 }}>
-      {player ? (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <span style={{ color: '#e5e7eb', fontSize: 12 }}>Hi, {player.name}</span>
+    {/* Top Bar */}
+    <div style={{ position: 'fixed', top: 12, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', padding: '0 12px' }}>
+    {/* Left side - Zone info and selector */}
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      {player && socketReady && (
+        <>
+          {currentZone && (
+            <div style={{
+              background: 'rgba(17, 24, 39, 0.9)',
+              border: '1px solid #374151',
+              borderRadius: 8,
+              padding: '8px 12px',
+              color: '#e5e7eb',
+              fontSize: 12,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}>
+              <span style={{ fontSize: 16 }}>🗺️</span>
+              <div>
+                <div style={{ fontWeight: 'bold' }}>{currentZone.name}</div>
+                <div style={{ fontSize: 10, color: '#9ca3af' }}>{currentZone.type.toUpperCase()}</div>
+              </div>
+            </div>
+          )}
           <button
-            onClick={async () => { await playerLogout(); if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; } setPlayer(null); setAuthOpen(true); }}
-            style={{ padding: '6px 10px', fontSize: 12, background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: 6 }}
+            onClick={() => setShowZoneSelector(true)}
+            style={{
+              padding: '8px 16px',
+              fontSize: 12,
+              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              color: 'white',
+              border: '2px solid #1e40af',
+              borderRadius: 8,
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
+            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
           >
-            Logout
+            {currentZone ? 'Change Zone' : '🗺️ Select Zone'}
           </button>
-        </div>
-      ) : (
-        <button
-          onClick={() => setAuthOpen(true)}
-          style={{ padding: '8px 12px', fontSize: 12, background: '#2563eb', color: 'white', border: 'none', borderRadius: 6 }}
-        >
-          Login / Sign Up
-        </button>
+        </>
       )}
+    </div>
+      
+      {/* Right side - Player info */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        {player ? (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ color: '#e5e7eb', fontSize: 12 }}>Hi, {player.name}</span>
+            <button
+              onClick={async () => { await playerLogout(); if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; } setPlayer(null); setAuthOpen(true); }}
+              style={{ padding: '6px 10px', fontSize: 12, background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: 6 }}
+            >
+              Logout
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setAuthOpen(true)}
+            style={{ padding: '8px 12px', fontSize: 12, background: '#2563eb', color: 'white', border: 'none', borderRadius: 6 }}
+          >
+            Login / Sign Up
+          </button>
+        )}
+      </div>
     </div>
     <AuthOverlay
       open={authOpen}
@@ -202,6 +297,7 @@ export default function App() {
                 player={player}
                 socket={socketRef.current}
                 onEnterBattle={() => setCurrentScene('battle')}
+                currentZone={currentZone}
               />
             ) : (
               <GameplayScene
@@ -225,6 +321,7 @@ export default function App() {
                 onHeroStatsUpdate={handleHeroStatsUpdate}
                 onOpenHeroSelection={() => setShowHeroSelection(true)}
                 onReturnToLobby={() => setCurrentScene('lobby')}
+                currentZone={currentZone}
               />
             )}
             {showHeroSelection && (
@@ -248,6 +345,20 @@ export default function App() {
         )}
       </>
     )}
+    
+    {/* Zone Selector Modal */}
+    {player && socketReady && showZoneSelector && (
+      <ZoneSelector
+        socket={socketRef.current}
+        playerLevel={
+          playerHeroes?.find(h => h.playerHeroId === player.active_hero_id)?.level || 1
+        }
+        onClose={() => setShowZoneSelector(false)}
+      />
+    )}
+    
+    {/* Zone Transition Screen */}
+    <ZoneTransition />
       </>
   )
 }

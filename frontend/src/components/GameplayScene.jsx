@@ -28,7 +28,8 @@ export default function GameplayScene({
   onHeroStatsUpdate,
   socket,
   player,
-  onReturnToLobby
+  onReturnToLobby,
+  currentZone
 }) {
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [combatInstanceId, setCombatInstanceId] = useState(null)
@@ -214,7 +215,10 @@ export default function GameplayScene({
           }
         }}
       >
-        <Environment files="models/night.hdr" ground={{ scale: 100 }} />
+        <Environment 
+          files={currentZone?.environment_file || "models/night.hdr"} 
+          ground={{ scale: 100 }} 
+        />
         
         <directionalLight intensity={0.4} castShadow shadow-bias={-0.0004} position={[0, 300, 200]}>
         </directionalLight>
@@ -257,7 +261,11 @@ export default function GameplayScene({
           </KeyboardControls>    
         
           
-          <Ground playerPositionRef={playerPositionRef} socket={socket} />
+          <Ground 
+            playerPositionRef={playerPositionRef} 
+            socket={socket}
+            mapFile={currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb'}
+          />
           <HiddenElementPlaceholders />
           <GameManager playerPositionRef={playerPositionRef} />
           

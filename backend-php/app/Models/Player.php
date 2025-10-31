@@ -19,6 +19,9 @@ class Player extends Authenticatable
         'experience',
         'currency',
         'active_hero_id',
+        'current_zone_id',
+        'zone_position',
+        'zone_entered_at',
     ];
 
     protected $hidden = [
@@ -31,6 +34,8 @@ class Player extends Authenticatable
         return [
             'password' => 'hashed',
             'email_verified_at' => 'datetime',
+            'zone_position' => 'array',
+            'zone_entered_at' => 'datetime',
         ];
     }
 
@@ -64,5 +69,13 @@ class Player extends Authenticatable
             'id', // Local key on players
             'hero_id' // Local key on player_heroes
         );
+    }
+
+    /**
+     * Get the zone the player is currently in.
+     */
+    public function currentZone(): BelongsTo
+    {
+        return $this->belongsTo(Zone::class, 'current_zone_id');
     }
 }

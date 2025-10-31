@@ -4,7 +4,8 @@ import useGameStore from '../stores/gameStore'
 import { addVfx } from '../stores/effectsStore'
 
 export default function Ground(props) {
-  const { scene } = useGLTF('/models/world1.glb')
+  const mapFile = props.mapFile || '/models/world1.glb'
+  const { scene } = useGLTF(mapFile)
   const socket = props.socket
   const disableCombat = props.disableCombat || false
   

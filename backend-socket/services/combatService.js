@@ -4,6 +4,7 @@
  */
 
 import { updatePlayerHeroCombatStats } from './heroService.js';
+import * as zoneService from './zoneService.js';
 
 // Combat state storage (in-memory, move to Redis for production)
 const combatInstances = new Map(); // combatInstanceId -> CombatInstance
@@ -15,9 +16,10 @@ const enemyCombatState = new Map(); // enemyId -> EnemyCombatState
  * @param {string} combatType - 'pvp' | 'pve' | 'team_pvp' | 'team_pve'
  * @param {Object} participants - { teams: [], players: [], enemies: [] }
  * @param {Object} zone - { center: [x,y,z], radius: number }
+ * @param {number} zoneId - Zone ID where combat takes place
  * @returns {string} combatInstanceId
  */
-export function initializeCombatInstance(combatType, participants, zone) {
+export function initializeCombatInstance(combatType, participants, zone, zoneId = null) {
   const combatInstanceId = `combat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   
   const combatInstance = {
@@ -25,6 +27,7 @@ export function initializeCombatInstance(combatType, participants, zone) {
     combatType,
     participants,
     zone,
+    zoneId,
     state: {
       active: true,
       startTime: Date.now(),
@@ -34,6 +37,11 @@ export function initializeCombatInstance(combatType, participants, zone) {
   };
   
   combatInstances.set(combatInstanceId, combatInstance);
+  
+  // Register combat with zone service
+  if (zoneId) {
+    zoneService.registerCombatInZone(zoneId, combatInstanceId);
+  }
   
   // Initialize participant states
   if (participants.players) {
@@ -645,6 +653,11 @@ export function endCombatInstance(combatInstanceId, result) {
   
   combatInstance.state.active = false;
   combatInstance.state.endTime = Date.now();
+  
+  // Unregister combat from zone service
+  if (combatInstance.zoneId) {
+    zoneService.unregisterCombatFromZone(combatInstance.zoneId, combatInstanceId);
+  }
   
   const playerResults = {};
   
