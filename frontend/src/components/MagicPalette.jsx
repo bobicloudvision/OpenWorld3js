@@ -134,10 +134,7 @@ export default function MagicPalette({ activeHero }) {
         {castingMode && (
           <div className="casting-indicator">
             <div className="casting-text">
-              Click anywhere to cast {magicTypes[player.selectedMagic].name} around you
-            </div>
-            <div className="casting-range">
-              Range: {magicTypes[player.selectedMagic].range}m
+              Click anywhere to cast {magicTypes[player.selectedMagic].name} around you in {magicTypes[player.selectedMagic].range}m range
             </div>
             <button className="cancel-cast" onClick={exitCastingMode}>
               Cancel (ESC)

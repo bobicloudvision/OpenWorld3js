@@ -28,6 +28,7 @@
 
 .stat-bar {
   margin-bottom: 10px;
+  color: white;
 }
 
 .stat-bar label {
@@ -155,6 +156,7 @@
 
 .casting-indicator {
   position: absolute;
+  width: 600px;
   bottom: 80px;
   left: 50%;
   transform: translateX(-50%);
@@ -171,12 +173,6 @@
   font-weight: bold;
   margin-bottom: 5px;
   color: #ffff00;
-}
-
-.casting-range {
-  font-size: 14px;
-  color: #aaa;
-  margin-bottom: 10px;
 }
 
 .cancel-cast {
@@ -634,4 +630,145 @@
     margin: 20px;
     padding: 20px;
   }
+}
+
+/* Combat Result Notification */
+.combat-result-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 3px solid;
+  border-radius: 20px;
+  padding: 40px 60px;
+  pointer-events: all;
+  z-index: 1000;
+  text-align: center;
+  min-width: 400px;
+  animation: combatResultSlideIn 0.5s ease-out;
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+@keyframes combatResultSlideIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+.combat-result-notification.victory {
+  border-color: #ffd700;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(0, 0, 0, 0.95) 50%);
+}
+
+.combat-result-notification.defeat {
+  border-color: #ff4444;
+  background: linear-gradient(135deg, rgba(255, 68, 68, 0.2) 0%, rgba(0, 0, 0, 0.95) 50%);
+}
+
+.combat-result-notification.draw {
+  border-color: #888;
+  background: linear-gradient(135deg, rgba(136, 136, 136, 0.2) 0%, rgba(0, 0, 0, 0.95) 50%);
+}
+
+.combat-result-notification h2 {
+  margin: 0 0 20px 0;
+  font-size: 3em;
+  font-weight: bold;
+  text-shadow: 0 0 20px currentColor;
+}
+
+.combat-result-notification.victory h2 {
+  color: #ffd700;
+  animation: victoryPulse 1.5s ease-in-out infinite;
+}
+
+.combat-result-notification.defeat h2 {
+  color: #ff4444;
+}
+
+.combat-result-notification.draw h2 {
+  color: #888;
+}
+
+@keyframes victoryPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.combat-result-notification p {
+  margin: 10px 0;
+  font-size: 1.3em;
+  color: #fff;
+}
+
+.combat-result-details {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.9em;
+  color: #ccc;
+}
+
+.combat-result-details div {
+  margin: 5px 0;
+}
+
+/* Level Up Notification */
+.level-up-notification {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.95) 0%, rgba(255, 140, 0, 0.95) 100%);
+  border: 3px solid #ffd700;
+  border-radius: 15px;
+  padding: 30px 50px;
+  pointer-events: all;
+  z-index: 1001;
+  text-align: center;
+  animation: levelUpBounce 0.6s ease-out;
+  box-shadow: 0 0 50px rgba(255, 215, 0, 0.8);
+}
+
+@keyframes levelUpBounce {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -60%) scale(0.5);
+  }
+  60% {
+    transform: translate(-50%, -45%) scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.level-up-notification h2 {
+  margin: 0 0 15px 0;
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 0 20px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.level-up-notification .level-text {
+  margin: 10px 0;
+  font-size: 2em;
+  font-weight: bold;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.level-up-notification .exp-text {
+  margin: 5px 0 0 0;
+  font-size: 1.2em;
+  color: #ffe;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }

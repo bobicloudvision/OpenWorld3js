@@ -123,11 +123,30 @@ export function registerCombatHandlers(socket, io) {
             // Check win/loss conditions
             const conditions = checkCombatConditions(combatInstanceId);
             if (conditions.ended) {
-              endCombatInstance(combatInstanceId, conditions.result);
+              const playerResults = endCombatInstance(combatInstanceId, conditions.result);
+              
+              // Broadcast combat ended
               io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
                 result: conditions.result,
                 winners: conditions.winners,
                 losers: conditions.losers
+              });
+              
+              // Broadcast level-ups to individual players
+              Object.entries(playerResults).forEach(([playerId, result]) => {
+                if (result.leveledUp) {
+                  const playerSockets = Object.entries(io.sockets.sockets)
+                    .filter(([_, s]) => getPlayerIdBySocket(s.id) === Number(playerId))
+                    .map(([_, s]) => s);
+                  
+                  playerSockets.forEach(s => {
+                    s.emit('hero:level-up', {
+                      oldLevel: result.oldLevel,
+                      newLevel: result.newLevel,
+                      experienceGained: result.experienceGained
+                    });
+                  });
+                }
               });
               
               if (combatTickInterval) {
@@ -331,11 +350,30 @@ export function registerCombatHandlers(socket, io) {
       // Check win/loss conditions after action
       const conditions = checkCombatConditions(combatInstanceId);
       if (conditions.ended) {
-        endCombatInstance(combatInstanceId, conditions.result);
+        const playerResults = endCombatInstance(combatInstanceId, conditions.result);
+        
+        // Broadcast combat ended
         io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
           result: conditions.result,
           winners: conditions.winners,
           losers: conditions.losers
+        });
+        
+        // Broadcast level-ups to individual players
+        Object.entries(playerResults).forEach(([playerId, result]) => {
+          if (result.leveledUp) {
+            const playerSockets = Object.entries(io.sockets.sockets)
+              .filter(([_, s]) => getPlayerIdBySocket(s.id) === Number(playerId))
+              .map(([_, s]) => s);
+            
+            playerSockets.forEach(s => {
+              s.emit('hero:level-up', {
+                oldLevel: result.oldLevel,
+                newLevel: result.newLevel,
+                experienceGained: result.experienceGained
+              });
+            });
+          }
         });
       }
       console.log('Spell cast result:', result);

@@ -603,13 +603,16 @@ function calculateExperienceGained(combatInstance, playerId, result) {
  * End combat instance
  * @param {string} combatInstanceId - Combat instance ID
  * @param {string} result - 'victory' | 'defeat' | 'draw'
+ * @returns {Object} Player results including level-ups { playerId: { leveledUp, oldLevel, newLevel, experienceGained } }
  */
 export function endCombatInstance(combatInstanceId, result) {
   const combatInstance = combatInstances.get(combatInstanceId);
-  if (!combatInstance) return;
+  if (!combatInstance) return {};
   
   combatInstance.state.active = false;
   combatInstance.state.endTime = Date.now();
+  
+  const playerResults = {};
   
   // Save final combat stats to database for all players
   if (combatInstance.participants.players) {
@@ -632,10 +635,20 @@ export function endCombatInstance(combatInstanceId, result) {
         
         if (saveResult.success) {
           console.log(`[combat] Saved combat results for player ${playerId}: HP=${playerState.health}, Power=${playerState.power}, EXP=+${experienceGained}${saveResult.leveledUp ? `, LEVEL UP! -> ${saveResult.newLevel}` : ''}`);
+          
+          // Store level-up info for broadcasting
+          playerResults[playerId] = {
+            leveledUp: saveResult.leveledUp || false,
+            oldLevel: saveResult.leveledUp ? saveResult.newLevel - 1 : undefined,
+            newLevel: saveResult.newLevel,
+            experienceGained
+          };
         }
       }
     });
   }
+  
+  return playerResults;
   
   // Clean up after delay (for final state broadcasts)
   setTimeout(() => {

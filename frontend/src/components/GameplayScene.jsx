@@ -141,6 +141,8 @@ export default function GameplayScene({
         playerPositionRef={playerPositionRef}
         onOpenHeroSelection={onOpenHeroSelection}
         activeHero={activeHero}
+        socket={socket}
+        playerId={player?.id}
       />
       <MagicPalette activeHero={activeHero} />
       

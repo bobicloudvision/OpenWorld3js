@@ -18,13 +18,17 @@ function OtherPlayer({ otherPlayer }) {
   const [targetRotation, setTargetRotation] = useState(initialRot)
   
   // Use shared avatar animations hook with the player's hero model
-  const modelPath = otherPlayer.heroModel || null
+  const modelPath = otherPlayer.heroModel
+  
+  // Always call hooks at the top level - never conditionally!
+  // Pass undefined (not null) so the hook uses its default model path
+  const { clone, animationActions, setAction, updateMixer } = useAvatarAnimations(modelPath || undefined)
+  
+  // Now handle the conditional rendering AFTER all hooks are called
   if (!modelPath) {
     // console.log('No hero model found for player', otherPlayer.socketId)
     return null
   }
-
-  const { clone, animationActions, setAction, updateMixer } = useAvatarAnimations(modelPath)
   
   // Smooth interpolation for position and rotation updates
   useFrame((state, delta) => {
