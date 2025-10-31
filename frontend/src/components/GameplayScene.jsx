@@ -18,6 +18,7 @@ import GameUI from './GameUI'
 import MagicPalette from './MagicPalette'
 import { KeyboardShapeCreator } from './KeyboardShapeCreator'
 import { MaterialPalette } from './MaterialPalette'
+import Chat from './Chat'
 
 export default function GameplayScene({ 
   playerPositionRef, 
@@ -51,6 +52,7 @@ export default function GameplayScene({
       <MagicPalette />
       <KeyboardShapeCreator />
       <MaterialPalette />
+      <Chat socket={socket} currentPlayerId={player?.id} />
       
       <EcctrlJoystick />
       <Canvas 
