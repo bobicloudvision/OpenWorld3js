@@ -5,6 +5,45 @@ import { SkeletonUtils } from 'three-stdlib'
 import * as THREE from 'three'
 
 /**
+ * Helper function to validate animation clip against model skeleton
+ * Removes tracks that reference non-existent bones to prevent console warnings
+ * @param {THREE.AnimationClip} clip - Animation clip to validate
+ * @param {THREE.Object3D} model - Model with skeleton to validate against
+ * @returns {THREE.AnimationClip} Cleaned animation clip
+ */
+function sanitizeAnimationClip(clip, model) {
+  if (!clip || !model) return clip
+  
+  // Get all bone names from the model
+  const boneNames = new Set()
+  model.traverse((node) => {
+    if (node.isBone || node.isSkinnedMesh) {
+      boneNames.add(node.name)
+    }
+  })
+  
+  // Filter tracks to only include those that reference existing bones
+  const validTracks = clip.tracks.filter(track => {
+    // Track names are in format: "boneName.property"
+    const boneName = track.name.split('.')[0]
+    const isValid = boneNames.has(boneName) || boneName === 'Scene' || boneName.startsWith('Root')
+    
+    if (!isValid) {
+      // Silently skip invalid tracks (no console warnings)
+      return false
+    }
+    return true
+  })
+  
+  // Create a new clip with only valid tracks
+  if (validTracks.length < clip.tracks.length) {
+    return new THREE.AnimationClip(clip.name, clip.duration, validTracks)
+  }
+  
+  return clip
+}
+
+/**
  * Custom hook to handle avatar animations
  * Encapsulates common animation logic used by both Player and RemotePlayer
  * @param {string} modelPath - Path to the avatar model (optional, defaults to Avatar1)
@@ -48,29 +87,33 @@ export function useAvatarAnimations(modelPath = '/models/avatars/NightshadeJFrie
     // Create mixer for the cloned scene
     mixer.current = new THREE.AnimationMixer(clone)
     
-    // Add idle animation
+    // Add idle animation (sanitized to remove invalid tracks)
     if (idleAnimations && idleAnimations.length > 0) {
-      const idleAction = mixer.current.clipAction(idleAnimations[0])
+      const sanitizedClip = sanitizeAnimationClip(idleAnimations[0], clone)
+      const idleAction = mixer.current.clipAction(sanitizedClip)
       animationActions.current.push(idleAction)
     }
     
-    // Add walk animation
+    // Add walk animation (sanitized to remove invalid tracks)
     if (walkAnimations && walkAnimations.length > 0) {
-      const walkAction = mixer.current.clipAction(walkAnimations[0])
+      const sanitizedClip = sanitizeAnimationClip(walkAnimations[0], clone)
+      const walkAction = mixer.current.clipAction(sanitizedClip)
       walkAction.setEffectiveTimeScale(2)
       animationActions.current.push(walkAction)
     }
     
-    // Add jump animation
+    // Add jump animation (sanitized to remove invalid tracks)
     if (jumpAnimations && jumpAnimations.length > 0) {
-      const jumpAction = mixer.current.clipAction(jumpAnimations[0])
+      const sanitizedClip = sanitizeAnimationClip(jumpAnimations[0], clone)
+      const jumpAction = mixer.current.clipAction(sanitizedClip)
       jumpAction.setEffectiveTimeScale(2)
       animationActions.current.push(jumpAction)
     }
 
-    // Add attack animation (from GLB)
+    // Add attack animation (sanitized to remove invalid tracks)
     if (attackAnimations && attackAnimations.length > 0) {
-      const attackAction = mixer.current.clipAction(attackAnimations[0])
+      const sanitizedClip = sanitizeAnimationClip(attackAnimations[0], clone)
+      const attackAction = mixer.current.clipAction(sanitizedClip)
       attackAction.setEffectiveTimeScale(2)
       animationActions.current.push(attackAction)
     }

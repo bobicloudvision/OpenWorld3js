@@ -24,14 +24,11 @@ function OtherPlayer({ otherPlayer }) {
   // Pass undefined (not null) so the hook uses its default model path
   const { clone, animationActions, setAction, updateMixer } = useAvatarAnimations(modelPath || undefined)
   
-  // Now handle the conditional rendering AFTER all hooks are called
-  if (!modelPath) {
-    // console.log('No hero model found for player', otherPlayer.socketId)
-    return null
-  }
-  
   // Smooth interpolation for position and rotation updates
+  // IMPORTANT: This hook MUST be called on every render (Rules of Hooks)
   useFrame((state, delta) => {
+    // Early return inside the callback is fine - but the hook itself must always be called
+    if (!modelPath) return
     // Don't return early - allow component to render even while model is loading
     if (!clone || animationActions.current.length === 0) return
     
@@ -102,6 +99,11 @@ function OtherPlayer({ otherPlayer }) {
   
   // Get player name for the badge
   const playerName = otherPlayer.name || `Player ${otherPlayer.socketId?.substring(0, 6) || 'Unknown'}`
+  
+  // Don't render anything if no model path (but still call all hooks above!)
+  if (!modelPath) {
+    return null
+  }
   
   // Render even if clone is not ready - prevents disappearing during model loading
   // The clone will be added when available (react-three-fiber handles this)
