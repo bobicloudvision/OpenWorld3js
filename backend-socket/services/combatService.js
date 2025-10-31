@@ -67,6 +67,16 @@ export function validateSpellCast(playerId, spellKey, targetPosition, playerPosi
     return { success: false, error: 'Player not in combat' };
   }
   
+  // Check if player is alive
+  if (playerState.health <= 0) {
+    return { success: false, error: 'Cannot cast spell - player is defeated' };
+  }
+  
+  // Check power cost
+  if (playerState.power < spell.powerCost) {
+    return { success: false, error: 'Not enough power' };
+  }
+  
   // Check cooldown
   const lastCast = playerState.spellCooldowns?.[spellKey] || 0;
   const now = Date.now();
@@ -76,11 +86,6 @@ export function validateSpellCast(playerId, spellKey, targetPosition, playerPosi
       success: false, 
       error: `${spell.name} is on cooldown (${Math.ceil(remaining / 1000)}s remaining)` 
     };
-  }
-  
-  // Check power cost
-  if (playerState.power < spell.powerCost) {
-    return { success: false, error: 'Not enough power' };
   }
   
   // Check range
@@ -108,6 +113,15 @@ export function executeSpellCast(playerId, spellKey, targetPosition, playerPosit
   const playerState = playerCombatState.get(playerId);
   if (!playerState) {
     return { success: false, error: 'Player state not found' };
+  }
+  
+  // Safety check: verify player is alive and has enough resources
+  if (playerState.health <= 0) {
+    return { success: false, error: 'Player is defeated' };
+  }
+  
+  if (playerState.power < spell.powerCost) {
+    return { success: false, error: 'Not enough power' };
   }
   
   const combatInstance = combatInstances.get(playerState.combatInstanceId);
@@ -149,38 +163,45 @@ export function executeSpellCast(playerId, spellKey, targetPosition, playerPosit
     });
   }
   
-  // Check players in range (for PvP)
-  if (combatInstance.combatType === 'pvp' || combatInstance.combatType === 'team_pvp') {
-    if (combatInstance.participants.players) {
-      combatInstance.participants.players.forEach(targetPlayerId => {
-        if (targetPlayerId === playerId) return; // Can't hit self (unless heal)
-        
-        const targetState = playerCombatState.get(targetPlayerId);
-        if (!targetState) return;
-        
-        const distance = calculateDistance(targetPosition, targetState.position);
-        if (distance <= aoeRadius) {
-          // Check if target is on same team (skip if friendly fire disabled)
-          // TODO: Implement team checking
-          
-          const damage = spell.damage > 0 ? calculateDamage(spell, playerState, targetState) : 0;
-          const heal = spell.damage < 0 ? Math.abs(spell.damage) : 0;
-          // Support both statusEffect (single) and statusEffects (array) from database
-          const effects = spell.statusEffects && spell.statusEffects.length > 0
-            ? spell.statusEffects
-            : (spell.statusEffect ? [spell.statusEffect] : []);
-          
-          affectedTargets.push({
-            targetId: targetPlayerId,
-            targetType: 'player',
-            damage,
-            heal,
-            effects,
-            position: targetState.position
-          });
+  // Check players in range (for healing and damage in all game modes)
+  if (combatInstance.participants.players) {
+    combatInstance.participants.players.forEach(targetPlayerId => {
+      // Allow self-targeting for healing spells
+      const isHealingSpell = spell.damage < 0;
+      if (targetPlayerId === playerId && !isHealingSpell) {
+        return; // Can't damage self
+      }
+      
+      const targetState = playerCombatState.get(targetPlayerId);
+      if (!targetState) return;
+      
+      const distance = calculateDistance(targetPosition, targetState.position);
+      if (distance <= aoeRadius) {
+        // For PvE, only allow healing allies
+        if (combatInstance.combatType === 'pve' || combatInstance.combatType === 'team_pve') {
+          if (!isHealingSpell) return; // No player damage in PvE
         }
-      });
-    }
+        
+        // For PvP, check team (TODO: implement proper team checking)
+        // For now, allow all actions
+        
+        const damage = spell.damage > 0 ? calculateDamage(spell, playerState, targetState) : 0;
+        const heal = isHealingSpell ? Math.abs(spell.damage) : 0;
+        // Support both statusEffect (single) and statusEffects (array) from database
+        const effects = spell.statusEffects && spell.statusEffects.length > 0
+          ? spell.statusEffects
+          : (spell.statusEffect ? [spell.statusEffect] : []);
+        
+        affectedTargets.push({
+          targetId: targetPlayerId,
+          targetType: 'player',
+          damage,
+          heal,
+          effects,
+          position: targetState.position
+        });
+      }
+    });
   }
   
   // Apply damage/healing
@@ -355,13 +376,21 @@ function healPlayer(playerId, amount) {
  * @param {Object} initialStats - Initial stats (from database)
  */
 export function initializePlayerCombatState(playerId, combatInstanceId, initialStats = {}) {
+  const maxHealth = initialStats.maxHealth || 100;
+  const maxPower = initialStats.maxPower || 100;
+  
+  // Health: if provided, use it; otherwise start at full health
+  // Power: clamp to maxPower (carried over from database)
+  const health = initialStats.health !== undefined ? initialStats.health : maxHealth;
+  const power = Math.min(initialStats.power || maxPower, maxPower);
+  
   playerCombatState.set(playerId, {
     playerId,
     combatInstanceId,
-    health: initialStats.health || 100,
-    maxHealth: initialStats.maxHealth || 100,
-    power: initialStats.power || 100,
-    maxPower: initialStats.maxPower || 100,
+    health,
+    maxHealth,
+    power,
+    maxPower,
     attack: initialStats.attack || 15,
     defense: initialStats.defense || 5,
     position: initialStats.position || [0, 0, 0],
@@ -377,11 +406,16 @@ export function initializePlayerCombatState(playerId, combatInstanceId, initialS
  * @param {Object} initialStats - Initial stats
  */
 export function initializeEnemyCombatState(enemyId, combatInstanceId, initialStats = {}) {
+  const maxHealth = initialStats.maxHealth || 60;
+  
+  // Ensure health never exceeds max health
+  const health = Math.min(initialStats.health || 60, maxHealth);
+  
   enemyCombatState.set(enemyId, {
     enemyId,
     combatInstanceId,
-    health: initialStats.health || 60,
-    maxHealth: initialStats.maxHealth || 60,
+    health,
+    maxHealth,
     attack: initialStats.attack || 12,
     defense: initialStats.defense || 3,
     position: initialStats.position || [0, 0, 0],
@@ -622,19 +656,17 @@ export function endCombatInstance(combatInstanceId, result) {
         // Calculate experience gained
         const experienceGained = calculateExperienceGained(combatInstance, playerId, result);
         
-        // Prepare combat stats to save
+        // Prepare combat stats to save (WoW-style: health persists between combats)
         const combatStats = {
-          health: playerState.health,
+          health: playerState.health, // Save current health (damage persists!)
           power: playerState.power,
-          attack: playerState.attack,
-          defense: playerState.defense,
           experienceGained
         };
         
         const saveResult = updatePlayerHeroCombatStats(playerId, combatStats);
         
         if (saveResult.success) {
-          console.log(`[combat] Saved combat results for player ${playerId}: HP=${playerState.health}, Power=${playerState.power}, EXP=+${experienceGained}${saveResult.leveledUp ? `, LEVEL UP! -> ${saveResult.newLevel}` : ''}`);
+          console.log(`[combat] Saved combat results for player ${playerId}: HP=${playerState.health}/${playerState.maxHealth}, Power=${playerState.power}, EXP=+${experienceGained}${saveResult.leveledUp ? `, LEVEL UP! -> ${saveResult.newLevel}` : ''}`);
           
           // Store level-up info for broadcasting
           playerResults[playerId] = {

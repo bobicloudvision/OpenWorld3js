@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import { getDbPath } from './services/db.js';
 import { registerSocketHandlers } from './sockets/index.js';
 import { loadSpellDefinitions } from './services/spellService.js';
+import { startGlobalRegenerationLoop } from './sockets/regeneration.js';
 
 // Load spell definitions from database on startup
 loadSpellDefinitions();
@@ -24,6 +25,9 @@ const io = new Server(httpServer, {
 });
 
 registerSocketHandlers(io);
+
+// Start global regeneration loop
+startGlobalRegenerationLoop(io);
 
 const PORT = Number(process.env.SOCKET_PORT || 6060);
 httpServer.listen(PORT, () => {

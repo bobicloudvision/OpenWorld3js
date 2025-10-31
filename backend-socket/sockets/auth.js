@@ -4,6 +4,8 @@ import { bindSocket } from '../services/sessionService.js';
 import { registerMultiplayerHandlers } from './multiplayer.js';
 import { registerChatHandlers } from './chat.js';
 import { registerCombatHandlers } from './combat.js';
+import { registerRegenerationHandlers } from './regeneration.js';
+import { registerConsumableHandlers } from './consumable.js';
 
 export function registerAuthHandlers(socket, io) {
   socket.on('auth', async (payload) => {
@@ -53,6 +55,12 @@ export function registerAuthHandlers(socket, io) {
 
       // Register combat handlers after successful authentication
       registerCombatHandlers(socket, io);
+      
+      // Register regeneration handlers after successful authentication
+      registerRegenerationHandlers(socket, io);
+      
+      // Register consumable handlers after successful authentication
+      registerConsumableHandlers(socket, io);
     } catch (err) {
       socket.emit('auth:error', { message: 'Auth failed' });
     }

@@ -18,6 +18,7 @@ import {
   updatePlayerPositionInGameSession
 } from '../services/multiplayerService.js';
 import { getSpellForCombat } from '../services/spellService.js';
+import { enterCombat, leaveCombat } from '../services/regenerationService.js';
 
 // Global shared combat instance for PvP (for testing - in production use matchmaking)
 let globalCombatInstanceId = null;
@@ -62,9 +63,9 @@ export function registerCombatHandlers(socket, io) {
             const playerSession = getPlayerInGameSession(socket.id);
             const initialPosition = playerSession?.position || [0, 0, 0];
             const stats = activeHero ? {
-              health: activeHero.health || 100,
+              health: Math.min(activeHero.health || activeHero.maxHealth || 100, activeHero.maxHealth || 100), // Load from DB, clamped
               maxHealth: activeHero.maxHealth || 100,
-              power: activeHero.power || 100,
+              power: Math.min(activeHero.power || 100, activeHero.maxPower || 100),
               maxPower: activeHero.maxPower || 100,
               attack: activeHero.attack || 15,
               defense: activeHero.defense || 5,
@@ -97,9 +98,9 @@ export function registerCombatHandlers(socket, io) {
         const initialPosition = playerSession?.position || [0, 0, 0];
         
         const playerStats = activeHero ? {
-          health: activeHero.health || 100,
+          health: Math.min(activeHero.health || activeHero.maxHealth || 100, activeHero.maxHealth || 100), // Load from DB, clamped
           maxHealth: activeHero.maxHealth || 100,
-          power: activeHero.power || 100,
+          power: Math.min(activeHero.power || 100, activeHero.maxPower || 100),
           maxPower: activeHero.maxPower || 100,
           attack: activeHero.attack || 15,
           defense: activeHero.defense || 5,
@@ -110,6 +111,9 @@ export function registerCombatHandlers(socket, io) {
 
         initializePlayerCombatState(playerId, combatInstanceId, playerStats);
       }
+
+      // Mark player as entering combat (stops regeneration)
+      enterCombat(playerId);
 
       // Join socket room for combat instance
       socket.join(`combat:${combatInstanceId}`);
@@ -124,6 +128,12 @@ export function registerCombatHandlers(socket, io) {
             const conditions = checkCombatConditions(combatInstanceId);
             if (conditions.ended) {
               const playerResults = endCombatInstance(combatInstanceId, conditions.result);
+              
+              // Mark all players as leaving combat (enables regeneration)
+              const combatInstance = getCombatInstance(combatInstanceId);
+              if (combatInstance?.participants?.players) {
+                combatInstance.participants.players.forEach(pid => leaveCombat(pid));
+              }
               
               // Broadcast combat ended
               io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
@@ -352,6 +362,12 @@ export function registerCombatHandlers(socket, io) {
       if (conditions.ended) {
         const playerResults = endCombatInstance(combatInstanceId, conditions.result);
         
+        // Mark all players as leaving combat (enables regeneration)
+        const combatInstance = getCombatInstance(combatInstanceId);
+        if (combatInstance?.participants?.players) {
+          combatInstance.participants.players.forEach(pid => leaveCombat(pid));
+        }
+        
         // Broadcast combat ended
         io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
           result: conditions.result,
@@ -414,6 +430,9 @@ export function registerCombatHandlers(socket, io) {
         playerId,
         combatInstanceId
       });
+
+      // Mark player as leaving combat (enables regeneration)
+      leaveCombat(playerId);
 
       combatInstanceId = null;
     }

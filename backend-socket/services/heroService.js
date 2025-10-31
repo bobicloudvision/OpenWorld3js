@@ -402,7 +402,7 @@ export function updatePlayerHeroCombatStats(playerId, combatStats) {
       return { success: false };
     }
     
-    const heroStmt = db.prepare('SELECT level, experience FROM player_heroes WHERE id = ? AND player_id = ?');
+    const heroStmt = db.prepare('SELECT level, experience, max_health, max_power FROM player_heroes WHERE id = ? AND player_id = ?');
     const heroData = heroStmt.get(player.active_hero_id, playerId);
     
     if (!heroData) {
@@ -430,14 +430,20 @@ export function updatePlayerHeroCombatStats(playerId, combatStats) {
     const updates = [];
     const values = [];
     
-    // Always update health and power
+    // Get max values for clamping (use defaults if not set in DB)
+    const maxHealth = heroData.max_health || 100;
+    const maxPower = heroData.max_power || 100;
+    
+    // Always update health and power - CLAMP to max values
     if (typeof combatStats.health === 'number') {
       updates.push('health = ?');
-      values.push(Math.max(0, Math.round(combatStats.health)));
+      const clampedHealth = Math.min(Math.max(0, Math.round(combatStats.health)), maxHealth);
+      values.push(clampedHealth);
     }
     if (typeof combatStats.power === 'number') {
       updates.push('power = ?');
-      values.push(Math.max(0, Math.round(combatStats.power)));
+      const clampedPower = Math.min(Math.max(0, Math.round(combatStats.power)), maxPower);
+      values.push(clampedPower);
     }
     
     // Update attack/defense if provided (from buffs/debuffs that persist)
@@ -482,6 +488,83 @@ export function updatePlayerHeroCombatStats(playerId, combatStats) {
     };
   } catch (error) {
     console.error('[heroService] Error updating hero combat stats:', error);
+    return { success: false };
+  }
+}
+
+/**
+ * Update player hero stats (simple update for regeneration, healing items, etc.)
+ * @param {number} playerId - The player's ID
+ * @param {Object} stats - Stats to update { health?, power?, attack?, defense? }
+ * @returns {Object} { success: boolean }
+ */
+export function updatePlayerHeroStats(playerId, stats) {
+  const db = getDb();
+  
+  try {
+    // Get the player's active hero ID
+    const playerStmt = db.prepare('SELECT active_hero_id FROM players WHERE id = ?');
+    const player = playerStmt.get(playerId);
+    
+    if (!player || !player.active_hero_id) {
+      return { success: false };
+    }
+    
+    // Get hero's max values for clamping
+    const heroStmt = db.prepare('SELECT max_health, max_power FROM player_heroes WHERE id = ? AND player_id = ?');
+    const heroData = heroStmt.get(player.active_hero_id, playerId);
+    
+    if (!heroData) {
+      return { success: false };
+    }
+    
+    const maxHealth = heroData.max_health || 100;
+    const maxPower = heroData.max_power || 100;
+    
+    // Build update query
+    const updates = [];
+    const values = [];
+    
+    if (typeof stats.health === 'number') {
+      updates.push('health = ?');
+      const clampedHealth = Math.min(Math.max(0, Math.round(stats.health)), maxHealth);
+      values.push(clampedHealth);
+    }
+    
+    if (typeof stats.power === 'number') {
+      updates.push('power = ?');
+      const clampedPower = Math.min(Math.max(0, Math.round(stats.power)), maxPower);
+      values.push(clampedPower);
+    }
+    
+    if (typeof stats.attack === 'number') {
+      updates.push('attack = ?');
+      values.push(Math.max(1, Math.round(stats.attack)));
+    }
+    
+    if (typeof stats.defense === 'number') {
+      updates.push('defense = ?');
+      values.push(Math.max(0, Math.round(stats.defense)));
+    }
+    
+    if (updates.length === 0) {
+      return { success: false };
+    }
+    
+    values.push(player.active_hero_id);
+    values.push(playerId);
+    
+    const updateStmt = db.prepare(`
+      UPDATE player_heroes 
+      SET ${updates.join(', ')}
+      WHERE id = ? AND player_id = ?
+    `);
+    
+    const result = updateStmt.run(...values);
+    
+    return { success: result.changes > 0 };
+  } catch (error) {
+    console.error('[heroService] Error updating hero stats:', error);
     return { success: false };
   }
 }
