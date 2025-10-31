@@ -25,6 +25,7 @@ export default function GameplayScene({
   keyboardMap, 
   activeHero,
   onOpenHeroSelection,
+  onHeroStatsUpdate,
   socket,
   player
 }) {
@@ -95,12 +96,29 @@ export default function GameplayScene({
 
     const onStateUpdate = (state) => {
       // console.log('[combat] state-update', state)
+      
+      // Update hero stats from combat state
+      if (state?.participants?.players && player?.id && player?.active_hero_id && onHeroStatsUpdate) {
+        const playerCombatState = state.participants.players.find(p => p.playerId === player.id)
+        if (playerCombatState) {
+          // Update the active hero's combat stats (health, power)
+          onHeroStatsUpdate(player.active_hero_id, {
+            health: playerCombatState.health,
+            power: playerCombatState.power
+          })
+        }
+      }
     }
 
     const onEnded = (data) => {
       console.log('[combat] ended', data)
       window.__inCombat = false
       setCombatInstanceId(null)
+      
+      // Refresh hero data to get updated experience and level
+      if (socket && socket.connected) {
+        socket.emit('get:player:heroes')
+      }
     }
 
     // Rejoin on reconnect or after auth OK (e.g., server restart)
@@ -133,7 +151,7 @@ export default function GameplayScene({
         socket.emit('combat:leave')
       }
     }
-  }, [socket, player])
+  }, [socket, player, onHeroStatsUpdate])
 
   return (
     <>

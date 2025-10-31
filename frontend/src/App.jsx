@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useCallback } from 'react'
 import { io } from 'socket.io-client'
 import { me as fetchMe, logout as playerLogout } from './services/authService'
 import './App.css'
@@ -124,6 +124,19 @@ export default function App() {
     { name: 'magic3', keys: ['Digit3'] },
     { name: 'magic4', keys: ['Digit4'] },
   ]
+  
+  // Memoized callback to prevent infinite re-renders
+  const handleHeroStatsUpdate = useCallback((playerHeroId, stats) => {
+    // Update specific hero's combat stats (health, power) in real-time
+    setPlayerHeroes(prevHeroes => 
+      prevHeroes.map(hero => 
+        hero.playerHeroId === playerHeroId 
+          ? { ...hero, ...stats }
+          : hero
+      )
+    );
+  }, []);
+  
   return (
     <>
     <div style={{ position: 'fixed', top: 12, right: 12, zIndex: 100 }}>
@@ -195,6 +208,7 @@ export default function App() {
                 setPlayerHeroes(updatedPlayerHeroes);
                 setAvailableHeroes(updatedAvailableHeroes);
               }}
+              onHeroStatsUpdate={handleHeroStatsUpdate}
               onOpenHeroSelection={() => setShowHeroSelection(true)}
             />
             {showHeroSelection && (
