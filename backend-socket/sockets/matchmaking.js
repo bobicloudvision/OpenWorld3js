@@ -46,22 +46,30 @@ export function registerMatchmakingHandlers(socket, io) {
         return;
       }
 
+      // Get player's current zone
+      const currentZoneId = zoneService.getPlayerZone(playerId);
+      if (!currentZoneId) {
+        if (ack) return ack({ ok: false, error: 'You must be in a zone to join matchmaking' });
+        return;
+      }
+
       // Get active hero data
       const playerData = {
         name: player.name,
         level: player.level || 1,
-        heroData: player.active_hero_id ? { id: player.active_hero_id } : null
+        heroData: player.active_hero_id ? { id: player.active_hero_id } : null,
+        zoneId: currentZoneId // Track which zone player is queuing from
       };
 
       // Join socket room for matchmaking updates
       socket.join(`matchmaking-${queueType}`);
       socket.join(playerId); // Personal room for match notifications
-      console.log(`[matchmaking] Socket ${socket.id} joined room ${playerId} for player ${player.name}`);
+      console.log(`[matchmaking] Socket ${socket.id} joined room ${playerId} for player ${player.name} from zone ${currentZoneId}`);
 
       const result = matchmakingService.joinQueue(playerId, playerData, queueType, io);
       
       if (result.ok) {
-        console.log(`[matchmaking] Player ${playerId} joined ${queueType} queue`);
+        console.log(`[matchmaking] Player ${playerId} joined ${queueType} queue from zone ${currentZoneId}`);
       }
 
       if (ack) ack(result);

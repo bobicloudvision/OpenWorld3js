@@ -47,6 +47,9 @@ export function initializeCombatInstance(combatType, participants, zone, zoneId 
   // Register combat with zone service
   if (zoneId) {
     zoneService.registerCombatInZone(zoneId, combatInstanceId);
+    console.log(`[combat] Combat ${combatInstanceId} registered in zone ${zoneId} (type: ${combatType}, matchmaking: ${isMatchmaking})`);
+  } else {
+    console.warn(`[combat] Combat ${combatInstanceId} initialized WITHOUT a zone! (type: ${combatType})`);
   }
   
   // Initialize participant states

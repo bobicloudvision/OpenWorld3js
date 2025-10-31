@@ -112,6 +112,7 @@ export function joinQueue(playerId, playerData, queueType, io) {
     playerName: playerData.name,
     playerLevel: playerData.level || 1,
     heroData: playerData.heroData,
+    zoneId: playerData.zoneId, // Track zone player is queuing from
     joinedAt: Date.now()
   };
   
@@ -179,6 +180,9 @@ function checkAndStartMatch(queueType, io) {
   // Create match
   const matchId = `match-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   
+  // Collect zones players are coming from (for reference/tracking)
+  const playerZones = matchPlayers.map(p => p.zoneId).filter(Boolean);
+  
   const match = {
     matchId,
     queueType,
@@ -186,7 +190,8 @@ function checkAndStartMatch(queueType, io) {
     state: 'countdown',
     countdownStarted: Date.now(),
     countdownDuration: config.countdownSeconds * 1000,
-    zoneId: null, // Will be assigned
+    zoneId: null, // Will be assigned to arena zone
+    playerOriginZones: playerZones, // Track where players came from
     combatInstanceId: null
   };
 
@@ -256,7 +261,7 @@ async function startCombat(matchId, io) {
 
   const config = QUEUE_TYPES[match.queueType];
 
-  // Find a suitable arena zone
+  // Find a suitable arena zone for PvP combat
   const zones = await zoneService.getActiveZones();
   const arenaZone = zones.find(z => z.type === 'pvp' && z.is_combat_zone);
   
@@ -267,6 +272,10 @@ async function startCombat(matchId, io) {
   }
 
   match.zoneId = arenaZone.id;
+  
+  console.log(`[matchmaking] Match ${matchId} assigned to arena zone ${arenaZone.id} (${arenaZone.name})`);
+  console.log(`[matchmaking] Players came from zones: ${match.playerOriginZones.join(', ')}`);
+
 
   // Organize teams if needed
   let participants;
@@ -290,13 +299,13 @@ async function startCombat(matchId, io) {
     };
   }
 
-  // Initialize combat instance
+  // Initialize combat instance in the arena zone
   const spawnPos = JSON.parse(arenaZone.spawn_position);
   const combatInstanceId = initializeCombatInstance(
     config.teams ? 'team_pvp' : 'pvp',
     participants,
     { center: [spawnPos.x, spawnPos.y, spawnPos.z], radius: 50 },
-    arenaZone.id,
+    arenaZone.id, // Combat takes place in arena zone
     true // This is a matchmaking battle
   );
 
@@ -306,7 +315,7 @@ async function startCombat(matchId, io) {
   // Register combat instance with global tick system
   registerCombatInstance(combatInstanceId);
 
-  console.log(`[matchmaking] Combat started: ${combatInstanceId} in zone ${arenaZone.id}`);
+  console.log(`[matchmaking] Combat started: ${combatInstanceId} in zone ${arenaZone.id} (${arenaZone.name})`);
 
   // Teleport all players to arena and notify
   for (const player of match.players) {
