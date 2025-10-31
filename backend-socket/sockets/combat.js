@@ -11,7 +11,8 @@ import {
   getPlayerCombatState,
   updatePlayerPosition,
   markPlayerDisconnected,
-  markPlayerReconnected
+  markPlayerReconnected,
+  getActiveCombatForPlayer
 } from '../services/combatService.js';
 import {
   getPlayerInGameSession
@@ -131,6 +132,40 @@ export function registerCombatHandlers(socket, io) {
   }
 
   console.log(`[combat] 🔧 Registering combat handlers for socket ${socket.id}, player ${playerId}`);
+
+  /**
+   * Check if player has active combat (for reconnect/refresh) 
+   */
+  socket.on('combat:check-active', (ack) => {
+    try {
+      const activeCombat = getActiveCombatForPlayer(playerId);
+      
+      if (activeCombat) {
+        console.log(`[combat] Player ${playerId} has active combat: ${activeCombat.combatInstanceId}`);
+        if (typeof ack === 'function') {
+          ack({ 
+            ok: true, 
+            hasActiveCombat: true,
+            combat: activeCombat
+          });
+        }
+      } else {
+        console.log(`[combat] Player ${playerId} has no active combat`);
+        if (typeof ack === 'function') {
+          ack({ 
+            ok: true, 
+            hasActiveCombat: false,
+            combat: null
+          });
+        }
+      }
+    } catch (error) {
+      console.error('[combat] Error checking active combat:', error);
+      if (typeof ack === 'function') {
+        ack({ ok: false, error: error.message });
+      }
+    }
+  });
 
   // Get combat instance ID from Map (persists across re-registrations)
   const getCombatInstanceId = () => {

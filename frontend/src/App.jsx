@@ -10,6 +10,7 @@ import GameplayScene from './components/GameplayScene'
 import ZoneSelector from './components/ZoneSelector'
 import ZoneTransition from './components/ZoneTransition'
 import MatchmakingQueue from './components/MatchmakingQueue'
+import CombatRejoinModal from './components/CombatRejoinModal'
 
 export default function App() {
   const playerPositionRef = React.useRef([0, 0, 0]);
@@ -25,6 +26,8 @@ export default function App() {
   const [showZoneSelector, setShowZoneSelector] = React.useState(false)
   const [showMatchmaking, setShowMatchmaking] = React.useState(false)
   const [inCombatMatch, setInCombatMatch] = React.useState(false)
+  const [showCombatRejoin, setShowCombatRejoin] = React.useState(false)
+  const [activeCombatInfo, setActiveCombatInfo] = React.useState(null)
   useEffect(() => {
     // Validate stored token on load (non-blocking, logs only)
     fetchMe().then((me) => {
@@ -69,6 +72,15 @@ export default function App() {
       socket.emit('get:heroes:available');
       // Load current zone or default to lobby
       loadZoneData(socket);
+      
+      // Check for active combat (reconnect after refresh)
+      socket.emit('combat:check-active', (response) => {
+        if (response?.ok && response.hasActiveCombat && response.combat) {
+          console.log('[app] 🔄 Active combat detected on reconnect:', response.combat);
+          setActiveCombatInfo(response.combat);
+          setShowCombatRejoin(true);
+        }
+      });
     });
 
     // Handle zone changes
@@ -220,6 +232,53 @@ export default function App() {
       }
     });
   }, []);
+
+  // Handle combat rejoin
+  const handleCombatRejoin = React.useCallback(async (combatInfo) => {
+    console.log('[app] 🔄 Rejoining combat:', combatInfo.combatInstanceId);
+    
+    if (!socketRef.current || !combatInfo) {
+      console.error('[app] Cannot rejoin: missing socket or combat info');
+      return;
+    }
+    
+    // Switch to combat scene
+    setInCombatMatch(true);
+    setShowCombatRejoin(false);
+    
+    // Join the combat instance
+    socketRef.current.emit('combat:join-matchmaking', 
+      { combatInstanceId: combatInfo.combatInstanceId }, 
+      (response) => {
+        if (response?.ok) {
+          console.log('[app] ✅ Successfully rejoined combat');
+          window.__inCombat = true;
+          
+          // Update zone if needed
+          if (combatInfo.zone) {
+            setCurrentZone(combatInfo.zone);
+          }
+        } else {
+          console.error('[app] ❌ Failed to rejoin combat:', response?.error);
+          setInCombatMatch(false);
+          setShowCombatRejoin(false);
+        }
+      }
+    );
+  }, []);
+  
+  // Handle combat rejoin decline
+  const handleCombatRejoinDecline = React.useCallback(() => {
+    console.log('[app] 🚫 Player declined to rejoin combat');
+    
+    if (socketRef.current && activeCombatInfo) {
+      // Leave the combat (will mark as abandoned)
+      socketRef.current.emit('combat:leave');
+    }
+    
+    setShowCombatRejoin(false);
+    setActiveCombatInfo(null);
+  }, [activeCombatInfo]);
 
   // Handle matchmaking battle start
   const handleMatchStarted = React.useCallback((data) => {
@@ -472,6 +531,15 @@ export default function App() {
     
     {/* Zone Transition Screen */}
     <ZoneTransition />
+    
+    {/* Combat Rejoin Modal */}
+    {showCombatRejoin && activeCombatInfo && (
+      <CombatRejoinModal
+        combatInfo={activeCombatInfo}
+        onRejoin={handleCombatRejoin}
+        onDecline={handleCombatRejoinDecline}
+      />
+    )}
       </>
   )
 }

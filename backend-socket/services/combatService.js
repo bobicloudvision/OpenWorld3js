@@ -995,3 +995,36 @@ export function getAllCombatInstances() {
   return combatInstances;
 }
 
+/**
+ * Get active combat instance for a player
+ * @param {number} playerId - Player ID
+ * @returns {Object|null} Combat instance info if player is in active combat
+ */
+export function getActiveCombatForPlayer(playerId) {
+  const playerState = playerCombatState.get(playerId);
+  if (!playerState || !playerState.combatInstanceId) {
+    return null;
+  }
+  
+  const combatInstance = combatInstances.get(playerState.combatInstanceId);
+  if (!combatInstance || !combatInstance.state.active) {
+    return null;
+  }
+  
+  return {
+    combatInstanceId: combatInstance.combatInstanceId,
+    combatType: combatInstance.combatType,
+    isMatchmaking: combatInstance.isMatchmaking || false,
+    zone: combatInstance.zone,
+    zoneId: combatInstance.zoneId,
+    startTime: combatInstance.state.startTime,
+    participants: combatInstance.participants,
+    playerState: {
+      health: playerState.health,
+      maxHealth: playerState.maxHealth,
+      power: playerState.power,
+      maxPower: playerState.maxPower
+    }
+  };
+}
+
