@@ -266,15 +266,12 @@ class DatabaseSeeder extends Seeder
                             'chain_range_per_level' => $effectData['chain_range_per_level'] ?? 0,
                             'effect_order' => $effectData['effect_order'] ?? 0,
                         ];
-                        
+
                         $spell->effects()->syncWithoutDetaching([$effect->id => $pivotData]);
                     }
                 }
             }
         }
-
-        // Seed heroes mirroring frontend INITIAL_ENEMIES and additional examples
-        $piOver2Negative = -1.5707963267948966; // -Math.PI / 2 equivalent
 
         $heroes = [
             [
@@ -287,7 +284,7 @@ class DatabaseSeeder extends Seeder
                 'defense' => 3,
                 'model' => '/models/avatars/GanfaulMAure.glb',
                 'model_scale' => 1,
-                'model_rotation' => [0, $piOver2Negative, 0],
+                'model_rotation' => null,
                 'magic_types' => ['fire'],
             ],
             [
@@ -300,7 +297,7 @@ class DatabaseSeeder extends Seeder
                 'defense' => 2,
                 'model' => '/models/avatars/NightshadeJFriedrich.glb',
                 'model_scale' => 1,
-                'model_rotation' => [0, $piOver2Negative, 0],
+                'model_rotation' =>null,
                 'magic_types' => ['ice', 'lightning'],
             ],
             [
@@ -313,7 +310,7 @@ class DatabaseSeeder extends Seeder
                 'defense' => 8,
                 'model' => '/models/avatars/WarrokWKurniawan.glb',
                 'model_scale' => 1,
-                'model_rotation' => [0, $piOver2Negative, 0],
+                'model_rotation' => null,
                 'magic_types' => [],
             ],
             [
@@ -326,7 +323,7 @@ class DatabaseSeeder extends Seeder
                 'defense' => 1,
                 'model' => '/models/avatars/Mutant.glb',
                 'model_scale' => 1,
-                'model_rotation' => [0, $piOver2Negative, 0],
+                'model_rotation' => null,
                 'magic_types' => [],
             ],
         ];

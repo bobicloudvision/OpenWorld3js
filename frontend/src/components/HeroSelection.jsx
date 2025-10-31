@@ -88,6 +88,18 @@ export default function HeroSelection({ player, playerHeroes, availableHeroes, s
                   onClick={onClose}
                   style={styles.closeButton}
                   title="Close"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.4)'
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.8)'
+                    e.currentTarget.style.color = '#fee2e2'
+                    e.currentTarget.style.transform = 'scale(1.1)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.5)'
+                    e.currentTarget.style.color = '#fca5a5'
+                    e.currentTarget.style.transform = 'scale(1)'
+                  }}
                 >
                   ✕
                 </button>
@@ -374,6 +386,8 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     transition: 'all 0.3s ease',
+    padding: 0,
+    lineHeight: 1,
   },
 }
 

@@ -1,7 +1,7 @@
 import React from 'react'
 import useGameStore from '../stores/gameStore'
 
-export default function GameUI({ playerPositionRef }) {
+export default function GameUI({ playerPositionRef, onOpenHeroSelection, activeHero }) {
   const { 
     player, 
     enemies, 
@@ -40,6 +40,37 @@ export default function GameUI({ playerPositionRef }) {
     <div className="game-ui">
       {/* Player Stats */}
       <div className="player-stats">
+        {onOpenHeroSelection && (
+          <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '0.9em', color: '#9ca3af' }}>
+              {activeHero ? `Hero: ${activeHero.name}` : 'No Hero Selected'}
+            </div>
+            <button
+              onClick={onOpenHeroSelection}
+              style={{
+                padding: '6px 12px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: 'none',
+                borderRadius: '6px',
+                color: '#fff',
+                fontSize: '0.85em',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)'
+                e.currentTarget.style.boxShadow = '0 0 10px rgba(102, 126, 234, 0.5)'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.boxShadow = 'none'
+              }}
+            >
+              Change Hero
+            </button>
+          </div>
+        )}
         <div className="stat-bar">
           <label>Health: {player.health}/{player.maxHealth} {player.health <= 0 ? '(DEFEATED!)' : ''}</label>
           <div className="bar health-bar">
