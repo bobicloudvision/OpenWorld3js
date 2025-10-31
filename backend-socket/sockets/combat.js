@@ -67,19 +67,29 @@ function startGlobalCombatTick(io) {
           
           // Broadcast level-ups to individual players
           Object.entries(playerResults).forEach(([playerId, result]) => {
-            if (result.leveledUp) {
-              const playerSockets = Object.entries(io.sockets.sockets)
-                .filter(([_, s]) => getPlayerIdBySocket(s.id) === Number(playerId))
-                .map(([_, s]) => s);
-              
-              playerSockets.forEach(s => {
-                s.emit('hero:level-up', {
-                  oldLevel: result.oldLevel,
-                  newLevel: result.newLevel,
-                  newStats: result.newStats
+            const playerSockets = Object.entries(io.sockets.sockets)
+              .filter(([_, s]) => getPlayerIdBySocket(s.id) === Number(playerId))
+              .map(([_, s]) => s);
+            
+            playerSockets.forEach(s => {
+              // Emit player level-up (account-wide)
+              if (result.playerLeveledUp) {
+                s.emit('player:level-up', {
+                  oldLevel: result.playerOldLevel,
+                  newLevel: result.playerNewLevel,
+                  experienceGained: result.experienceGained
                 });
-              });
-            }
+              }
+              
+              // Emit hero level-up (hero-specific)
+              if (result.heroLeveledUp) {
+                s.emit('hero:level-up', {
+                  oldLevel: result.heroOldLevel,
+                  newLevel: result.heroNewLevel,
+                  experienceGained: result.experienceGained
+                });
+              }
+            });
           });
           
           // Remove from active combats
@@ -396,19 +406,29 @@ export function registerCombatHandlers(socket, io) {
         
         // Broadcast level-ups to individual players
         Object.entries(playerResults).forEach(([playerId, result]) => {
-          if (result.leveledUp) {
-            const playerSockets = Object.entries(io.sockets.sockets)
-              .filter(([_, s]) => getPlayerIdBySocket(s.id) === Number(playerId))
-              .map(([_, s]) => s);
-            
-            playerSockets.forEach(s => {
-              s.emit('hero:level-up', {
-                oldLevel: result.oldLevel,
-                newLevel: result.newLevel,
+          const playerSockets = Object.entries(io.sockets.sockets)
+            .filter(([_, s]) => getPlayerIdBySocket(s.id) === Number(playerId))
+            .map(([_, s]) => s);
+          
+          playerSockets.forEach(s => {
+            // Emit player level-up (account-wide)
+            if (result.playerLeveledUp) {
+              s.emit('player:level-up', {
+                oldLevel: result.playerOldLevel,
+                newLevel: result.playerNewLevel,
                 experienceGained: result.experienceGained
               });
-            });
-          }
+            }
+            
+            // Emit hero level-up (hero-specific)
+            if (result.heroLeveledUp) {
+              s.emit('hero:level-up', {
+                oldLevel: result.heroOldLevel,
+                newLevel: result.heroNewLevel,
+                experienceGained: result.experienceGained
+              });
+            }
+          });
         });
       }
       console.log('Spell cast result:', result);
