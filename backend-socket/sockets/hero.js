@@ -2,6 +2,7 @@ import { getPlayerIdBySocket } from '../services/sessionService.js';
 import { getPlayerHeroes, getAvailableHeroesToBuy, getHeroById, purchaseHero } from '../services/heroService.js';
 import { setActiveHero, getPlayerById } from '../services/playerService.js';
 import { updatePlayerHeroInGameSession } from '../services/multiplayerService.js';
+import { getPlayerCombatState } from '../services/combatService.js';
 
 export function registerHeroHandlers(socket, io) {
   /**
@@ -56,6 +57,13 @@ export function registerHeroHandlers(socket, io) {
     const playerId = getPlayerIdBySocket(socket.id);
     if (!playerId) {
       socket.emit('hero:set:active:error', { message: 'Not authenticated' });
+      return;
+    }
+    
+    // Check if player is in active combat
+    const combatState = getPlayerCombatState(playerId);
+    if (combatState && combatState.combatInstanceId) {
+      socket.emit('hero:set:active:error', { message: 'Cannot change hero during active combat' });
       return;
     }
     

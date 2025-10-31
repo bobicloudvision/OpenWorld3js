@@ -3,7 +3,8 @@ import React from 'react'
 export default function HeroSwitcherModal({ 
   player, 
   playerHeroes, 
-  loading, 
+  loading,
+  error, 
   onSelectHero, 
   onClose 
 }) {
@@ -78,6 +79,25 @@ export default function HeroSwitcherModal({
             ✕
           </button>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.15)',
+            border: '2px solid rgba(239, 68, 68, 0.5)',
+            borderRadius: '8px',
+            padding: '12px',
+            marginBottom: '15px',
+            color: '#fca5a5',
+            fontSize: '0.95em',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <span style={{ fontSize: '1.2em' }}>⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
 
         {/* Content */}
         {playerHeroes.length === 0 ? (

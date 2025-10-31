@@ -12,6 +12,7 @@ import GameManager from './GameManager'
 import Chat from './Chat'
 import Leaderboard from './Leaderboard'
 import HeroSwitcherModal from './HeroSwitcherModal'
+import HeroInfoPanel from './HeroInfoPanel'
 import { useHeroSwitcher } from '../hooks/useHeroSwitcher'
 
 export default function LobbyScene({ 
@@ -29,12 +30,14 @@ export default function LobbyScene({
   const [inCombat, setInCombat] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [showHeroSwitcher, setShowHeroSwitcher] = useState(false)
+  const [switchInitiated, setSwitchInitiated] = useState(false)
   
   // Use hero switcher hook
   const { 
     playerHeroes, 
     loading: switchingHero, 
     error: heroSwitchError,
+    setError: setHeroSwitchError,
     fetchHeroes, 
     switchHero 
   } = useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate)
@@ -78,22 +81,27 @@ export default function LobbyScene({
   // Fetch player heroes when hero switcher is opened
   useEffect(() => {
     if (!socket || !showHeroSwitcher) return
+    // Clear any previous errors and switch state when opening modal
+    setHeroSwitchError('')
+    setSwitchInitiated(false)
     fetchHeroes()
-  }, [socket, showHeroSwitcher, fetchHeroes])
+  }, [socket, showHeroSwitcher, fetchHeroes, setHeroSwitchError])
 
-  // Show error alert when hero switch fails
+  // Close modal on successful hero switch
   useEffect(() => {
-    if (heroSwitchError) {
-      alert(`Failed to switch hero: ${heroSwitchError}`)
+    if (switchInitiated && !heroSwitchError && !switchingHero && showHeroSwitcher) {
+      // Small delay to let user see the success state
+      const timer = setTimeout(() => {
+        setShowHeroSwitcher(false)
+        setSwitchInitiated(false)
+      }, 500)
+      return () => clearTimeout(timer)
     }
-  }, [heroSwitchError])
+  }, [switchInitiated, heroSwitchError, switchingHero, showHeroSwitcher])
 
   const handleSwitchHero = (playerHeroId) => {
-    const success = switchHero(playerHeroId)
-    if (success) {
-      // Close modal after initiating switch
-      setShowHeroSwitcher(false)
-    }
+    setSwitchInitiated(true)
+    switchHero(playerHeroId)
   }
 
   return (
@@ -165,55 +173,14 @@ export default function LobbyScene({
           player={player}
           playerHeroes={playerHeroes}
           loading={switchingHero}
+          error={heroSwitchError}
           onSelectHero={handleSwitchHero}
           onClose={() => setShowHeroSwitcher(false)}
         />
       )}
 
       {/* Hero Info */}
-      <div style={{
-        position: 'fixed',
-        top: 80,
-        left: 20,
-        zIndex: 1000,
-        background: 'rgba(17, 24, 39, 0.85)',
-        padding: '15px',
-        borderRadius: '8px',
-        border: '1px solid #374151',
-        color: '#e5e7eb',
-        fontSize: '14px',
-        pointerEvents: 'auto'
-      }}>
-        <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
-          {activeHero?.heroName || 'No Hero'}
-        </div>
-        {activeHero && (
-          <>
-            <div style={{ color: '#fbbf24', fontSize: '12px' }}>
-              Level {activeHero.level || 1}
-            </div>
-            <div style={{ fontSize: '12px', marginTop: '8px' }}>
-              <span style={{ color: '#9ca3af' }}>Health: </span>
-              <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
-                {activeHero.health || 0}
-              </span>
-              <span style={{ color: '#9ca3af' }}> / </span>
-              <span style={{ color: '#ef4444' }}>{activeHero.maxHealth || 0}</span>
-            </div>
-            <div style={{ fontSize: '12px' }}>
-              <span style={{ color: '#9ca3af' }}>Power: </span>
-              <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>
-                {activeHero.power || 0}
-              </span>
-              <span style={{ color: '#9ca3af' }}> / </span>
-              <span style={{ color: '#3b82f6' }}>{activeHero.maxPower || 0}</span>
-            </div>
-            <div style={{ color: '#9ca3af', fontSize: '12px', marginTop: '4px' }}>
-              ATK: {activeHero.attack || 0} | DEF: {activeHero.defense || 0}
-            </div>
-          </>
-        )}
-      </div>
+      <HeroInfoPanel activeHero={activeHero} />
 
       <Chat socket={socket} currentPlayerId={player?.id} />
       
