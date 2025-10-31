@@ -87,6 +87,7 @@ export default function GameplayScene({
                 heroModelScale={activeHero?.modelScale}
                 heroModelRotation={activeHero?.modelRotation}
                 socket={socket}
+                playerName={player?.name}
               />
               
             </Ecctrl>

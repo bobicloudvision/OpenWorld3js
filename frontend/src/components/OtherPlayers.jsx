@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useAvatarAnimations } from '../hooks/useAvatarAnimations'
 import * as THREE from 'three'
+import PlayerNameBadge from './PlayerNameBadge'
 
 /**
  * Component to render other players in the multiplayer game
@@ -95,6 +96,9 @@ function OtherPlayer({ otherPlayer }) {
   const modelScale = otherPlayer.heroModelScale ?? 1
   const modelRotationOffset = otherPlayer.heroModelRotation || [0, 0, 0]
   
+  // Get player name for the badge
+  const playerName = otherPlayer.name || `Player ${otherPlayer.socketId?.substring(0, 6) || 'Unknown'}`
+  
   // Render even if clone is not ready - prevents disappearing during model loading
   // The clone will be added when available (react-three-fiber handles this)
   return (
@@ -113,6 +117,13 @@ function OtherPlayer({ otherPlayer }) {
           />
         )}
       </group>
+      
+      {/* Player name badge - billboard style (always faces camera) */}
+      <PlayerNameBadge 
+        playerName={playerName} 
+        height={2.2}
+        modelScale={modelScale}
+      />
     </group>
   )
 }

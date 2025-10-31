@@ -5,8 +5,9 @@ import * as THREE from 'three'
  
 import { useAvatarAnimations } from '../hooks/useAvatarAnimations'
 import useGameStore from '../stores/gameStore'
+import PlayerNameBadge from './PlayerNameBadge'
 
-export default function Player({ onPositionChange, heroModel, heroModelScale, heroModelRotation, socket }) {
+export default function Player({ onPositionChange, heroModel, heroModelScale, heroModelRotation, socket, playerName }) {
   const group = useRef()
   
   // Use shared avatar animations hook with dynamic model path
@@ -165,6 +166,15 @@ export default function Player({ onPositionChange, heroModel, heroModelScale, he
         receiveShadow
         scale={modelScale} 
       />
+      
+      {/* Player name badge */}
+      {playerName && (
+        <PlayerNameBadge 
+          playerName={playerName} 
+          height={2.2}
+          modelScale={modelScale}
+        />
+      )}
     </group>
   )
 }
