@@ -58,6 +58,7 @@ export default function GameplayScene({
           <KeyboardControls map={keyboardMap}>
             <Ecctrl 
               maxVelLimit={6}
+              camFollowDistance={4}
             >
               <Player 
                 onPositionChange={function(position) {
@@ -71,7 +72,7 @@ export default function GameplayScene({
             </Ecctrl> 
             
             <Shapes />
-            <Enemies playerPositionRef={playerPositionRef} />
+            {/* <Enemies playerPositionRef={playerPositionRef} /> */} 
             <CombatController playerPositionRef={playerPositionRef} />
             <ClickToCast playerPositionRef={playerPositionRef} />
             <MagicEffectsManager />
