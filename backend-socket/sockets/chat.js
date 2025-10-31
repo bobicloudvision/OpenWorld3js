@@ -1,5 +1,6 @@
 import { getPlayerIdBySocket } from '../services/sessionService.js';
 import { getPlayerById } from '../services/playerService.js';
+import { addChatMessage, getChatHistory } from '../services/chatService.js';
 
 /**
  * Register chat socket handlers
@@ -18,6 +19,12 @@ export function registerChatHandlers(socket, io) {
   if (!player) {
     return;
   }
+
+  // Handle request for chat history
+  socket.on('chat:history:request', () => {
+    const history = getChatHistory();
+    socket.emit('chat:history', history);
+  });
 
   // Handle incoming chat messages
   socket.on('chat:message', (data) => {
@@ -38,6 +45,9 @@ export function registerChatHandlers(socket, io) {
       message: trimmedMessage,
       timestamp: new Date().toISOString(),
     };
+
+    // Store message in history
+    addChatMessage(chatMessage);
 
     // Broadcast message to all connected clients (including sender)
     io.emit('chat:message', chatMessage);

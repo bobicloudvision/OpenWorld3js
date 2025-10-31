@@ -13,7 +13,25 @@ export default function Chat({ socket, currentPlayerId }) {
     if (!socket) return
 
     const handleChatMessage = (data) => {
-      setMessages((prev) => [...prev, data])
+      setMessages((prev) => {
+        // Avoid duplicates by checking if message already exists (by timestamp and playerId)
+        const exists = prev.some(
+          (msg) => msg.timestamp === data.timestamp && msg.playerId === data.playerId && msg.message === data.message
+        )
+        if (exists) return prev
+        return [...prev, data]
+      })
+    }
+
+    const handleChatHistory = (history) => {
+      // Load chat history when received
+      if (Array.isArray(history) && history.length > 0) {
+        setMessages(history)
+        // Scroll to bottom after loading history
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+        }, 100)
+      }
     }
 
     const handleChatError = (error) => {
@@ -22,18 +40,31 @@ export default function Chat({ socket, currentPlayerId }) {
     }
 
     socket.on('chat:message', handleChatMessage)
+    socket.on('chat:history', handleChatHistory)
     socket.on('chat:error', handleChatError)
 
+    // Request chat history when socket is ready (with small delay to ensure handlers are registered)
+    const requestHistory = () => {
+      socket.emit('chat:history:request')
+    }
+    
+    // Small delay to ensure chat handlers are registered after authentication
+    const timeoutId = setTimeout(requestHistory, 100)
+
     return () => {
+      clearTimeout(timeoutId)
       socket.off('chat:message', handleChatMessage)
+      socket.off('chat:history', handleChatHistory)
       socket.off('chat:error', handleChatError)
     }
   }, [socket])
 
-  // Auto-scroll to bottom when new messages arrive
+  // Auto-scroll to bottom when new messages arrive (but not on initial load)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages.length])
 
   const handleSendMessage = (e) => {
     e.preventDefault()
