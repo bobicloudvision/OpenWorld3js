@@ -272,8 +272,14 @@ export default function App() {
     console.log('[app] 🚫 Player declined to rejoin combat');
     
     if (socketRef.current && activeCombatInfo) {
-      // Leave the combat (will mark as abandoned)
-      socketRef.current.emit('combat:leave');
+      // Decline combat rejoin (marks as abandoned)
+      socketRef.current.emit('combat:decline-rejoin', (response) => {
+        if (response?.ok) {
+          console.log('[app] ✅ Combat declined successfully:', response.message);
+        } else {
+          console.error('[app] ❌ Failed to decline combat:', response?.error);
+        }
+      });
     }
     
     setShowCombatRejoin(false);

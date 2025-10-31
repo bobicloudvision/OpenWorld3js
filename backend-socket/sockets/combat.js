@@ -134,7 +134,7 @@ export function registerCombatHandlers(socket, io) {
   console.log(`[combat] 🔧 Registering combat handlers for socket ${socket.id}, player ${playerId}`);
 
   /**
-   * Check if player has active combat (for reconnect/refresh) 
+   * Check if player has active combat (for reconnect/refresh)
    */
   socket.on('combat:check-active', (ack) => {
     try {
@@ -161,6 +161,47 @@ export function registerCombatHandlers(socket, io) {
       }
     } catch (error) {
       console.error('[combat] Error checking active combat:', error);
+      if (typeof ack === 'function') {
+        ack({ ok: false, error: error.message });
+      }
+    }
+  });
+
+  /**
+   * Decline/Abandon active combat (when player chooses not to rejoin)
+   */
+  socket.on('combat:decline-rejoin', (ack) => {
+    try {
+      const activeCombat = getActiveCombatForPlayer(playerId);
+      
+      if (!activeCombat) {
+        console.log(`[combat] Player ${playerId} tried to decline but has no active combat`);
+        if (typeof ack === 'function') {
+          ack({ ok: true, message: 'No active combat to decline' });
+        }
+        return;
+      }
+
+      const combatInstanceId = activeCombat.combatInstanceId;
+      console.log(`[combat] 🚫 Player ${playerId} declined to rejoin combat ${combatInstanceId}`);
+      
+      // Mark player as disconnected (starts/continues abandon timer)
+      markPlayerDisconnected(playerId);
+      
+      // Mark player as leaving combat (enables regeneration)
+      leaveCombat(playerId);
+      
+      // Remove from socket combat tracking
+      socketCombatInstances.delete(socket.id);
+      
+      if (typeof ack === 'function') {
+        ack({ 
+          ok: true, 
+          message: 'Combat declined, marked as disconnected' 
+        });
+      }
+    } catch (error) {
+      console.error('[combat] Error declining combat:', error);
       if (typeof ack === 'function') {
         ack({ ok: false, error: error.message });
       }
