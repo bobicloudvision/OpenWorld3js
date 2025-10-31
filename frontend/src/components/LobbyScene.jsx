@@ -70,7 +70,7 @@ export default function LobbyScene({
           position: 'fixed',
           top: 20,
           right: 200,
-          zIndex: 50,
+          zIndex: 1000,
           background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
           border: '2px solid #fbbf24',
           borderRadius: '8px',
@@ -80,7 +80,8 @@ export default function LobbyScene({
           fontWeight: 'bold',
           cursor: 'pointer',
           boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
-          transition: 'transform 0.2s'
+          transition: 'transform 0.2s',
+          pointerEvents: 'auto'
         }}
         onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
         onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
@@ -102,13 +103,14 @@ export default function LobbyScene({
         position: 'fixed',
         top: 80,
         left: 20,
-        zIndex: 50,
+        zIndex: 1000,
         background: 'rgba(17, 24, 39, 0.85)',
         padding: '15px',
         borderRadius: '8px',
         border: '1px solid #374151',
         color: '#e5e7eb',
-        fontSize: '14px'
+        fontSize: '14px',
+        pointerEvents: 'auto'
       }}>
         <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>
           {activeHero?.heroName || 'No Hero'}
@@ -146,6 +148,7 @@ export default function LobbyScene({
       <EcctrlJoystick />
       <Canvas 
         shadows
+        style={{ pointerEvents: 'auto' }}
         onClick={(event) => {
           if (event.target === event.currentTarget) {
             console.log('Canvas click detected (empty area)')
