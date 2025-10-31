@@ -257,24 +257,76 @@ export default function Leaderboard({ socket, player, onClose }) {
                 <thead>
                   <tr style={{ borderBottom: '2px solid #334155' }}>
                     <th style={tableHeaderStyle}>Rank</th>
+                    <th style={tableHeaderStyle}>Owner</th>
                     <th style={tableHeaderStyle}>Hero</th>
-                    <th style={tableHeaderStyle}>Players</th>
+                    <th style={tableHeaderStyle}>Level</th>
+                    <th style={tableHeaderStyle}>HP</th>
                     <th style={tableHeaderStyle}>Wins</th>
                     <th style={tableHeaderStyle}>Losses</th>
                     <th style={tableHeaderStyle}>Win Rate</th>
                     <th style={tableHeaderStyle}>Matches</th>
-                    <th style={tableHeaderStyle}>Total Damage</th>
+                    <th style={tableHeaderStyle}>Damage</th>
                   </tr>
                 </thead>
                 <tbody>
                   {heroLeaderboardData.map((entry) => (
-                    <tr key={entry.heroId} style={{ borderBottom: '1px solid #334155' }}>
-                      <td style={tableCellStyle}>#{entry.rank}</td>
-                      <td style={{...tableCellStyle, fontWeight: 'bold', color: '#e2e8f0'}}>
-                        {entry.heroName}
+                    <tr 
+                      key={entry.playerHeroId} 
+                      style={{ 
+                        borderBottom: '1px solid #334155',
+                        background: entry.playerId === player?.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
+                      }}
+                    >
+                      <td style={tableCellStyle}>
+                        <span style={{
+                          ...getRankStyle(entry.rank),
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          fontWeight: 'bold',
+                          fontSize: '12px'
+                        }}>
+                          #{entry.rank}
+                        </span>
                       </td>
-                      <td style={tableCellStyle}>{entry.uniquePlayers}</td>
-                      <td style={{...tableCellStyle, color: '#10b981'}}>{entry.wins}</td>
+                      <td style={tableCellStyle}>
+                        <div style={{ color: '#94a3b8', fontSize: '13px' }}>
+                          {entry.playerName}
+                          {entry.playerId === player?.id && (
+                            <span style={{ color: '#3b82f6', marginLeft: '4px' }}>(You)</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{...tableCellStyle, fontWeight: 'bold', color: '#e2e8f0'}}>
+                        {entry.displayName !== entry.heroName ? (
+                          <div>
+                            <div>{entry.displayName}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>({entry.heroName})</div>
+                          </div>
+                        ) : (
+                          entry.heroName
+                        )}
+                      </td>
+                      <td style={tableCellStyle}>
+                        <span style={{
+                          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          color: '#000',
+                          fontWeight: 'bold',
+                          fontSize: '12px'
+                        }}>
+                          {entry.heroLevel}
+                        </span>
+                      </td>
+                      <td style={tableCellStyle}>
+                        <span style={{ 
+                          color: entry.currentHealth <= 0 ? '#ef4444' : '#10b981',
+                          fontSize: '13px'
+                        }}>
+                          {entry.currentHealth}/{entry.maxHealth}
+                        </span>
+                      </td>
+                      <td style={{...tableCellStyle, color: '#10b981', fontWeight: 'bold'}}>{entry.wins}</td>
                       <td style={{...tableCellStyle, color: '#ef4444'}}>{entry.losses}</td>
                       <td style={tableCellStyle}>
                         <span style={{

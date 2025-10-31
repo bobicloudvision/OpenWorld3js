@@ -65,7 +65,8 @@ export function initializeCombatInstance(combatType, participants, zone, zoneId 
           power: activeHero.power,
           maxPower: activeHero.maxPower,
           attack: activeHero.attack,
-          defense: activeHero.defense
+          defense: activeHero.defense,
+          playerHeroId: activeHero.playerHeroId // Track hero ID for combat history
         };
         initializePlayerCombatState(playerId, combatInstanceId, initialStats);
       } else {
@@ -429,7 +430,8 @@ export function initializePlayerCombatState(playerId, combatInstanceId, initialS
     defense: initialStats.defense || 5,
     position: initialStats.position || [0, 0, 0],
     spellCooldowns: {},
-    statusEffects: []
+    statusEffects: [],
+    playerHeroId: initialStats.playerHeroId || null // Track hero ID for combat history
   });
 }
 
@@ -762,7 +764,7 @@ export function endCombatInstance(combatInstanceId, result) {
         maxPower: playerState?.maxPower || 100,
         level: playerResult.newLevel || 1,
         oldLevel: playerResult.oldLevel || 1,
-        activeHeroId: null, // TODO: Track hero ID
+        activeHeroId: playerState?.playerHeroId || null,
         damageDealt: 0, // TODO: Track in combat state
         damageTaken: 0, // TODO: Track in combat state
         healingDone: 0, // TODO: Track in combat state

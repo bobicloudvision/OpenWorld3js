@@ -147,7 +147,7 @@ export function getPlayerStats(playerId) {
 }
 
 /**
- * Get hero leaderboard (most played/successful heroes)
+ * Get hero leaderboard (individual player heroes)
  * @param {number} limit - Maximum number of heroes to return
  * @returns {Array} Array of hero stats
  */
@@ -157,9 +157,13 @@ export function getHeroLeaderboard(limit = 50) {
   try {
     const query = db.prepare(`
       SELECT 
+        ph.id as playerHeroId,
+        ph.player_id as playerId,
+        p.name as playerName,
         h.id as heroId,
         h.name as heroName,
-        COUNT(DISTINCT cmp.player_id) as uniquePlayers,
+        ph.level as heroLevel,
+        COALESCE(ph.nickname, h.name) as displayName,
         COUNT(cmp.id) as totalMatches,
         SUM(CASE WHEN cmp.result = 'won' THEN 1 ELSE 0 END) as wins,
         SUM(CASE WHEN cmp.result = 'lost' THEN 1 ELSE 0 END) as losses,
@@ -169,13 +173,16 @@ export function getHeroLeaderboard(limit = 50) {
           1
         ) as winRate,
         SUM(cmp.damage_dealt) as totalDamage,
-        SUM(cmp.kills) as totalKills
-      FROM heroes h
-      INNER JOIN player_heroes ph ON h.id = ph.hero_id
+        SUM(cmp.kills) as totalKills,
+        ph.health as currentHealth,
+        ph.max_health as maxHealth
+      FROM player_heroes ph
+      INNER JOIN heroes h ON ph.hero_id = h.id
+      INNER JOIN players p ON ph.player_id = p.id
       LEFT JOIN combat_match_players cmp ON ph.id = cmp.player_hero_id
-      GROUP BY h.id, h.name
+      GROUP BY ph.id, ph.player_id, p.name, h.id, h.name, ph.level, ph.nickname, ph.health, ph.max_health
       HAVING COUNT(cmp.id) > 0
-      ORDER BY wins DESC, winRate DESC
+      ORDER BY wins DESC, winRate DESC, totalDamage DESC
       LIMIT ?
     `);
     
