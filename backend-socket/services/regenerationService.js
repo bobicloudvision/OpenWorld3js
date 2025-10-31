@@ -213,16 +213,16 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
       SELECT 
         id,
         player_id,
-        health,
-        max_health,
-        power,
-        max_power
+        COALESCE(health, max_health, 100) as health,
+        COALESCE(max_health, 100) as max_health,
+        COALESCE(power, max_power, 100) as power,
+        COALESCE(max_power, 100) as max_power
       FROM player_heroes
     `);
     const allHeroes = allHeroesStmt.all();
-    // console.log(`[regen-service] Total heroes in DB: ${allHeroes.length}`);
+    console.log(`[regen-service] Total heroes in DB: ${allHeroes.length}`);
     if (allHeroes.length > 0) {
-      // console.log(`[regen-service] All heroes:`, allHeroes.map(h => `Player${h.player_id}(HP:${h.health}/${h.max_health}, Power:${h.power}/${h.max_power})`).join(', '));
+      console.log(`[regen-service] All heroes:`, allHeroes.map(h => `Player${h.player_id}(HP:${h.health}/${h.max_health}, Power:${h.power}/${h.max_power})`).join(', '));
     }
     
     // Get all player heroes that are not at full health or power
@@ -244,9 +244,9 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
     
     const heroes = stmt.all();
     
-    // console.log(`[regen-service] Found ${heroes.length} heroes needing regeneration (health < max OR power < max)`);
+    console.log(`[regen-service] Found ${heroes.length} heroes needing regeneration (health < max OR power < max)`);
     if (heroes.length > 0) {
-      // console.log(`[regen-service] Heroes needing regen:`, heroes.map(h => `Player${h.player_id}(${h.health}/${h.max_health} HP, ${h.power}/${h.max_power} Power)`).join(', '));
+      console.log(`[regen-service] Heroes needing regen:`, heroes.map(h => `Player${h.player_id}(${h.health}/${h.max_health} HP, ${h.power}/${h.max_power} Power)`).join(', '));
     }
     
     if (heroes.length === 0) {
@@ -269,13 +269,13 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
     const prioritizedHeroes = heroes.filter(h => prioritizedSet.has(h.player_id));
     const remainingHeroes = heroes.filter(h => !prioritizedSet.has(h.player_id));
     
-    // console.log(`[regen-service] Prioritizing ${prioritizedHeroes.length} online heroes, ${remainingHeroes.length} offline heroes`);
+    console.log(`[regen-service] Prioritizing ${prioritizedHeroes.length} online heroes, ${remainingHeroes.length} offline heroes`);
 
     const processHero = (hero) => {
       // Check if this player/hero is in active combat
       const inCombat = isInCombat(hero.player_id);
       if (inCombat) {
-        // console.log(`[regen-service] Skipping Player${hero.player_id} - in combat`);
+        console.log(`[regen-service] Skipping Player${hero.player_id} - in combat`);
         return; // Skip heroes in combat
       }
       
@@ -319,7 +319,7 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
         totalHealthGained += healthGained;
         totalPowerGained += powerGained;
         
-        // console.log(`[regen-service] ✅ Player${hero.player_id}: +${healthGained} HP (${currentHealth}->${newHealth}/${maxHealth}), +${powerGained} Power (${currentPower}->${newPower}/${maxPower})${isResting ? ' [RESTING]' : ''}`);
+        console.log(`[regen-service] ✅ Player${hero.player_id}: +${healthGained} HP (${currentHealth}->${newHealth}/${maxHealth}), +${powerGained} Power (${currentPower}->${newPower}/${maxPower})${isResting ? ' [RESTING]' : ''}`);
         
         // Track this player's update
         updatedPlayers.push({

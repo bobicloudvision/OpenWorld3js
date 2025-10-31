@@ -213,7 +213,15 @@ export function purchaseHero(playerId, heroId) {
   const transaction = db.transaction(() => {
     // Get hero details and price
     const heroStmt = db.prepare(`
-      SELECT id, COALESCE(price, 1000) as price
+      SELECT 
+        id, 
+        COALESCE(price, 1000) as price,
+        COALESCE(health, 100) as health,
+        COALESCE(max_health, 100) as max_health,
+        COALESCE(power, 100) as power,
+        COALESCE(max_power, 100) as max_power,
+        COALESCE(attack, 10) as attack,
+        COALESCE(defense, 5) as defense
       FROM heroes
       WHERE id = ?
     `);
@@ -259,12 +267,25 @@ export function purchaseHero(playerId, heroId) {
     `);
     updateCurrencyStmt.run(heroPrice, playerId);
     
-    // Create player_hero entry
+    // Create player_hero entry with initialized stats from base hero
     const insertPlayerHeroStmt = db.prepare(`
-      INSERT INTO player_heroes (player_id, hero_id, level, experience, acquired_at)
-      VALUES (?, ?, 1, 0, CURRENT_TIMESTAMP)
+      INSERT INTO player_heroes (
+        player_id, hero_id, level, experience, 
+        health, max_health, power, max_power, attack, defense,
+        acquired_at
+      )
+      VALUES (?, ?, 1, 0, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     `);
-    const result = insertPlayerHeroStmt.run(playerId, heroId);
+    const result = insertPlayerHeroStmt.run(
+      playerId, 
+      heroId,
+      hero.health,
+      hero.max_health,
+      hero.power,
+      hero.max_power,
+      hero.attack,
+      hero.defense
+    );
     const playerHeroId = result.lastInsertRowid;
     
     return { success: true, playerHeroId, price: heroPrice };
