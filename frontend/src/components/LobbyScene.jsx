@@ -10,6 +10,7 @@ import { Shapes } from './Shapes'
 import HiddenElementPlaceholders from './HiddenElementPlaceholders'
 import GameManager from './GameManager'
 import Chat from './Chat'
+import Leaderboard from './Leaderboard'
 
 export default function LobbyScene({ 
   playerPositionRef, 
@@ -22,6 +23,7 @@ export default function LobbyScene({
 }) {
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [inCombat, setInCombat] = useState(false)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
 
   // Listen for combat state changes
   useEffect(() => {
@@ -61,6 +63,39 @@ export default function LobbyScene({
 
   return (
     <>
+      {/* Leaderboard Button */}
+      <button
+        onClick={() => setShowLeaderboard(true)}
+        style={{
+          position: 'fixed',
+          top: 20,
+          right: 200,
+          zIndex: 50,
+          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+          border: '2px solid #fbbf24',
+          borderRadius: '8px',
+          padding: '10px 16px',
+          color: '#000',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
+          transition: 'transform 0.2s'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        🏆 Leaderboard
+      </button>
+
+      {/* Leaderboard Modal */}
+      {showLeaderboard && (
+        <Leaderboard 
+          socket={socket} 
+          player={player}
+          onClose={() => setShowLeaderboard(false)} 
+        />
+      )}
 
       {/* Hero Info */}
       <div style={{
