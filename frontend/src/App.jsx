@@ -191,6 +191,80 @@ export default function App() {
       setSocketReady(false);
     });
 
+    // Handle real-time hero stats updates (regeneration)
+    socket.on('regen:tick', (data) => {
+      const { newHealth, newPower, maxHealth, maxPower } = data;
+      
+      // Update the active hero's stats in real-time
+      setPlayerHeroes(prevHeroes => 
+        prevHeroes.map(hero => {
+          // Update only the active hero
+          if (hero.playerHeroId === player?.active_hero_id) {
+            return {
+              ...hero,
+              health: newHealth,
+              power: newPower,
+              maxHealth: maxHealth || hero.maxHealth,
+              maxPower: maxPower || hero.maxPower
+            };
+          }
+          return hero;
+        })
+      );
+    });
+
+    // Handle consumable usage (instant)
+    socket.on('consumable:used', (data) => {
+      const { newHealth, newPower } = data;
+      
+      setPlayerHeroes(prevHeroes => 
+        prevHeroes.map(hero => {
+          if (hero.playerHeroId === player?.active_hero_id) {
+            return {
+              ...hero,
+              health: newHealth,
+              power: newPower
+            };
+          }
+          return hero;
+        })
+      );
+    });
+
+    // Handle consumable channeling completed
+    socket.on('consumable:channeling-completed', (data) => {
+      const { newHealth, newPower } = data;
+      
+      setPlayerHeroes(prevHeroes => 
+        prevHeroes.map(hero => {
+          if (hero.playerHeroId === player?.active_hero_id) {
+            return {
+              ...hero,
+              health: newHealth,
+              power: newPower
+            };
+          }
+          return hero;
+        })
+      );
+    });
+
+    // Handle hero level-up
+    socket.on('hero:level-up', (data) => {
+      console.log('[app] 🎉 Hero leveled up!', data);
+      
+      // Refresh hero data to get updated stats
+      socket.emit('get:player:heroes');
+    });
+
+    // Handle player level-up
+    socket.on('player:level-up', (data) => {
+      console.log('[app] 🎉 Player leveled up!', data);
+      
+      // Refresh player data
+      socket.emit('get:player');
+    });
+
     // Handle combat errors
     socket.on('combat:error', (error) => {
       console.error('[app] Combat error:', error);
@@ -241,6 +315,11 @@ export default function App() {
     return () => {
       socket.off('combat:error');
       socket.off('combat:ended');
+      socket.off('regen:tick');
+      socket.off('consumable:used');
+      socket.off('consumable:channeling-completed');
+      socket.off('hero:level-up');
+      socket.off('player:level-up');
       socket.disconnect();
       socketRef.current = null;
     };

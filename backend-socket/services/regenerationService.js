@@ -11,16 +11,19 @@ import { getDb } from './db.js';
 // Track player regeneration state
 const playerRegenState = new Map(); // playerId -> { lastCombat, lastRegen, isResting }
 
-// Regeneration constants (WoW-inspired)
+// Regeneration constants (Time-based, not tick-based)
+// Full health recovery = 5 minutes = 300 seconds
+// Health per second = maxHealth / 300 seconds
+// Check every 5 seconds to apply regen
 const REGEN_CONFIG = {
-  HEALTH_REGEN_INTERVAL: 2000, // Regen every 2 seconds
-  HEALTH_REGEN_PERCENT: 0.05, // 5% of max health per tick
-  POWER_REGEN_INTERVAL: 2000, // Regen every 2 seconds
-  POWER_REGEN_PERCENT: 0.03, // 3% of max power per tick
-  OUT_OF_COMBAT_DELAY: 5000, // 5 seconds after combat to start regen
-  RESTING_MULTIPLIER: 2, // 2x regen when resting
-  MIN_HEALTH_REGEN: 5, // Minimum HP regen per tick
-  MIN_POWER_REGEN: 3 // Minimum power regen per tick
+  HEALTH_REGEN_INTERVAL: 5000, // Check every 5 seconds
+  HEALTH_REGEN_TIME: 300, // Seconds to full health (5 minutes)
+  POWER_REGEN_INTERVAL: 5000, // Check every 5 seconds  
+  POWER_REGEN_TIME: 300, // Seconds to full power (5 minutes)
+  OUT_OF_COMBAT_DELAY: 10000, // 10 seconds after combat to start regen
+  RESTING_MULTIPLIER: 2, // 2x regen when resting (2.5 min when resting)
+  MIN_HEALTH_REGEN: 1, // Minimum HP regen per tick
+  MIN_POWER_REGEN: 1 // Minimum power regen per tick
 };
 
 /**
@@ -28,10 +31,24 @@ const REGEN_CONFIG = {
  * @param {number} playerId - Player ID
  */
 export function enterCombat(playerId) {
-  const state = playerRegenState.get(playerId) || {};
-  state.lastCombat = Date.now();
-  state.isResting = false; // Stop resting when combat starts
-  playerRegenState.set(playerId, state);
+  const db = getDb();
+  const now = new Date().toISOString();
+  
+  try {
+    db.prepare(`
+      UPDATE player_heroes
+      SET last_combat_at = ?, is_resting = 0
+      WHERE player_id = ?
+    `).run(now, playerId);
+    
+    // Also update memory state for quick access
+    const state = playerRegenState.get(playerId) || {};
+    state.lastCombat = Date.now();
+    state.isResting = false;
+    playerRegenState.set(playerId, state);
+  } catch (error) {
+    console.error('[regeneration] Error entering combat:', error);
+  }
 }
 
 /**
@@ -39,9 +56,23 @@ export function enterCombat(playerId) {
  * @param {number} playerId - Player ID
  */
 export function leaveCombat(playerId) {
-  const state = playerRegenState.get(playerId) || {};
-  state.lastCombat = Date.now();
-  playerRegenState.set(playerId, state);
+  const db = getDb();
+  const now = new Date().toISOString();
+  
+  try {
+    db.prepare(`
+      UPDATE player_heroes
+      SET last_combat_at = ?
+      WHERE player_id = ?
+    `).run(now, playerId);
+    
+    // Also update memory state
+    const state = playerRegenState.get(playerId) || {};
+    state.lastCombat = Date.now();
+    playerRegenState.set(playerId, state);
+  } catch (error) {
+    console.error('[regeneration] Error leaving combat:', error);
+  }
 }
 
 /**
@@ -50,7 +81,7 @@ export function leaveCombat(playerId) {
  * @param {boolean} resting - Is resting
  */
 export function setResting(playerId, resting) {
-  const state = playerRegenState.get(playerId) || {};
+  const db = getDb();
   
   // Can't rest in combat
   const inCombat = isInCombat(playerId);
@@ -58,10 +89,23 @@ export function setResting(playerId, resting) {
     return { success: false, error: 'Cannot rest while in combat' };
   }
   
-  state.isResting = resting;
-  playerRegenState.set(playerId, state);
-  
-  return { success: true, resting };
+  try {
+    db.prepare(`
+      UPDATE player_heroes
+      SET is_resting = ?
+      WHERE player_id = ?
+    `).run(resting ? 1 : 0, playerId);
+    
+    // Also update memory state
+    const state = playerRegenState.get(playerId) || {};
+    state.isResting = resting;
+    playerRegenState.set(playerId, state);
+    
+    return { success: true, resting };
+  } catch (error) {
+    console.error('[regeneration] Error setting resting state:', error);
+    return { success: false, error: 'Database error' };
+  }
 }
 
 /**
@@ -128,18 +172,20 @@ export function processPlayerRegeneration(playerId) {
     return null;
   }
   
-  // Calculate regen amounts
+  // Calculate regen amounts based on time elapsed
+  const secondsElapsed = (now - lastRegen) / 1000;
   const isResting = state.isResting || false;
   const multiplier = isResting ? REGEN_CONFIG.RESTING_MULTIPLIER : 1;
   
+  // HP per second = maxHealth / regenTime, then multiply by seconds elapsed
   const healthRegenAmount = Math.max(
     REGEN_CONFIG.MIN_HEALTH_REGEN,
-    Math.floor(maxHealth * REGEN_CONFIG.HEALTH_REGEN_PERCENT * multiplier)
+    Math.floor((maxHealth / REGEN_CONFIG.HEALTH_REGEN_TIME) * secondsElapsed * multiplier)
   );
   
   const powerRegenAmount = Math.max(
     REGEN_CONFIG.MIN_POWER_REGEN,
-    Math.floor(maxPower * REGEN_CONFIG.POWER_REGEN_PERCENT * multiplier)
+    Math.floor((maxPower / REGEN_CONFIG.POWER_REGEN_TIME) * secondsElapsed * multiplier)
   );
   
   const newHealth = Math.min(maxHealth, currentHealth + healthRegenAmount);
@@ -226,7 +272,7 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
     }
     
     // Get all player heroes that are not at full health or power
-    // Handle NULL max values by using defaults (100 for both)
+    // Include regeneration tracking columns
     const stmt = db.prepare(`
       SELECT 
         id,
@@ -234,7 +280,10 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
         health,
         COALESCE(max_health, 100) as max_health,
         power,
-        COALESCE(max_power, 100) as max_power
+        COALESCE(max_power, 100) as max_power,
+        last_regen_at,
+        last_combat_at,
+        is_resting
       FROM player_heroes
       WHERE health < COALESCE(max_health, 100) 
          OR power < COALESCE(max_power, 100)
@@ -260,7 +309,7 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
     
     const updateStmt = db.prepare(`
       UPDATE player_heroes
-      SET health = ?, power = ?
+      SET health = ?, power = ?, last_regen_at = ?
       WHERE id = ?
     `);
     
@@ -279,6 +328,16 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
         return; // Skip heroes in combat
       }
       
+      // Check if out of combat long enough (from database)
+      if (hero.last_combat_at) {
+        const lastCombatTime = new Date(hero.last_combat_at).getTime();
+        const timeSinceCombat = Date.now() - lastCombatTime;
+        if (timeSinceCombat < REGEN_CONFIG.OUT_OF_COMBAT_DELAY) {
+          console.log(`[regen-service] Skipping Player${hero.player_id} - too soon after combat (${Math.floor(timeSinceCombat/1000)}s)`);
+          return; // Not enough time since combat
+        }
+      }
+      
       const maxHealth = hero.max_health || 100;
       const maxPower = hero.max_power || 100;
       // If health/power is NULL, set to max (fresh hero)
@@ -290,20 +349,37 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
         return;
       }
       
-      // Check if player is resting (for online players)
-      const state = playerRegenState.get(hero.player_id) || {};
-      const isResting = state.isResting || false;
+      // Calculate time elapsed since last regen (catch-up for offline players!)
+      const now = Date.now();
+      let secondsElapsed;
+      
+      if (hero.last_regen_at) {
+        // Has regenerated before - calculate time since last regen
+        const lastRegenTime = new Date(hero.last_regen_at).getTime();
+        secondsElapsed = Math.min((now - lastRegenTime) / 1000, 600); // Cap at 10 minutes catch-up
+        
+        // If not enough time passed, skip
+        if (secondsElapsed < REGEN_CONFIG.HEALTH_REGEN_INTERVAL / 1000) {
+          return;
+        }
+      } else {
+        // First time regenerating - use the regen interval
+        secondsElapsed = REGEN_CONFIG.HEALTH_REGEN_INTERVAL / 1000;
+      }
+      
+      // Get resting state from database (prefer) or memory
+      const isResting = hero.is_resting ? true : false;
       const multiplier = isResting ? REGEN_CONFIG.RESTING_MULTIPLIER : 1;
       
-      // Calculate regen amounts
+      // Calculate regen amounts based on actual time elapsed
       const healthRegenAmount = Math.max(
         REGEN_CONFIG.MIN_HEALTH_REGEN,
-        Math.floor(maxHealth * REGEN_CONFIG.HEALTH_REGEN_PERCENT * multiplier)
+        Math.floor((maxHealth / REGEN_CONFIG.HEALTH_REGEN_TIME) * secondsElapsed * multiplier)
       );
       
       const powerRegenAmount = Math.max(
         REGEN_CONFIG.MIN_POWER_REGEN,
-        Math.floor(maxPower * REGEN_CONFIG.POWER_REGEN_PERCENT * multiplier)
+        Math.floor((maxPower / REGEN_CONFIG.POWER_REGEN_TIME) * secondsElapsed * multiplier)
       );
       
       const newHealth = Math.min(maxHealth, currentHealth + healthRegenAmount);
@@ -314,12 +390,13 @@ export function processAllHeroesRegeneration(prioritizedPlayerIds = []) {
       
       // Update database if there's any change
       if (healthGained > 0 || powerGained > 0) {
-        updateStmt.run(newHealth, newPower, hero.id);
+        const nowISO = new Date().toISOString();
+        updateStmt.run(newHealth, newPower, nowISO, hero.id);
         updated++;
         totalHealthGained += healthGained;
         totalPowerGained += powerGained;
         
-        console.log(`[regen-service] ✅ Player${hero.player_id}: +${healthGained} HP (${currentHealth}->${newHealth}/${maxHealth}), +${powerGained} Power (${currentPower}->${newPower}/${maxPower})${isResting ? ' [RESTING]' : ''}`);
+        console.log(`[regen-service] ✅ Player${hero.player_id}: +${healthGained} HP (${currentHealth}->${newHealth}/${maxHealth}), +${powerGained} Power (${currentPower}->${newPower}/${maxPower})${isResting ? ' [RESTING]' : ''} [${Math.floor(secondsElapsed)}s]`);
         
         // Track this player's update
         updatedPlayers.push({
