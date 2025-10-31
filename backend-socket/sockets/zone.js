@@ -1,5 +1,6 @@
 import * as zoneService from '../services/zoneService.js';
 import { getPlayerIdBySocket } from '../services/sessionService.js';
+import { getSocketIdByPlayerId, getPlayerInGameSession } from '../services/multiplayerService.js';
 
 /**
  * Zone Socket Handlers
@@ -103,7 +104,10 @@ export function registerZoneHandlers(socket, io) {
         await zoneService.removePlayerFromZone(playerId, currentZoneId);
         
         // Notify others in old zone
-        io.to(`zone-${currentZoneId}`).emit('player:left', { playerId });
+        io.to(`zone-${currentZoneId}`).emit('player:left', { 
+          socketId: socket.id,
+          playerId 
+        });
       }
 
       // Join new zone
@@ -119,15 +123,29 @@ export function registerZoneHandlers(socket, io) {
       // Get portals for this zone
       const portals = await zoneService.getZonePortals(zoneId);
       
-      // Get other players in zone
+      // Get other players in zone with their socket IDs
       const playersInZone = zoneService.getPlayersInZone(zoneId)
-        .filter(p => p.playerId !== playerId);
+        .filter(p => p.playerId !== playerId)
+        .map(p => {
+          const playerSocketId = getSocketIdByPlayerId(p.playerId);
+          const playerData = playerSocketId ? getPlayerInGameSession(playerSocketId) : null;
+          return playerData || {
+            socketId: null,
+            playerId: p.playerId,
+            position: p.position,
+            rotation: [0, 0, 0],
+            name: `Player ${p.playerId}`,
+          };
+        })
+        .filter(p => p.socketId !== null); // Only include players with active connections
       
       // Notify others in new zone
       socket.to(`zone-${zoneId}`).emit('player:joined', {
+        socketId: socket.id,
         playerId: player.id,
-        playerName: player.name,
+        name: player.name,
         position: spawnPosition,
+        rotation: [0, 0, 0],
         heroModel: player.heroModel || null,
         heroModelScale: player.heroModelScale || null,
         heroModelRotation: player.heroModelRotation || null
@@ -167,7 +185,10 @@ export function registerZoneHandlers(socket, io) {
         await zoneService.removePlayerFromZone(playerId, currentZoneId);
         
         // Notify others
-        io.to(`zone-${currentZoneId}`).emit('player:left', { playerId });
+        io.to(`zone-${currentZoneId}`).emit('player:left', { 
+          socketId: socket.id,
+          playerId 
+        });
         
         console.log(`[zone] Player ${playerId} left zone ${currentZoneId}`);
       }
@@ -234,7 +255,10 @@ export function registerZoneHandlers(socket, io) {
 
       // Leave old zone room
       socket.leave(`zone-${currentZoneId}`);
-      io.to(`zone-${currentZoneId}`).emit('player:left', { playerId });
+      io.to(`zone-${currentZoneId}`).emit('player:left', { 
+        socketId: socket.id,
+        playerId 
+      });
       
       // Join new zone room
       socket.join(`zone-${portal.to_zone_id}`);
@@ -244,9 +268,11 @@ export function registerZoneHandlers(socket, io) {
       
       // Notify players in new zone
       socket.to(`zone-${portal.to_zone_id}`).emit('player:joined', {
+        socketId: socket.id,
         playerId: player.id,
-        playerName: player.name,
+        name: player.name,
         position: result.position,
+        rotation: [0, 0, 0],
         heroModel: player.heroModel || null,
         heroModelScale: player.heroModelScale || null,
         heroModelRotation: player.heroModelRotation || null
@@ -324,7 +350,10 @@ export function registerZoneHandlers(socket, io) {
       
       if (currentZoneId) {
         await zoneService.removePlayerFromZone(playerId, currentZoneId);
-        io.to(`zone-${currentZoneId}`).emit('player:left', { playerId });
+        io.to(`zone-${currentZoneId}`).emit('player:left', { 
+          socketId: socket.id,
+          playerId 
+        });
         console.log(`[zone] Player ${playerId} removed from zone ${currentZoneId} (disconnect)`);
       }
     } catch (error) {

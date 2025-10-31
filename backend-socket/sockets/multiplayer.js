@@ -1,6 +1,7 @@
 import { getPlayerIdBySocket } from '../services/sessionService.js';
 import { getPlayerById } from '../services/playerService.js';
 import { getPlayerHeroes } from '../services/heroService.js';
+import { getPlayerZone } from '../services/zoneService.js';
 import {
   addPlayerToGameSession,
   removePlayerFromGameSession,
@@ -44,23 +45,26 @@ export function registerMultiplayerHandlers(socket, io) {
   };
   addPlayerToGameSession(socket.id, playerId, playerData);
 
-  // Send current list of other players to the newly connected player
-  const otherPlayers = getOtherPlayersInGameSession(socket.id);
-  socket.emit('players:joined', otherPlayers);
-
-  // Broadcast to all other players that this player joined
-  socket.broadcast.emit('player:joined', {
-    socketId: socket.id,
-    playerId,
-    ...playerData,
-    position: [0, 0, 0],
-    rotation: [0, 0, 0],
-  });
+  // NOTE: Initial player list is now sent by zone.js when player joins a zone
+  // This keeps multiplayer synchronized with zones
 
   // Handle request for current players list (for keep-alive and reconnection)
+  // Only returns players in the same zone
   socket.on('players:list:request', () => {
-    const currentOtherPlayers = getOtherPlayersInGameSession(socket.id);
-    socket.emit('players:joined', currentOtherPlayers);
+    const currentZoneId = getPlayerZone(playerId);
+    if (!currentZoneId) {
+      socket.emit('players:joined', []);
+      return;
+    }
+    
+    // Filter players to only those in the same zone
+    const allPlayers = getOtherPlayersInGameSession(socket.id);
+    const playersInSameZone = allPlayers.filter(p => {
+      const otherPlayerZone = getPlayerZone(p.playerId);
+      return otherPlayerZone === currentZoneId;
+    });
+    
+    socket.emit('players:joined', playersInSameZone);
   });
 
   // Handle position updates from this player
@@ -73,34 +77,46 @@ export function registerMultiplayerHandlers(socket, io) {
     // Update player position in game session
     updatePlayerPositionInGameSession(socket.id, position, rotation);
 
-    // Broadcast position to all other players
-    socket.broadcast.emit('player:position:changed', {
-      socketId: socket.id,
-      position,
-      rotation,
-    });
+    // Only broadcast position to players in the same zone
+    const currentZoneId = getPlayerZone(playerId);
+    if (currentZoneId) {
+      socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
+        socketId: socket.id,
+        position,
+        rotation,
+      });
+    }
   });
 
   // Handle hero updates (when player changes hero)
   socket.on('player:hero:update', (data) => {
     updatePlayerHeroInGameSession(socket.id, data);
     
-    // Broadcast hero update to all other players
-    socket.broadcast.emit('player:hero:changed', {
-      socketId: socket.id,
-      ...data,
-    });
+    // Only broadcast hero update to players in the same zone
+    const currentZoneId = getPlayerZone(playerId);
+    if (currentZoneId) {
+      socket.to(`zone-${currentZoneId}`).emit('player:hero:changed', {
+        socketId: socket.id,
+        ...data,
+      });
+    }
   });
 
   // Handle disconnect
   socket.on('disconnect', () => {
+    // Get zone before removing player
+    const currentZoneId = getPlayerZone(playerId);
+    
     // Remove player from game session
     removePlayerFromGameSession(socket.id);
     
-    // Notify all other players that this player left
-    socket.broadcast.emit('player:left', {
-      socketId: socket.id,
-    });
+    // Only notify players in the same zone that this player left
+    // Note: zone.js also handles this, but keeping it here for redundancy
+    if (currentZoneId) {
+      socket.to(`zone-${currentZoneId}`).emit('player:left', {
+        socketId: socket.id,
+      });
+    }
   });
 }
 

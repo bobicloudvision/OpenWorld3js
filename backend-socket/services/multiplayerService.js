@@ -11,6 +11,20 @@ export function getPlayerInGameSession(socketId) {
 }
 
 /**
+ * Get socket ID by player ID
+ * @param {number} playerId - The player's database ID
+ * @returns {string|null} Socket ID or null if not found
+ */
+export function getSocketIdByPlayerId(playerId) {
+  for (const [socketId, playerData] of connectedPlayers.entries()) {
+    if (playerData.playerId === playerId) {
+      return socketId;
+    }
+  }
+  return null;
+}
+
+/**
  * Get all players currently in the game session
  * @returns {Array} Array of all connected player data
  */
