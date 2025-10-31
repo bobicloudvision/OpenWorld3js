@@ -308,6 +308,7 @@ const useGameStore = create(
       
       // Magic system
       magicTypes: MAGIC_TYPES,
+      setMagicTypes: (types) => set({ magicTypes: types }),
       castingMode: false, // Whether player is in casting mode
       targetPosition: null, // Where magic will be cast
 

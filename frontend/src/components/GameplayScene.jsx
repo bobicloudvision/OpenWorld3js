@@ -49,7 +49,7 @@ export default function GameplayScene({
         onOpenHeroSelection={onOpenHeroSelection}
         activeHero={activeHero}
       />
-      <MagicPalette />
+      <MagicPalette activeHero={activeHero} />
       <KeyboardShapeCreator />
       <MaterialPalette />
       <Chat socket={socket} currentPlayerId={player?.id} />
