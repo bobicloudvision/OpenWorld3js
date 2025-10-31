@@ -132,32 +132,42 @@ export default function App() {
 
     // Handle combat end (matchmaking battles)
     socket.on('combat:ended', (data) => {
-      console.log('[app] Combat ended:', data);
+      console.log('[app] 🏆 Combat ended:', data);
+      console.log('[app] inCombatMatch is currently:', inCombatMatch);
       window.__inCombat = false;
-      
-      // Switch back to lobby scene
-      setInCombatMatch(false);
       
       // Refresh hero data to get updated experience and level
       socket.emit('get:player:heroes');
       
-      // If this was a matchmaking battle, return to lobby zone after a delay
+      // If this was a matchmaking battle, wait before returning to lobby
       if (data.isMatchmaking) {
-        console.log('[app] Matchmaking battle ended, returning to lobby...');
+        console.log('[app] ⏱️ Matchmaking battle ended, waiting 7 seconds to show results...');
+        
+        // Wait 7 seconds to let players see the victory/defeat modal
         setTimeout(() => {
+          console.log('[app] 🔄 NOW switching back to lobby scene...');
+          
+          // Switch back to lobby scene
+          setInCombatMatch(false);
+          
+          // Return to lobby zone
           socket.emit('zone:list', {}, (response) => {
             if (response.ok && response.zones) {
               const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone);
               if (lobby) {
                 socket.emit('zone:join', { zoneId: lobby.id }, (joinResponse) => {
                   if (joinResponse.ok) {
-                    console.log('[app] Returned to lobby zone:', joinResponse.zone.name);
+                    console.log('[app] ✅ Returned to lobby zone:', joinResponse.zone.name);
                   }
                 });
               }
             }
           });
-        }, 3000); // Wait 3 seconds to let players see the results
+        }, 7000); // Wait 7 seconds to let players see the results
+      } else {
+        // For non-matchmaking battles, switch immediately
+        console.log('[app] Non-matchmaking battle, switching immediately');
+        setInCombatMatch(false);
       }
     });
 
