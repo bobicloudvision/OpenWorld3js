@@ -39,7 +39,9 @@ export default function MagicEffect({
     
     // Animate the ring
     ringRef.current.scale.setScalar(0.5 + progress * 1.5) // Grow from 0.5 to 2
-    ringRef.current.material.opacity = 1 - progress // Fade out
+    if (ringRef.current.material) {
+      ringRef.current.material.opacity = 1 - progress // Fade out
+    }
     
     // Add some rotation
     ringRef.current.rotation.y += delta * 2
@@ -51,7 +53,7 @@ export default function MagicEffect({
   })
   
   return (
-    <group position={position}>
+    <group position={[position[0], position[1] + 0.05, position[2]]}>
       {/* Main ring */}
       <Ring
         ref={ringRef}
@@ -62,6 +64,8 @@ export default function MagicEffect({
           color={getMagicColor(magicType)}
           transparent
           opacity={0.8}
+          depthTest={false}
+          depthWrite={false}
         />
       </Ring>
       
@@ -74,16 +78,20 @@ export default function MagicEffect({
           color={getMagicColor(magicType)}
           transparent
           opacity={0.6}
+          depthTest={false}
+          depthWrite={false}
         />
       </Ring>
       
       {/* Center effect */}
-      <mesh position={[0, 0.1, 0]}>
+      <mesh position={[0, 0.12, 0]}>
         <circleGeometry args={[radius * 0.2, 16]} />
         <meshBasicMaterial 
           color={getMagicColor(magicType)}
           transparent
           opacity={0.9}
+          depthTest={false}
+          depthWrite={false}
         />
       </mesh>
     </group>

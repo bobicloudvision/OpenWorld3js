@@ -476,8 +476,10 @@ export function checkCombatConditions(combatInstanceId) {
     return { ended: false };
   }
   
-  // Check if all enemies defeated (PvE)
-  if (combatInstance.combatType === 'pve' || combatInstance.combatType === 'team_pve') {
+  // Check if all enemies defeated (PvE) — only if there are enemies present
+  if ((combatInstance.combatType === 'pve' || combatInstance.combatType === 'team_pve') &&
+      Array.isArray(combatInstance.participants.enemies) &&
+      combatInstance.participants.enemies.length > 0) {
     const allEnemiesDead = combatInstance.participants.enemies?.every(enemyId => {
       const enemyState = enemyCombatState.get(enemyId);
       return !enemyState || !enemyState.alive;

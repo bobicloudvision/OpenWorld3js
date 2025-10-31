@@ -54,7 +54,7 @@ export function registerCombatHandlers(socket, io) {
       } else {
         // Create new combat instance (PvE for now)
         combatInstanceId = initializeCombatInstance(
-          'pve',
+          'pvp',
           {
             players: [playerId],
             enemies: data.enemyIds || []
@@ -66,14 +66,20 @@ export function registerCombatHandlers(socket, io) {
         );
 
         // Initialize player state
+        const playerSession = getPlayerInGameSession(socket.id);
+        const initialPosition = playerSession?.position || [0, 0, 0];
+        
         const playerStats = activeHero ? {
           health: activeHero.health || 100,
           maxHealth: activeHero.maxHealth || 100,
           power: activeHero.power || 100,
           maxPower: activeHero.maxPower || 100,
           attack: activeHero.attack || 15,
-          defense: activeHero.defense || 5
-        } : {};
+          defense: activeHero.defense || 5,
+          position: initialPosition // Initialize with current position
+        } : {
+          position: initialPosition
+        };
 
         initializePlayerCombatState(playerId, combatInstanceId, playerStats);
       }
@@ -129,30 +135,53 @@ export function registerCombatHandlers(socket, io) {
   /**
    * Cast spell
    */
-  socket.on('combat:cast-spell', (data) => {
+  socket.on('combat:cast-spell', (data, ack) => {
     try {
       const { spellKey, targetPosition } = data;
 
+      console.log('[combat:cast-spell] Received:', { spellKey, targetPosition, playerId });
+
       if (!combatInstanceId) {
+        console.log('[combat:cast-spell] No combat instance');
         socket.emit('combat:error', { message: 'Not in active combat' });
+        if (typeof ack === 'function') ack({ ok: false, error: 'Not in active combat' });
         return;
       }
 
+      // Re-fetch active hero to ensure we have latest data
+      const currentActiveHero = getActiveHeroForPlayer(playerId);
+      console.log('[combat:cast-spell] Active hero:', {
+        hasHero: !!currentActiveHero,
+        heroLevel: currentActiveHero?.level,
+        spellCount: currentActiveHero?.spells?.length,
+        spellKeys: currentActiveHero?.spells?.map(s => s.key)
+      });
+
       // Get spell definition from database
-      // First check if spell exists in hero's spell list
-      const heroSpell = activeHero?.spells?.find(s => s.key === spellKey);
+      const heroSpell = currentActiveHero?.spells?.find(s => s.key === spellKey);
       if (!heroSpell) {
+        console.log('[combat:cast-spell] Spell not in hero list:', spellKey);
         socket.emit('combat:error', { message: 'Spell not available to this hero' });
+        if (typeof ack === 'function') ack({ ok: false, error: 'Spell not available to this hero' });
         return;
       }
       
-      // Get scaled spell stats for hero's level
-      const heroLevel = activeHero?.level || 1;
+      const heroLevel = currentActiveHero?.level || 1;
       const spell = getSpellForCombat(spellKey, heroLevel);
       if (!spell) {
+        console.log('[combat:cast-spell] Spell definition not found in database:', spellKey);
         socket.emit('combat:error', { message: 'Spell definition not found' });
+        if (typeof ack === 'function') ack({ ok: false, error: 'Spell definition not found' });
         return;
       }
+      
+      console.log('[combat:cast-spell] Spell stats:', {
+        name: spell.name,
+        damage: spell.damage,
+        powerCost: spell.powerCost,
+        range: spell.range,
+        affectRange: spell.affectRange
+      });
 
       // Get player position
       const playerSession = getPlayerInGameSession(socket.id);
@@ -161,6 +190,12 @@ export function registerCombatHandlers(socket, io) {
       // Get player combat state for position
       const playerState = getPlayerCombatState(playerId);
       const combatPosition = playerState?.position || playerPosition;
+      
+      console.log('[combat:cast-spell] Positions:', {
+        playerPosition,
+        combatPosition,
+        targetPosition
+      });
 
       // Validate spell cast
       const validation = validateSpellCast(
@@ -173,6 +208,7 @@ export function registerCombatHandlers(socket, io) {
 
       if (!validation.success) {
         socket.emit('combat:error', { message: validation.error });
+        if (typeof ack === 'function') ack({ ok: false, error: validation.error });
         return;
       }
 
@@ -187,18 +223,27 @@ export function registerCombatHandlers(socket, io) {
 
       if (!result.success) {
         socket.emit('combat:error', { message: result.error || 'Failed to cast spell' });
+        if (typeof ack === 'function') ack({ ok: false, error: result.error || 'Failed to cast spell' });
         return;
       }
 
       // Broadcast result to all players in combat
-      io.to(`combat:${combatInstanceId}`).emit('combat:action-resolved', {
+      const broadcastData = {
         actorId: playerId,
         actionType: 'spell-cast',
         spellKey,
         targetPosition,
         affectedTargets: result.affectedTargets,
+        aoeRadius: spell.affectRange, // include AoE for client VFX sizing
         timestamp: Date.now()
-      });
+      };
+      
+      console.log('[combat:cast-spell] Broadcasting result:', broadcastData);
+      io.to(`combat:${combatInstanceId}`).emit('combat:action-resolved', broadcastData);
+      // Also emit directly to the caster to ensure delivery
+      socket.emit('combat:action-resolved', broadcastData);
+      // Acknowledge back to the emitter
+      if (typeof ack === 'function') ack({ ok: true, result: broadcastData });
 
       // Check win/loss conditions after action
       const conditions = checkCombatConditions(combatInstanceId);
@@ -210,9 +255,11 @@ export function registerCombatHandlers(socket, io) {
           losers: conditions.losers
         });
       }
+      console.log('Spell cast result:', result);
     } catch (error) {
       console.error('Error casting spell:', error);
       socket.emit('combat:error', { message: 'Failed to cast spell' });
+      if (typeof ack === 'function') ack({ ok: false, error: 'Failed to cast spell' });
     }
   });
 

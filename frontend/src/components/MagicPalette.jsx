@@ -142,17 +142,6 @@ export default function MagicPalette({ activeHero }) {
             <button className="cancel-cast" onClick={exitCastingMode}>
               Cancel (ESC)
             </button>
-            <button 
-              className="test-effect" 
-              onClick={() => {
-                if (window.addMagicEffect) {
-                  window.addMagicEffect([0, 0, 0], player.selectedMagic, 3)
-                  console.log('Test effect triggered at origin!')
-                }
-              }}
-            >
-              Test Effect
-            </button>
           </div>
         )}
       </div>

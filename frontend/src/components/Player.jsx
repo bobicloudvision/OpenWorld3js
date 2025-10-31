@@ -126,10 +126,17 @@ export default function Player({ onPositionChange, heroModel, heroModelScale, he
       
       // Only send if position or rotation changed significantly
       if (positionChanged || rotationChanged) {
+        // Send to multiplayer service
         socket.emit('player:position:update', {
           position: currentPos,
           rotation: currentRot,
         })
+        
+        // Also send to combat service for accurate combat calculations
+        socket.emit('combat:position-update', {
+          position: currentPos
+        })
+        
         lastPositionUpdate.current = now
         lastSentPosition.current = [...currentPos]
         lastSentRotation.current = [...currentRot]

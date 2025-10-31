@@ -1,14 +1,15 @@
 import { useGLTF } from "@react-three/drei"
 import { RigidBody } from "@react-three/rapier"
 import useGameStore from '../stores/gameStore'
+import { addVfx } from '../stores/effectsStore'
 
 export default function Ground(props) {
   const { scene } = useGLTF('/models/world1.glb')
+  const socket = props.socket
   
   const { 
     castingMode, 
     player, 
-    performCastWithCenter,
     magicTypes
   } = useGameStore()
   
@@ -22,18 +23,24 @@ export default function Ground(props) {
     const targetPosition = [point.x, point.y, point.z]
     console.log('Ground click position:', targetPosition)
     
-    // Show click effect at clicked position
+    // Show click effect at clicked position (visual cursor)
     if (window.addClickEffect) {
-      // Pass magic type if in casting mode, otherwise null for regular click
       const magicType = castingMode ? player.selectedMagic : null
       window.addClickEffect(targetPosition, magicType)
     }
     
-    if (castingMode) {
+    if (castingMode && socket && socket.connected) {
+      // Ensure we're in combat; if not, queue and join
+      if (!window.__inCombat) {
+        console.warn('[combat] Not in combat yet, queuing cast and joining...')
+        window.__queuedCast = { spellKey: player.selectedMagic, targetPosition }
+        socket.emit('combat:join', { enemyIds: [], zoneCenter: [0,0,0], zoneRadius: 150 })
+        return
+      }
+
       // Get player position from props
       const playerPos = props.playerPositionRef?.current || [0, 0, 0]
       
-      // Ensure playerPos values are numbers
       const playerX = typeof playerPos[0] === 'number' ? playerPos[0] : parseFloat(playerPos[0])
       const playerZ = typeof playerPos[2] === 'number' ? playerPos[2] : parseFloat(playerPos[2])
       
@@ -42,7 +49,6 @@ export default function Ground(props) {
         Math.pow(targetPosition[2] - playerZ, 2)
       )
       
-      // Get magic properties to check range
       const selectedMagicType = magicTypes[player.selectedMagic]
       const magicRange = selectedMagicType ? selectedMagicType.range : 15
       
@@ -50,29 +56,29 @@ export default function Ground(props) {
       console.log(`Distance to player: ${distanceToPlayer.toFixed(2)}m, Magic range: ${magicRange}m`)
       
       if (distanceToPlayer <= magicRange) {
-        // Cast the magic at clicked position
         console.log(`Casting ${player.selectedMagic} at clicked position [${targetPosition[0].toFixed(2)}, ${targetPosition[2].toFixed(2)}]`)
         
-        // Get magic properties to use affectRange
-        const magic = magicTypes[player.selectedMagic]
-        const aoeRadius = magic.affectRange || 0
-        
-        // Show magic effect at clicked position
-        if (window.addMagicEffect) {
-          window.addMagicEffect(targetPosition, player.selectedMagic, aoeRadius)
-        }
-        const result = performCastWithCenter(
-          player.selectedMagic,
-          targetPosition,
-          [playerX, playerPos[1], playerZ]
-        )
-        if (!result.success) {
-          console.log(`Magic cast failed: ${result.message}`)
-        }
+        socket.emit('combat:cast-spell', {
+          spellKey: player.selectedMagic,
+          targetPosition: targetPosition
+        }, (ack) => {
+          if (ack && ack.ok && ack.result) {
+            const { targetPosition: tp, spellKey, aoeRadius } = ack.result
+            const radius = typeof aoeRadius === 'number' ? Math.max(1.2, aoeRadius) : 2
+            const isZeroRadius = typeof aoeRadius === 'number' && aoeRadius <= 0
+            const vfxPos = isZeroRadius && Array.isArray(props.playerPositionRef?.current)
+              ? props.playerPositionRef.current
+              : tp
+            if (vfxPos && spellKey) addVfx(vfxPos, spellKey, radius)
+          } else if (ack && !ack.ok) {
+            console.warn('[combat] ack error:', ack.error)
+          }
+        })
       } else {
         console.log(`Target too far! Distance: ${distanceToPlayer.toFixed(2)}m, Range: ${magicRange}m`)
-        // Still show click effect but don't cast magic
       }
+    } else if (castingMode && (!socket || !socket.connected)) {
+      console.warn('Cannot cast: socket not connected')
     }
   }
   

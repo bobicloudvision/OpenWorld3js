@@ -1,35 +1,11 @@
-import React, { useState } from 'react'
+import React from 'react'
 import MagicEffect from './MagicEffect'
+import { useEffectsStore } from '../stores/effectsStore'
 
 export default function MagicEffectsManager() {
-  const [effects, setEffects] = useState([])
-  
-  const addEffect = (position, magicType, radius = 3) => {
-    const id = Date.now() + Math.random()
-    const newEffect = {
-      id,
-      position,
-      magicType,
-      radius,
-      duration: 2000
-    }
-    
-    setEffects(prev => [...prev, newEffect])
-    
-    // Auto-remove after duration
-    setTimeout(() => {
-      setEffects(prev => prev.filter(effect => effect.id !== id))
-    }, newEffect.duration)
-  }
-  
-  // Expose addEffect globally
-  React.useEffect(() => {
-    window.addMagicEffect = addEffect
-    return () => {
-      delete window.addMagicEffect
-    }
-  }, [])
-  
+  const effects = useEffectsStore((s) => s.effects)
+  const removeEffect = useEffectsStore((s) => s.removeEffect)
+
   return (
     <>
       {effects.map(effect => (
@@ -39,9 +15,7 @@ export default function MagicEffectsManager() {
           magicType={effect.magicType}
           duration={effect.duration}
           radius={effect.radius}
-          onComplete={() => {
-            setEffects(prev => prev.filter(e => e.id !== effect.id))
-          }}
+          onComplete={() => removeEffect(effect.id)}
         />
       ))}
     </>
