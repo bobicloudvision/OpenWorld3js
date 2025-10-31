@@ -20,7 +20,22 @@ return new class extends Migration
             $table->foreignId('zone_id')->nullable()->constrained('zones')->onDelete('set null');
             
             // Match outcome
-            $table->enum('result', ['victory', 'defeat', 'draw'])->default('victory');
+            // victory: Normal win condition met
+            // defeat: Normal loss condition met
+            // draw: Tie/stalemate (both alive or both dead)
+            // abandoned: All players left for 15+ seconds
+            // timeout: Combat reached maximum time limit
+            // forfeit: Player intentionally surrendered
+            // cancelled: Combat cancelled before completion (admin/error)
+            $table->enum('result', [
+                'victory', 
+                'defeat', 
+                'draw', 
+                'abandoned',
+                'timeout',
+                'forfeit',
+                'cancelled'
+            ])->default('victory');
             $table->integer('winner_player_id')->nullable(); // NULL for draw or team victories
             $table->json('winner_team')->nullable(); // Array of winner player IDs
             $table->json('loser_team')->nullable(); // Array of loser player IDs

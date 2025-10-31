@@ -35,8 +35,10 @@ export function initializeCombatInstance(combatType, participants, zone, zoneId 
     state: {
       active: true,
       startTime: Date.now(),
-      endTime: null
+      endTime: null,
+      emptyStartTime: null // Track when combat became empty (all players disconnected)
     },
+    activeParticipants: new Set(participants.players || []), // Track actively connected players
     combatLog: []
   };
   
@@ -470,6 +472,9 @@ export function processCombatTick(combatInstanceId) {
   
   const now = Date.now();
   
+  // Check if combat should be ended due to all players leaving
+  checkAbandonedCombat(combatInstanceId, now);
+  
   // Process player status effects (poison, etc.)
   if (combatInstance.participants.players) {
     combatInstance.participants.players.forEach(playerId => {
@@ -535,6 +540,88 @@ function processStatusEffects(targetId, targetType, state, now) {
       }
     }
   });
+}
+
+/**
+ * Mark player as disconnected from combat
+ * @param {number} playerId - Player ID
+ */
+export function markPlayerDisconnected(playerId) {
+  const playerState = playerCombatState.get(playerId);
+  if (!playerState || !playerState.combatInstanceId) return;
+  
+  const combatInstance = combatInstances.get(playerState.combatInstanceId);
+  if (!combatInstance) return;
+  
+  // Remove from active participants
+  combatInstance.activeParticipants.delete(playerId);
+  
+  // If combat is now empty, start the abandon timer
+  if (combatInstance.activeParticipants.size === 0) {
+    combatInstance.state.emptyStartTime = Date.now();
+    console.log(`[combat] Combat ${playerState.combatInstanceId} is now empty - 15s abandon timer started`);
+  }
+  
+  console.log(`[combat] Player ${playerId} disconnected from combat ${playerState.combatInstanceId} (${combatInstance.activeParticipants.size} players remaining)`);
+}
+
+/**
+ * Mark player as reconnected to combat
+ * @param {number} playerId - Player ID
+ */
+export function markPlayerReconnected(playerId) {
+  const playerState = playerCombatState.get(playerId);
+  if (!playerState || !playerState.combatInstanceId) return;
+  
+  const combatInstance = combatInstances.get(playerState.combatInstanceId);
+  if (!combatInstance) return;
+  
+  // Add back to active participants
+  combatInstance.activeParticipants.add(playerId);
+  
+  // Cancel abandon timer if it was running
+  if (combatInstance.state.emptyStartTime !== null) {
+    combatInstance.state.emptyStartTime = null;
+    console.log(`[combat] Combat ${playerState.combatInstanceId} abandon timer cancelled - player ${playerId} reconnected`);
+  }
+  
+  console.log(`[combat] Player ${playerId} reconnected to combat ${playerState.combatInstanceId} (${combatInstance.activeParticipants.size} players active)`);
+}
+
+/**
+ * Check if combat should be ended due to abandonment
+ * @param {string} combatInstanceId - Combat instance ID
+ * @param {number} now - Current timestamp
+ * @returns {boolean} Whether combat was abandoned and ended
+ */
+function checkAbandonedCombat(combatInstanceId, now) {
+  const combatInstance = combatInstances.get(combatInstanceId);
+  if (!combatInstance || !combatInstance.state.active) return false;
+  
+  // If combat is not empty, nothing to check
+  if (combatInstance.activeParticipants.size > 0) {
+    combatInstance.state.emptyStartTime = null;
+    return false;
+  }
+  
+  // If combat just became empty, start the timer
+  if (combatInstance.state.emptyStartTime === null) {
+    combatInstance.state.emptyStartTime = now;
+    console.log(`[combat] Combat ${combatInstanceId} empty timer started`);
+    return false;
+  }
+  
+  // Check if 15 seconds have passed
+  const emptyDuration = now - combatInstance.state.emptyStartTime;
+  const ABANDON_TIMEOUT = 15000; // 15 seconds
+  
+  if (emptyDuration >= ABANDON_TIMEOUT) {
+    console.log(`[combat] Combat ${combatInstanceId} abandoned - no players for 15 seconds, ending combat`);
+    endCombatInstance(combatInstanceId, 'abandoned');
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -898,5 +985,13 @@ function calculateDistance(pos1, pos2) {
   const dx = pos1[0] - pos2[0];
   const dz = pos1[2] - pos2[2];
   return Math.sqrt(dx * dx + dz * dz);
+}
+
+/**
+ * Get all active combat instances
+ * @returns {Map} Map of combat instances
+ */
+export function getAllCombatInstances() {
+  return combatInstances;
 }
 

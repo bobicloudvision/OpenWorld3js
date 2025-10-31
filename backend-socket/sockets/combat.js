@@ -9,7 +9,9 @@ import {
   endCombatInstance,
   getCombatInstance,
   getPlayerCombatState,
-  updatePlayerPosition
+  updatePlayerPosition,
+  markPlayerDisconnected,
+  markPlayerReconnected
 } from '../services/combatService.js';
 import {
   getPlayerInGameSession
@@ -60,9 +62,10 @@ function startGlobalCombatTick(io) {
           // Broadcast combat ended
           io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
             result: conditions.result,
-            winners: conditions.winners,
-            losers: conditions.losers,
-            isMatchmaking: combatInstance.isMatchmaking || false
+            winners: conditions.winners || [],
+            losers: conditions.losers || [],
+            isMatchmaking: combatInstance.isMatchmaking || false,
+            abandoned: conditions.result === 'abandoned'
           });
           
           // Broadcast level-ups to individual players
@@ -193,6 +196,9 @@ export function registerCombatHandlers(socket, io) {
 
       // Join socket room for combat instance
       socket.join(`combat:${instanceId}`);
+
+      // Mark player as reconnected (cancels abandon timer if running)
+      markPlayerReconnected(playerId);
 
       // Send initial combat state
       socket.emit('combat:joined', {
@@ -399,9 +405,10 @@ export function registerCombatHandlers(socket, io) {
         // Broadcast combat ended
         io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
           result: conditions.result,
-          winners: conditions.winners,
-          losers: conditions.losers,
-          isMatchmaking: combatInstance.isMatchmaking || false
+          winners: conditions.winners || [],
+          losers: conditions.losers || [],
+          isMatchmaking: combatInstance.isMatchmaking || false,
+          abandoned: conditions.result === 'abandoned'
         });
         
         // Broadcast level-ups to individual players
@@ -468,6 +475,9 @@ export function registerCombatHandlers(socket, io) {
     if (combatInstanceId) {
       socket.leave(`combat:${combatInstanceId}`);
       
+      // Mark player as disconnected (starts abandon timer if all players leave)
+      markPlayerDisconnected(playerId);
+      
       socket.to(`combat:${combatInstanceId}`).emit('combat:player-left', {
         playerId,
         combatInstanceId
@@ -503,6 +513,9 @@ export function registerCombatHandlers(socket, io) {
     console.log(`[combat] 🔌 disconnect called for player ${playerId}, socket ${socket.id}`);
     const combatInstanceId = getCombatInstanceId();
     if (combatInstanceId) {
+      // Mark player as disconnected (starts abandon timer if all players leave)
+      markPlayerDisconnected(playerId);
+      
       socket.to(`combat:${combatInstanceId}`).emit('combat:player-left', {
         playerId,
         combatInstanceId
