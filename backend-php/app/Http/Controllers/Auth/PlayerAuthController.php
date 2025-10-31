@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PlayerResource;
 use App\Models\Player;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -28,14 +29,7 @@ class PlayerAuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'player' => [
-                'id' => $player->id,
-                'name' => $player->name,
-                'email' => $player->email,
-                'level' => $player->level,
-                'experience' => $player->experience,
-                'currency' => $player->currency,
-            ],
+            'player' => new PlayerResource($player),
         ], 201);
     }
 
@@ -56,14 +50,7 @@ class PlayerAuthController extends Controller
 
         return response()->json([
             'token' => $token,
-            'player' => [
-                'id' => $player->id,
-                'name' => $player->name,
-                'email' => $player->email,
-                'level' => $player->level,
-                'experience' => $player->experience,
-                'currency' => $player->currency,
-            ],
+            'player' => new PlayerResource($player),
         ]);
     }
 
@@ -75,15 +62,7 @@ class PlayerAuthController extends Controller
 
     public function me(Request $request)
     {
-        $player = $request->user();
-        return response()->json([
-            'id' => $player->id,
-            'name' => $player->name,
-            'email' => $player->email,
-            'level' => $player->level,
-            'experience' => $player->experience,
-            'currency' => $player->currency,
-        ]);
+        return new PlayerResource($request->user());
     }
 }
 

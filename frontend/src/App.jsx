@@ -91,10 +91,10 @@ export default function App() {
 
   useEffect(() => {
     // Validate stored token on load (non-blocking, logs only)
-    fetchMe().then((me) => {
-      if (me) {
-        console.log('Authenticated player:', me);
-        setPlayer(me)
+    fetchMe().then((response) => {
+      if (response && response.data) {
+        console.log('Authenticated player:', response.data);
+        setPlayer(response.data)
       } else {
         console.log('No valid player session');
         setAuthOpen(true)
@@ -193,8 +193,9 @@ export default function App() {
 
     // Handle real-time hero stats updates (regeneration)
     socket.on('regen:tick', (data) => {
+
       const { newHealth, newPower, maxHealth, maxPower } = data;
-      
+
       // Update the active hero's stats in real-time
       setPlayerHeroes(prevHeroes => 
         prevHeroes.map(hero => {
