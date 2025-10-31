@@ -12,16 +12,16 @@ import { getDb } from './db.js';
 const playerRegenState = new Map(); // playerId -> { lastCombat, lastRegen, isResting }
 
 // Regeneration constants (Time-based, not tick-based)
-// Full health recovery = 5 minutes = 300 seconds
-// Health per second = maxHealth / 300 seconds
+// Full health recovery = 10 minutes normally, 5 minutes when resting (MINIMUM)
+// Health per second = maxHealth / regenTime
 // Check every 5 seconds to apply regen
 const REGEN_CONFIG = {
   HEALTH_REGEN_INTERVAL: 5000, // Check every 5 seconds
-  HEALTH_REGEN_TIME: 300, // Seconds to full health (5 minutes)
+  HEALTH_REGEN_TIME: 600, // Seconds to full health (10 minutes normally)
   POWER_REGEN_INTERVAL: 5000, // Check every 5 seconds  
-  POWER_REGEN_TIME: 300, // Seconds to full power (5 minutes)
+  POWER_REGEN_TIME: 600, // Seconds to full power (10 minutes normally)
   OUT_OF_COMBAT_DELAY: 10000, // 10 seconds after combat to start regen
-  RESTING_MULTIPLIER: 2, // 2x regen when resting (2.5 min when resting)
+  RESTING_MULTIPLIER: 2, // 2x regen when resting (5 min minimum when resting)
   MIN_HEALTH_REGEN: 1, // Minimum HP regen per tick
   MIN_POWER_REGEN: 1 // Minimum power regen per tick
 };
