@@ -6,6 +6,7 @@
 import * as zoneService from './zoneService.js';
 import { initializeCombatInstance } from './combatService.js';
 import { registerCombatInstance } from '../sockets/combat.js';
+import { getActiveHeroForPlayer } from './playerService.js';
 
 // Queue storage
 const queues = new Map(); // queueType -> Queue
@@ -83,6 +84,23 @@ export function joinQueue(playerId, playerData, queueType, io) {
   // Check if player already in a queue
   if (playerQueues.has(playerId)) {
     return { ok: false, error: 'Already in queue' };
+  }
+
+  // Validate player has an active hero with health
+  const activeHero = getActiveHeroForPlayer(playerId);
+  if (!activeHero) {
+    return { ok: false, error: 'You must select a hero before entering combat' };
+  }
+
+  // Check if hero has health (not defeated)
+  if (!activeHero.health || activeHero.health <= 0) {
+    return { ok: false, error: 'Your hero is defeated! Wait for regeneration before entering combat.' };
+  }
+
+  // Optional: Check if hero has minimum power (allow low power, regenerates in combat)
+  // We'll just warn but not block
+  if (!activeHero.power || activeHero.power < 10) {
+    console.warn(`[matchmaking] Player ${playerId} joining with low power: ${activeHero.power}`);
   }
 
   // Get or create queue

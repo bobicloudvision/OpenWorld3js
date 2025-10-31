@@ -6,6 +6,7 @@
 import { updatePlayerHeroCombatStats } from './heroService.js';
 import * as zoneService from './zoneService.js';
 import { saveCombatMatch } from './combatHistoryService.js';
+import { getActiveHeroForPlayer } from './playerService.js';
 
 // Combat state storage (in-memory, move to Redis for production)
 const combatInstances = new Map(); // combatInstanceId -> CombatInstance
@@ -49,7 +50,29 @@ export function initializeCombatInstance(combatType, participants, zone, zoneId 
   // Initialize participant states
   if (participants.players) {
     participants.players.forEach(playerId => {
-      initializePlayerCombatState(playerId, combatInstanceId);
+      // Fetch player's current hero stats from database (preserves health/power between combats)
+      const activeHero = getActiveHeroForPlayer(playerId);
+      if (activeHero) {
+        // Safety check: Don't allow defeated heroes to enter combat
+        if (activeHero.health <= 0) {
+          console.error(`[combat] Player ${playerId} tried to enter combat with 0 health! Skipping...`);
+          return;
+        }
+        
+        const initialStats = {
+          health: activeHero.health,
+          maxHealth: activeHero.maxHealth,
+          power: activeHero.power,
+          maxPower: activeHero.maxPower,
+          attack: activeHero.attack,
+          defense: activeHero.defense
+        };
+        initializePlayerCombatState(playerId, combatInstanceId, initialStats);
+      } else {
+        // Fallback: initialize with default stats if no active hero
+        console.warn(`[combat] Player ${playerId} has no active hero, using defaults`);
+        initializePlayerCombatState(playerId, combatInstanceId);
+      }
     });
   }
   
