@@ -10,23 +10,28 @@ import * as THREE from 'three'
 function OtherPlayer({ otherPlayer }) {
   const group = useRef()
   const initialPos = otherPlayer.position && Array.isArray(otherPlayer.position) ? otherPlayer.position : [0, 0, 0]
+  const initialRot = otherPlayer.rotation && Array.isArray(otherPlayer.rotation) ? otherPlayer.rotation : [0, 0, 0]
   const [position, setPosition] = useState(initialPos)
   const [targetPosition, setTargetPosition] = useState(initialPos)
+  const [rotation, setRotation] = useState(initialRot)
+  const [targetRotation, setTargetRotation] = useState(initialRot)
   
   // Use shared avatar animations hook with the player's hero model
   const defaultModel = '/models/avatars/NightshadeJFriedrich.glb'
   const modelPath = otherPlayer.heroModel || defaultModel
   const { clone, animationActions, setAction, updateMixer } = useAvatarAnimations(modelPath)
   
-  // Smooth interpolation for position updates
+  // Smooth interpolation for position and rotation updates
   useFrame((state, delta) => {
     if (!clone || animationActions.current.length === 0) return
     
     // Update the mixer
     updateMixer(delta)
     
+    if (!group.current) return
+    
     // Smoothly interpolate position
-    if (group.current && Array.isArray(targetPosition) && targetPosition.length === 3) {
+    if (Array.isArray(targetPosition) && targetPosition.length === 3) {
       const currentPos = new THREE.Vector3(...position)
       const targetPos = new THREE.Vector3(...targetPosition)
       const distance = currentPos.distanceTo(targetPos)
@@ -49,18 +54,41 @@ function OtherPlayer({ otherPlayer }) {
         }
       }
     }
+    
+    // Smoothly interpolate rotation
+    if (Array.isArray(targetRotation) && targetRotation.length === 3) {
+      const currentEuler = new THREE.Euler(...rotation, 'XYZ')
+      const targetEuler = new THREE.Euler(...targetRotation, 'XYZ')
+      
+      // Create quaternions for smooth rotation interpolation
+      const currentQuat = new THREE.Quaternion().setFromEuler(currentEuler)
+      const targetQuat = new THREE.Quaternion().setFromEuler(targetEuler)
+      
+      // Check if rotation changed significantly
+      if (currentQuat.angleTo(targetQuat) > 0.01) {
+        // Interpolate rotation
+        currentQuat.slerp(targetQuat, Math.min(1, delta * 10))
+        const newEuler = new THREE.Euler().setFromQuaternion(currentQuat, 'XYZ')
+        const newRot = [newEuler.x, newEuler.y, newEuler.z]
+        setRotation(newRot)
+        group.current.rotation.set(newEuler.x, newEuler.y, newEuler.z)
+      }
+    }
   })
   
-  // Update target position when it changes from server
+  // Update target position and rotation when they change from server
   useEffect(() => {
     if (otherPlayer.position && Array.isArray(otherPlayer.position) && otherPlayer.position.length === 3) {
       setTargetPosition(otherPlayer.position)
     }
-  }, [otherPlayer.position])
+    if (otherPlayer.rotation && Array.isArray(otherPlayer.rotation) && otherPlayer.rotation.length === 3) {
+      setTargetRotation(otherPlayer.rotation)
+    }
+  }, [otherPlayer.position, otherPlayer.rotation])
   
-  // Apply hero model scale and rotation
+  // Apply hero model scale and rotation offset (model-specific rotation)
   const modelScale = otherPlayer.heroModelScale ?? 1
-  const rotation = otherPlayer.heroModelRotation || [0, 0, 0]
+  const modelRotationOffset = otherPlayer.heroModelRotation || [0, 0, 0]
   
   if (!clone) return null
   
@@ -70,12 +98,14 @@ function OtherPlayer({ otherPlayer }) {
       position={[position[0], position[1], position[2]]}
       rotation={rotation}
     >
-      <primitive 
-        object={clone} 
-        castShadow 
-        receiveShadow
-        scale={modelScale} 
-      />
+      <group rotation={modelRotationOffset}>
+        <primitive 
+          object={clone} 
+          castShadow 
+          receiveShadow
+          scale={modelScale} 
+        />
+      </group>
     </group>
   )
 }

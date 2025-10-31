@@ -28,6 +28,28 @@ export default function Player({ onPositionChange, heroModel, heroModelScale, he
     return [worldPosition.x, worldPosition.y, worldPosition.z]
   }
   
+  // Function to get current player rotation from world matrix (Ecctrl's rotation)
+  // We need to get the rotation without the model offset since we apply that separately
+  const getCurrentRotation = () => {
+    if (!group.current) return [0, 0, 0]
+    
+    // Get world rotation from matrixWorld
+    const worldRotation = new THREE.Euler()
+    worldRotation.setFromRotationMatrix(group.current.matrixWorld)
+    
+    // Remove local rotation (model offset) to get just the controller rotation
+    const modelRot = heroModelRotation ?? [0, 0, 0]
+    const localRotation = new THREE.Euler(...modelRot, 'XYZ')
+    const localQuat = new THREE.Quaternion().setFromEuler(localRotation)
+    const worldQuat = new THREE.Quaternion().setFromEuler(worldRotation)
+    
+    // Subtract local rotation: controllerRot = worldRot * inverse(localRot)
+    const controllerQuat = worldQuat.multiply(localQuat.invert())
+    const controllerEuler = new THREE.Euler().setFromQuaternion(controllerQuat, 'XYZ')
+    
+    return [controllerEuler.x, controllerEuler.y, controllerEuler.z]
+  }
+  
   const attackUntil = useRef(0)
   const playerAttackingAt = useGameStore((s) => s.playerAttackingAt)
   const lastPositionUpdate = useRef(0)
@@ -65,14 +87,12 @@ export default function Player({ onPositionChange, heroModel, heroModelScale, he
       onPositionChange(currentPos)
     }
     
-    // Send position updates to server for multiplayer
+    // Send position and rotation updates to server for multiplayer
     if (socket && (now - lastPositionUpdate.current > POSITION_UPDATE_INTERVAL || currentlyMoving)) {
-      const rotation = group.current 
-        ? [group.current.rotation.x, group.current.rotation.y, group.current.rotation.z]
-        : [0, 0, 0]
+      const currentRot = getCurrentRotation()
       socket.emit('player:position:update', {
         position: currentPos,
-        rotation: rotation,
+        rotation: currentRot,
       })
       lastPositionUpdate.current = now
     }
