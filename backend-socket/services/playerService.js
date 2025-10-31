@@ -1,4 +1,5 @@
 import { getDb } from './db.js';
+import { getPlayerHeroes } from './heroService.js';
 
 const findPlayerByIdStmt = () => getDb().prepare(
   `SELECT id, name, email, level, experience, currency, active_hero_id
@@ -39,5 +40,30 @@ export function setActiveHero(playerId, playerHeroId) {
   
   const result = updateStmt.run(playerHeroId, playerId);
   return result.changes > 0;
+}
+
+
+/**
+ * Get the player's active hero instance, including scaled spells
+ * @param {number} playerId
+ * @returns {object|null}
+ */
+export function getActiveHeroForPlayer(playerId) {
+  const player = getPlayerById(playerId);
+  if (!player || !player.active_hero_id) return null;
+
+  const heroes = getPlayerHeroes(playerId);
+  return heroes.find(h => h.playerHeroId === player.active_hero_id) || null;
+}
+
+/**
+ * Get a player summary with active hero snapshot
+ * @param {number} playerId
+ * @returns {{ player: object|null, activeHero: object|null }}
+ */
+export function getPlayerSummary(playerId) {
+  const player = getPlayerById(playerId);
+  const activeHero = player ? getActiveHeroForPlayer(playerId) : null;
+  return { player, activeHero };
 }
 

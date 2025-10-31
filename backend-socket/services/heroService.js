@@ -1,6 +1,77 @@
 import { getDb } from './db.js';
 
 /**
+ * Get spells for a hero
+ * @param {number} heroId - The hero's ID
+ * @returns {Array} Array of spell objects
+ */
+function getHeroSpells(heroId) {
+  const db = getDb();
+  const stmt = db.prepare(`
+    SELECT 
+      s.id,
+      s.key,
+      s.name,
+      s.base_damage,
+      s.base_power_cost,
+      s.base_cooldown,
+      s.base_range,
+      s.base_affect_range,
+      s.damage_per_level,
+      s.power_cost_per_level,
+      s.cooldown_per_level,
+      s.range_per_level,
+      s.affect_range_per_level,
+      s.color,
+      s.description,
+      s.icon,
+      s.created_at,
+      s.updated_at
+    FROM spells s
+    INNER JOIN hero_spells hs ON s.id = hs.spell_id
+    WHERE hs.hero_id = ?
+    ORDER BY s.name ASC
+  `);
+  
+  return stmt.all(heroId);
+}
+
+/**
+ * Calculate scaled spell stats based on hero level
+ * @param {Object} spell - Base spell object from database
+ * @param {number} heroLevel - Hero level for scaling
+ * @returns {Object} Spell object with scaled stats
+ */
+function calculateScaledSpellStats(spell, heroLevel = 1) {
+  return {
+    id: spell.id,
+    key: spell.key,
+    name: spell.name,
+    damage: Math.round(spell.base_damage + (heroLevel * (spell.damage_per_level || 0))),
+    powerCost: Math.round(spell.base_power_cost + (heroLevel * (spell.power_cost_per_level || 0))),
+    cooldown: Math.round(spell.base_cooldown + (heroLevel * (spell.cooldown_per_level || 0))),
+    range: spell.base_range + (heroLevel * (spell.range_per_level || 0)),
+    affectRange: spell.base_affect_range + (heroLevel * (spell.affect_range_per_level || 0)),
+    color: spell.color,
+    description: spell.description,
+    icon: spell.icon,
+    createdAt: spell.created_at,
+    updatedAt: spell.updated_at,
+    // Include base stats for reference
+    baseDamage: spell.base_damage,
+    basePowerCost: spell.base_power_cost,
+    baseCooldown: spell.base_cooldown,
+    baseRange: spell.base_range,
+    baseAffectRange: spell.base_affect_range,
+    damagePerLevel: spell.damage_per_level || 0,
+    powerCostPerLevel: spell.power_cost_per_level || 0,
+    cooldownPerLevel: spell.cooldown_per_level || 0,
+    rangePerLevel: spell.range_per_level || 0,
+    affectRangePerLevel: spell.affect_range_per_level || 0,
+  };
+}
+
+/**
  * Get all heroes owned by a player
  * @param {number} playerId - The player's ID
  * @returns {Array} Array of player hero objects with hero details
@@ -39,27 +110,36 @@ export function getPlayerHeroes(playerId) {
     ORDER BY ph.acquired_at DESC
   `);
   
-  return stmt.all(playerId).map(row => ({
-    playerHeroId: row.player_hero_id,
-    heroId: row.hero_id,
-    name: row.nickname || row.hero_name,
-    heroName: row.hero_name,
-    level: row.level,
-    experience: row.experience,
-    health: row.health ?? row.hero_base_health,
-    maxHealth: row.max_health ?? row.hero_base_max_health,
-    power: row.power ?? row.hero_base_power,
-    maxPower: row.max_power ?? row.hero_base_max_power,
-    attack: row.attack ?? row.hero_base_attack,
-    defense: row.defense ?? row.hero_base_defense,
-    nickname: row.nickname,
-    equipment: row.equipment ? JSON.parse(row.equipment) : null,
-    talents: row.talents ? JSON.parse(row.talents) : null,
-    acquiredAt: row.acquired_at,
-    model: row.model,
-    modelScale: row.model_scale,
-    modelRotation: row.model_rotation ? JSON.parse(row.model_rotation) : null,
-  }));
+  const heroes = stmt.all(playerId);
+  
+  return heroes.map(row => {
+    const heroLevel = row.level || 1;
+    const baseSpells = getHeroSpells(row.hero_id);
+    const scaledSpells = baseSpells.map(spell => calculateScaledSpellStats(spell, heroLevel));
+    
+    return {
+      playerHeroId: row.player_hero_id,
+      heroId: row.hero_id,
+      name: row.nickname || row.hero_name,
+      heroName: row.hero_name,
+      level: row.level,
+      experience: row.experience,
+      health: row.health ?? row.hero_base_health,
+      maxHealth: row.max_health ?? row.hero_base_max_health,
+      power: row.power ?? row.hero_base_power,
+      maxPower: row.max_power ?? row.hero_base_max_power,
+      attack: row.attack ?? row.hero_base_attack,
+      defense: row.defense ?? row.hero_base_defense,
+      nickname: row.nickname,
+      equipment: row.equipment ? JSON.parse(row.equipment) : null,
+      talents: row.talents ? JSON.parse(row.talents) : null,
+      acquiredAt: row.acquired_at,
+      model: row.model,
+      modelScale: row.model_scale,
+      modelRotation: row.model_rotation ? JSON.parse(row.model_rotation) : null,
+      spells: scaledSpells,
+    };
+  });
 }
 
 /**
@@ -94,22 +174,30 @@ export function getAvailableHeroesToBuy(playerId) {
     ORDER BY h.name ASC
   `);
   
-  return stmt.all(playerId).map(row => ({
-    id: row.id,
-    name: row.name,
-    health: row.health,
-    maxHealth: row.max_health,
-    power: row.power,
-    maxPower: row.max_power,
-    attack: row.attack,
-    defense: row.defense,
-    model: row.model,
-    modelScale: row.model_scale,
-    modelRotation: row.model_rotation ? JSON.parse(row.model_rotation) : null,
-    price: row.price || 1000, // Default price if not set
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }));
+  const heroes = stmt.all(playerId);
+  
+  return heroes.map(row => {
+    const baseSpells = getHeroSpells(row.id);
+    const spells = baseSpells.map(spell => calculateScaledSpellStats(spell, 1)); // Level 1 base stats
+    
+    return {
+      id: row.id,
+      name: row.name,
+      health: row.health,
+      maxHealth: row.max_health,
+      power: row.power,
+      maxPower: row.max_power,
+      attack: row.attack,
+      defense: row.defense,
+      model: row.model,
+      modelScale: row.model_scale,
+      modelRotation: row.model_rotation ? JSON.parse(row.model_rotation) : null,
+      price: row.price || 1000, // Default price if not set
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      spells: spells,
+    };
+  });
 }
 
 /**
@@ -219,6 +307,9 @@ export function getHeroById(heroId) {
   const row = stmt.get(heroId);
   if (!row) return null;
   
+  const baseSpells = getHeroSpells(heroId);
+  const spells = baseSpells.map(spell => calculateScaledSpellStats(spell, 1)); // Level 1 base stats
+  
   return {
     id: row.id,
     name: row.name,
@@ -233,6 +324,7 @@ export function getHeroById(heroId) {
     modelRotation: row.model_rotation ? JSON.parse(row.model_rotation) : null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    spells: spells,
   };
 }
 
@@ -261,20 +353,28 @@ export function getAllHeroes() {
     ORDER BY name ASC
   `);
   
-  return stmt.all().map(row => ({
-    id: row.id,
-    name: row.name,
-    health: row.health,
-    maxHealth: row.max_health,
-    power: row.power,
-    maxPower: row.max_power,
-    attack: row.attack,
-    defense: row.defense,
-    model: row.model,
-    modelScale: row.model_scale,
-    modelRotation: row.model_rotation ? JSON.parse(row.model_rotation) : null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }));
+  const heroes = stmt.all();
+  
+  return heroes.map(row => {
+    const baseSpells = getHeroSpells(row.id);
+    const spells = baseSpells.map(spell => calculateScaledSpellStats(spell, 1)); // Level 1 base stats
+    
+    return {
+      id: row.id,
+      name: row.name,
+      health: row.health,
+      maxHealth: row.max_health,
+      power: row.power,
+      maxPower: row.max_power,
+      attack: row.attack,
+      defense: row.defense,
+      model: row.model,
+      modelScale: row.model_scale,
+      modelRotation: row.model_rotation ? JSON.parse(row.model_rotation) : null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      spells: spells,
+    };
+  });
 }
 
