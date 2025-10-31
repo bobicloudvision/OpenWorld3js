@@ -2,6 +2,7 @@ import { findToken, isExpired, parseAbilities } from '../services/tokenService.j
 import { getPlayerById } from '../services/playerService.js';
 import { bindSocket } from '../services/sessionService.js';
 import { registerMultiplayerHandlers } from './multiplayer.js';
+import { registerChatHandlers } from './chat.js';
 
 export function registerAuthHandlers(socket, io) {
   socket.on('auth', async (payload) => {
@@ -45,6 +46,9 @@ export function registerAuthHandlers(socket, io) {
       
       // Register multiplayer handlers after successful authentication
       registerMultiplayerHandlers(socket, io);
+      
+      // Register chat handlers after successful authentication
+      registerChatHandlers(socket, io);
     } catch (err) {
       socket.emit('auth:error', { message: 'Auth failed' });
     }
