@@ -3,6 +3,8 @@
  * Handles all combat logic, validation, and state management
  */
 
+import { updatePlayerHeroCombatStats } from './heroService.js';
+
 // Combat state storage (in-memory, move to Redis for production)
 const combatInstances = new Map(); // combatInstanceId -> CombatInstance
 const playerCombatState = new Map(); // playerId -> PlayerCombatState
@@ -486,6 +488,7 @@ export function checkCombatConditions(combatInstanceId) {
     });
     
     if (allEnemiesDead) {
+      console.log('[combat] PvE Victory - All enemies defeated');
       return {
         ended: true,
         result: 'victory',
@@ -495,13 +498,55 @@ export function checkCombatConditions(combatInstanceId) {
     }
   }
   
-  // Check if all players defeated
+  // PvP: Check if only one player (or team) remains alive
+  if (combatInstance.combatType === 'pvp' || combatInstance.combatType === 'team_pvp') {
+    const players = combatInstance.participants.players || [];
+    
+    // Get alive and dead players
+    const alivePlayers = players.filter(playerId => {
+      const playerState = playerCombatState.get(playerId);
+      return playerState && playerState.health > 0;
+    });
+    
+    const deadPlayers = players.filter(playerId => {
+      const playerState = playerCombatState.get(playerId);
+      return !playerState || playerState.health <= 0;
+    });
+    
+    // If all players are dead (shouldn't happen but handle it)
+    if (alivePlayers.length === 0) {
+      console.log('[combat] PvP Draw - All players defeated');
+      return {
+        ended: true,
+        result: 'draw',
+        winners: [],
+        losers: players
+      };
+    }
+    
+    // If only one player alive = they win
+    if (alivePlayers.length === 1 && deadPlayers.length > 0) {
+      console.log(`[combat] PvP Victory - Player ${alivePlayers[0]} wins!`);
+      return {
+        ended: true,
+        result: 'victory',
+        winners: alivePlayers,
+        losers: deadPlayers
+      };
+    }
+    
+    // If multiple players alive, combat continues
+    return { ended: false };
+  }
+  
+  // Check if all players defeated (fallback for PvE without enemies)
   const allPlayersDead = combatInstance.participants.players?.every(playerId => {
     const playerState = playerCombatState.get(playerId);
     return !playerState || playerState.health <= 0;
   });
   
   if (allPlayersDead) {
+    console.log('[combat] Defeat - All players defeated');
     return {
       ended: true,
       result: 'defeat',
@@ -511,6 +556,47 @@ export function checkCombatConditions(combatInstanceId) {
   }
   
   return { ended: false };
+}
+
+/**
+ * Calculate experience gained from combat
+ * @param {Object} combatInstance - Combat instance
+ * @param {string} playerId - Player ID
+ * @param {string} result - Combat result ('victory' | 'defeat' | 'draw')
+ * @returns {number} Experience points gained
+ */
+function calculateExperienceGained(combatInstance, playerId, result) {
+  let baseExp = 0;
+  
+  // Base experience from combat duration (1 exp per 10 seconds)
+  const duration = (combatInstance.state.endTime - combatInstance.state.startTime) / 1000;
+  baseExp += Math.floor(duration / 10);
+  
+  // Bonus for victory
+  if (result === 'victory') {
+    baseExp += 50;
+  } else if (result === 'draw') {
+    baseExp += 25;
+  } else {
+    baseExp += 10; // Small consolation for defeat
+  }
+  
+  // Bonus for enemies defeated (PvE)
+  if (combatInstance.participants.enemies && combatInstance.participants.enemies.length > 0) {
+    const enemiesDefeated = combatInstance.participants.enemies.filter(enemyId => {
+      const enemyState = enemyCombatState.get(enemyId);
+      return enemyState && !enemyState.alive;
+    }).length;
+    baseExp += enemiesDefeated * 20;
+  }
+  
+  // Bonus for PvP participation
+  if (combatInstance.combatType === 'pvp' || combatInstance.combatType === 'team_pvp') {
+    const otherPlayers = (combatInstance.participants.players || []).filter(pid => pid !== playerId).length;
+    baseExp += otherPlayers * 30;
+  }
+  
+  return Math.max(10, baseExp); // Minimum 10 exp
 }
 
 /**
@@ -524,6 +610,32 @@ export function endCombatInstance(combatInstanceId, result) {
   
   combatInstance.state.active = false;
   combatInstance.state.endTime = Date.now();
+  
+  // Save final combat stats to database for all players
+  if (combatInstance.participants.players) {
+    combatInstance.participants.players.forEach(playerId => {
+      const playerState = playerCombatState.get(playerId);
+      if (playerState) {
+        // Calculate experience gained
+        const experienceGained = calculateExperienceGained(combatInstance, playerId, result);
+        
+        // Prepare combat stats to save
+        const combatStats = {
+          health: playerState.health,
+          power: playerState.power,
+          attack: playerState.attack,
+          defense: playerState.defense,
+          experienceGained
+        };
+        
+        const saveResult = updatePlayerHeroCombatStats(playerId, combatStats);
+        
+        if (saveResult.success) {
+          console.log(`[combat] Saved combat results for player ${playerId}: HP=${playerState.health}, Power=${playerState.power}, EXP=+${experienceGained}${saveResult.leveledUp ? `, LEVEL UP! -> ${saveResult.newLevel}` : ''}`);
+        }
+      }
+    });
+  }
   
   // Clean up after delay (for final state broadcasts)
   setTimeout(() => {

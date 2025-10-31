@@ -378,3 +378,111 @@ export function getAllHeroes() {
   });
 }
 
+/**
+ * Update player hero combat stats after combat ends
+ * @param {number} playerId - The player's ID
+ * @param {Object} combatStats - Combat stats to save
+ * @param {number} combatStats.health - Current health value
+ * @param {number} combatStats.power - Current power value
+ * @param {number} combatStats.attack - Attack stat (if modified)
+ * @param {number} combatStats.defense - Defense stat (if modified)
+ * @param {number} combatStats.experienceGained - Experience gained from combat
+ * @returns {Object} { success: boolean, leveledUp?: boolean, newLevel?: number }
+ */
+export function updatePlayerHeroCombatStats(playerId, combatStats) {
+  const db = getDb();
+  
+  try {
+    // Get the player's active hero ID and current stats
+    const playerStmt = db.prepare('SELECT active_hero_id FROM players WHERE id = ?');
+    const player = playerStmt.get(playerId);
+    
+    if (!player || !player.active_hero_id) {
+      console.warn(`[heroService] Cannot update stats: Player ${playerId} has no active hero`);
+      return { success: false };
+    }
+    
+    const heroStmt = db.prepare('SELECT level, experience FROM player_heroes WHERE id = ? AND player_id = ?');
+    const heroData = heroStmt.get(player.active_hero_id, playerId);
+    
+    if (!heroData) {
+      return { success: false };
+    }
+    
+    // Calculate new experience and level
+    const expGained = combatStats.experienceGained || 0;
+    const currentExp = heroData.experience || 0;
+    const currentLevel = heroData.level || 1;
+    const newExp = currentExp + expGained;
+    
+    // Simple level-up formula: 100 * level for next level
+    let newLevel = currentLevel;
+    let remainingExp = newExp;
+    let leveledUp = false;
+    
+    while (remainingExp >= (100 * newLevel) && newLevel < 100) {
+      remainingExp -= (100 * newLevel);
+      newLevel++;
+      leveledUp = true;
+    }
+    
+    // Build update query dynamically based on what stats are provided
+    const updates = [];
+    const values = [];
+    
+    // Always update health and power
+    if (typeof combatStats.health === 'number') {
+      updates.push('health = ?');
+      values.push(Math.max(0, Math.round(combatStats.health)));
+    }
+    if (typeof combatStats.power === 'number') {
+      updates.push('power = ?');
+      values.push(Math.max(0, Math.round(combatStats.power)));
+    }
+    
+    // Update attack/defense if provided (from buffs/debuffs that persist)
+    if (typeof combatStats.attack === 'number') {
+      updates.push('attack = ?');
+      values.push(Math.max(1, Math.round(combatStats.attack)));
+    }
+    if (typeof combatStats.defense === 'number') {
+      updates.push('defense = ?');
+      values.push(Math.max(0, Math.round(combatStats.defense)));
+    }
+    
+    // Update experience and level
+    if (expGained > 0) {
+      updates.push('experience = ?');
+      values.push(remainingExp);
+      updates.push('level = ?');
+      values.push(newLevel);
+    }
+    
+    if (updates.length === 0) {
+      return { success: false };
+    }
+    
+    // Add WHERE clause parameters
+    values.push(player.active_hero_id);
+    values.push(playerId);
+    
+    const updateStmt = db.prepare(`
+      UPDATE player_heroes 
+      SET ${updates.join(', ')}
+      WHERE id = ? AND player_id = ?
+    `);
+    
+    const result = updateStmt.run(...values);
+    
+    return {
+      success: result.changes > 0,
+      leveledUp,
+      newLevel: leveledUp ? newLevel : undefined,
+      experienceGained: expGained
+    };
+  } catch (error) {
+    console.error('[heroService] Error updating hero combat stats:', error);
+    return { success: false };
+  }
+}
+
