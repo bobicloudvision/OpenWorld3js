@@ -6,7 +6,7 @@
 import { updatePlayerHeroCombatStats } from './heroService.js';
 import * as zoneService from './zoneService.js';
 import { saveCombatMatch } from './combatHistoryService.js';
-import { getActiveHeroForPlayer } from './playerService.js';
+import { getActiveHeroForPlayer, updatePlayerExperience } from './playerService.js';
 
 // Combat state storage (in-memory, move to Redis for production)
 const combatInstances = new Map(); // combatInstanceId -> CombatInstance
@@ -681,7 +681,7 @@ function calculateExperienceGained(combatInstance, playerId, result) {
  * End combat instance
  * @param {string} combatInstanceId - Combat instance ID
  * @param {string} result - 'victory' | 'defeat' | 'draw'
- * @returns {Object} Player results including level-ups { playerId: { leveledUp, oldLevel, newLevel, experienceGained } }
+ * @returns {Object} Player results including level-ups { playerId: { playerLeveledUp, playerOldLevel, playerNewLevel, heroLeveledUp, heroOldLevel, heroNewLevel, experienceGained } }
  */
 export function endCombatInstance(combatInstanceId, result) {
   const combatInstance = combatInstances.get(combatInstanceId);
@@ -705,6 +705,9 @@ export function endCombatInstance(combatInstanceId, result) {
         // Calculate experience gained
         const experienceGained = calculateExperienceGained(combatInstance, playerId, result);
         
+        // Update PLAYER experience and level (account-wide progression)
+        const playerLevelResult = updatePlayerExperience(playerId, experienceGained);
+        
         // Prepare combat stats to save (WoW-style: health persists between combats)
         const combatStats = {
           health: playerState.health, // Save current health (damage persists!)
@@ -712,16 +715,33 @@ export function endCombatInstance(combatInstanceId, result) {
           experienceGained
         };
         
-        const saveResult = updatePlayerHeroCombatStats(playerId, combatStats);
+        // Update HERO combat stats (hero-specific progression)
+        const heroLevelResult = updatePlayerHeroCombatStats(playerId, combatStats);
         
-        if (saveResult.success) {
-          console.log(`[combat] Saved combat results for player ${playerId}: HP=${playerState.health}/${playerState.maxHealth}, Power=${playerState.power}, EXP=+${experienceGained}${saveResult.leveledUp ? `, LEVEL UP! -> ${saveResult.newLevel}` : ''}`);
+        if (heroLevelResult.success || playerLevelResult.success) {
+          console.log(`[combat] Saved combat results for player ${playerId}: HP=${playerState.health}/${playerState.maxHealth}, Power=${playerState.power}, EXP=+${experienceGained}`);
           
-          // Store level-up info for broadcasting
+          if (playerLevelResult.leveledUp) {
+            console.log(`[combat] 🎉 Player ${playerId} LEVEL UP! ${playerLevelResult.oldLevel} -> ${playerLevelResult.newLevel}`);
+          }
+          
+          if (heroLevelResult.leveledUp) {
+            console.log(`[combat] ⚔️ Hero LEVEL UP! -> ${heroLevelResult.newLevel}`);
+          }
+          
+          // Store level-up info for broadcasting (both player and hero)
           playerResults[playerId] = {
-            leveledUp: saveResult.leveledUp || false,
-            oldLevel: saveResult.leveledUp ? saveResult.newLevel - 1 : undefined,
-            newLevel: saveResult.newLevel,
+            // Player level info
+            playerLeveledUp: playerLevelResult.leveledUp || false,
+            playerOldLevel: playerLevelResult.oldLevel,
+            playerNewLevel: playerLevelResult.newLevel,
+            
+            // Hero level info
+            heroLeveledUp: heroLevelResult.leveledUp || false,
+            heroOldLevel: heroLevelResult.leveledUp ? heroLevelResult.newLevel - 1 : undefined,
+            heroNewLevel: heroLevelResult.newLevel,
+            
+            // Experience gained (same for both)
             experienceGained
           };
         }
@@ -762,8 +782,15 @@ export function endCombatInstance(combatInstanceId, result) {
         maxHealth: playerState?.maxHealth || 100,
         power: playerState?.power || 0,
         maxPower: playerState?.maxPower || 100,
-        level: playerResult.newLevel || 1,
-        oldLevel: playerResult.oldLevel || 1,
+        // Player level (account-wide)
+        playerLevel: playerResult.playerNewLevel || 1,
+        playerOldLevel: playerResult.playerOldLevel || 1,
+        playerLeveledUp: playerResult.playerLeveledUp || false,
+        // Hero level (hero-specific)
+        heroLevel: playerResult.heroNewLevel || 1,
+        heroOldLevel: playerResult.heroOldLevel || 1,
+        heroLeveledUp: playerResult.heroLeveledUp || false,
+        // Other stats
         activeHeroId: playerState?.playerHeroId || null,
         damageDealt: 0, // TODO: Track in combat state
         damageTaken: 0, // TODO: Track in combat state

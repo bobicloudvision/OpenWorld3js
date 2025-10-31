@@ -67,3 +67,64 @@ export function getPlayerSummary(playerId) {
   return { player, activeHero };
 }
 
+/**
+ * Update player experience and level after combat
+ * @param {number} playerId - The player's ID
+ * @param {number} experienceGained - Experience gained from combat
+ * @returns {Object} { success: boolean, leveledUp?: boolean, oldLevel?: number, newLevel?: number, experienceGained: number }
+ */
+export function updatePlayerExperience(playerId, experienceGained) {
+  const db = getDb();
+  
+  try {
+    // Get current player stats
+    const playerStmt = db.prepare('SELECT level, experience FROM players WHERE id = ?');
+    const player = playerStmt.get(playerId);
+    
+    if (!player) {
+      console.warn(`[playerService] Cannot update experience: Player ${playerId} not found`);
+      return { success: false, experienceGained: 0 };
+    }
+    
+    // Calculate new experience and level
+    const currentExp = player.experience || 0;
+    const currentLevel = player.level || 1;
+    const newExp = currentExp + experienceGained;
+    
+    // Level-up formula: 100 * level for next level (same as heroes)
+    let newLevel = currentLevel;
+    let remainingExp = newExp;
+    let leveledUp = false;
+    
+    while (remainingExp >= (100 * newLevel) && newLevel < 100) {
+      remainingExp -= (100 * newLevel);
+      newLevel++;
+      leveledUp = true;
+    }
+    
+    // Update player experience and level
+    const updateStmt = db.prepare(`
+      UPDATE players 
+      SET experience = ?, level = ?
+      WHERE id = ?
+    `);
+    
+    const result = updateStmt.run(remainingExp, newLevel, playerId);
+    
+    if (result.changes > 0) {
+      console.log(`[playerService] Player ${playerId} gained ${experienceGained} XP${leveledUp ? `, LEVEL UP! ${currentLevel} -> ${newLevel}` : ''} (${remainingExp}/${100 * newLevel} XP to next level)`);
+    }
+    
+    return {
+      success: result.changes > 0,
+      leveledUp,
+      oldLevel: leveledUp ? currentLevel : undefined,
+      newLevel,
+      experienceGained
+    };
+  } catch (error) {
+    console.error('[playerService] Error updating player experience:', error);
+    return { success: false, experienceGained: 0 };
+  }
+}
+
