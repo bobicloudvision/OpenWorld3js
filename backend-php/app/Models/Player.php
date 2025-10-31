@@ -78,4 +78,42 @@ class Player extends Authenticatable
     {
         return $this->belongsTo(Zone::class, 'current_zone_id');
     }
+
+    /**
+     * Get all combat matches this player participated in
+     */
+    public function combatMatchParticipations(): HasMany
+    {
+        return $this->hasMany(CombatMatchPlayer::class);
+    }
+
+    /**
+     * Get matches where this player won (1v1 only)
+     */
+    public function wonMatches(): HasMany
+    {
+        return $this->hasMany(CombatMatch::class, 'winner_player_id');
+    }
+
+    /**
+     * Get combat match stats
+     */
+    public function getCombatStats(): array
+    {
+        $participations = $this->combatMatchParticipations;
+        
+        return [
+            'total_matches' => $participations->count(),
+            'wins' => $participations->where('result', 'won')->count(),
+            'losses' => $participations->where('result', 'lost')->count(),
+            'draws' => $participations->where('result', 'draw')->count(),
+            'total_damage_dealt' => $participations->sum('damage_dealt'),
+            'total_healing_done' => $participations->sum('healing_done'),
+            'total_kills' => $participations->sum('kills'),
+            'total_deaths' => $participations->sum('deaths'),
+            'win_rate' => $participations->count() > 0 
+                ? round(($participations->where('result', 'won')->count() / $participations->count()) * 100, 1) 
+                : 0,
+        ];
+    }
 }

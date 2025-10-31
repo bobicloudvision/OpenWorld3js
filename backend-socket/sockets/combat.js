@@ -4,8 +4,6 @@ import { getActiveHeroForPlayer } from '../services/playerService.js';
 import {
   validateSpellCast,
   executeSpellCast,
-  initializeCombatInstance,
-  initializePlayerCombatState,
   processCombatTick,
   checkCombatConditions,
   endCombatInstance,
@@ -14,16 +12,12 @@ import {
   updatePlayerPosition
 } from '../services/combatService.js';
 import {
-  getPlayerInGameSession,
-  updatePlayerPositionInGameSession
+  getPlayerInGameSession
 } from '../services/multiplayerService.js';
 import { getSpellForCombat } from '../services/spellService.js';
-import { enterCombat, leaveCombat } from '../services/regenerationService.js';
+import { leaveCombat } from '../services/regenerationService.js';
 
-// Global shared combat instance for PvP (for testing - in production use matchmaking)
-let globalCombatInstanceId = null;
-
-// Global combat tick system that processes all active combat instances
+// Global combat tick system that processes all active combat instances (matchmaking only)
 let globalCombatTick = null;
 const activeCombatInstances = new Set();
 
@@ -45,6 +39,9 @@ function startGlobalCombatTick(io) {
         
         // Process combat tick
         processCombatTick(combatInstanceId);
+        
+        // Broadcast combat state update
+        broadcastCombatState(io, combatInstanceId);
         
         // Check win/loss conditions
         const conditions = checkCombatConditions(combatInstanceId);
@@ -102,7 +99,10 @@ export function registerCombatInstance(combatInstanceId) {
 }
 
 /**
- * Register combat socket handlers
+ * Register combat socket handlers (Matchmaking Combat Only)
+ * These handlers support matchmaking-initiated combat.
+ * World/manual combat has been removed.
+ * 
  * @param {Socket} socket - The socket instance
  * @param {Server} io - The Socket.IO server instance
  */
@@ -114,146 +114,47 @@ export function registerCombatHandlers(socket, io) {
     return; // Player not authenticated
   }
 
-  // Get player's active hero and stats
-  const player = getPlayerById(playerId);
-  const activeHero = getActiveHeroForPlayer(playerId);
-
-  // Initialize combat state when player joins (if not already in combat)
+  // Track combat instance for this socket (set by matchmaking)
   let combatInstanceId = null;
-  let combatTickInterval = null;
 
   /**
-   * Join combat instance
+   * Join matchmaking combat instance
+   * Used when a player is placed in a matchmaking battle
    */
-  socket.on('combat:join', async (data) => {
+  socket.on('combat:join-matchmaking', (data, ack) => {
     try {
-      // For testing: use a single global combat instance so all players fight each other
-      // Check if global instance exists and is active
-      if (globalCombatInstanceId) {
-        const instance = getCombatInstance(globalCombatInstanceId);
-        if (instance && instance.state.active) {
-          combatInstanceId = globalCombatInstanceId;
-          
-          // Add this player to the existing instance
-          instance.participants.players = instance.participants.players || [];
-          const alreadyParticipant = instance.participants.players.includes(playerId);
-          if (!alreadyParticipant) {
-            instance.participants.players.push(playerId);
-            
-            const playerSession = getPlayerInGameSession(socket.id);
-            const initialPosition = playerSession?.position || [0, 0, 0];
-            const stats = activeHero ? {
-              health: Math.min(activeHero.health || activeHero.maxHealth || 100, activeHero.maxHealth || 100), // Load from DB, clamped
-              maxHealth: activeHero.maxHealth || 100,
-              power: Math.min(activeHero.power || 100, activeHero.maxPower || 100),
-              maxPower: activeHero.maxPower || 100,
-              attack: activeHero.attack || 15,
-              defense: activeHero.defense || 5,
-              position: initialPosition
-            } : { position: initialPosition };
-            initializePlayerCombatState(playerId, combatInstanceId, stats);
-          }
-        } else {
-          globalCombatInstanceId = null; // Reset if instance is gone
-        }
-      }
+      const { combatInstanceId: instanceId } = data;
       
-      // If no global instance, create one
-      if (!combatInstanceId) {
-        combatInstanceId = initializeCombatInstance(
-          'pvp',
-          {
-            players: [playerId],
-            enemies: data.enemyIds || []
-          },
-          {
-            center: data.zoneCenter || [0, 0, 0],
-            radius: data.zoneRadius || 100
-          }
-        );
-        globalCombatInstanceId = combatInstanceId;
-        
-        // Register with global tick system
-        registerCombatInstance(combatInstanceId);
-
-        // Initialize player state
-        const playerSession = getPlayerInGameSession(socket.id);
-        const initialPosition = playerSession?.position || [0, 0, 0];
-        
-        const playerStats = activeHero ? {
-          health: Math.min(activeHero.health || activeHero.maxHealth || 100, activeHero.maxHealth || 100), // Load from DB, clamped
-          maxHealth: activeHero.maxHealth || 100,
-          power: Math.min(activeHero.power || 100, activeHero.maxPower || 100),
-          maxPower: activeHero.maxPower || 100,
-          attack: activeHero.attack || 15,
-          defense: activeHero.defense || 5,
-          position: initialPosition // Initialize with current position
-        } : {
-          position: initialPosition
-        };
-
-        initializePlayerCombatState(playerId, combatInstanceId, playerStats);
+      if (!instanceId) {
+        const error = 'Combat instance ID required';
+        socket.emit('combat:error', { message: error });
+        if (typeof ack === 'function') ack({ ok: false, error });
+        return;
       }
 
-      // Mark player as entering combat (stops regeneration)
-      enterCombat(playerId);
+      // Verify combat instance exists
+      const instance = getCombatInstance(instanceId);
+      if (!instance || !instance.state.active) {
+        const error = 'Combat instance not found or inactive';
+        socket.emit('combat:error', { message: error });
+        if (typeof ack === 'function') ack({ ok: false, error });
+        return;
+      }
+
+      // Verify player is a participant
+      const isParticipant = instance.participants.players?.includes(playerId);
+      if (!isParticipant) {
+        const error = 'Player not a participant in this combat';
+        socket.emit('combat:error', { message: error });
+        if (typeof ack === 'function') ack({ ok: false, error });
+        return;
+      }
+
+      // Set combat instance for this socket
+      combatInstanceId = instanceId;
 
       // Join socket room for combat instance
       socket.join(`combat:${combatInstanceId}`);
-
-      // Start combat tick processing
-      if (!combatTickInterval) {
-        combatTickInterval = setInterval(() => {
-          if (combatInstanceId) {
-            processCombatTick(combatInstanceId);
-            
-            // Check win/loss conditions
-            const conditions = checkCombatConditions(combatInstanceId);
-            if (conditions.ended) {
-              const playerResults = endCombatInstance(combatInstanceId, conditions.result);
-              
-              // Mark all players as leaving combat (enables regeneration)
-              const combatInstance = getCombatInstance(combatInstanceId);
-              if (combatInstance?.participants?.players) {
-                combatInstance.participants.players.forEach(pid => leaveCombat(pid));
-              }
-              
-              // Broadcast combat ended
-              io.to(`combat:${combatInstanceId}`).emit('combat:ended', {
-                result: conditions.result,
-                winners: conditions.winners,
-                losers: conditions.losers,
-                isMatchmaking: combatInstance.isMatchmaking || false
-              });
-              
-              // Broadcast level-ups to individual players
-              Object.entries(playerResults).forEach(([playerId, result]) => {
-                if (result.leveledUp) {
-                  const playerSockets = Object.entries(io.sockets.sockets)
-                    .filter(([_, s]) => getPlayerIdBySocket(s.id) === Number(playerId))
-                    .map(([_, s]) => s);
-                  
-                  playerSockets.forEach(s => {
-                    s.emit('hero:level-up', {
-                      oldLevel: result.oldLevel,
-                      newLevel: result.newLevel,
-                      experienceGained: result.experienceGained
-                    });
-                  });
-                }
-              });
-              
-              if (combatTickInterval) {
-                clearInterval(combatTickInterval);
-                combatTickInterval = null;
-              }
-            }
-            
-            // Broadcast combat state update
-            broadcastCombatState(io, combatInstanceId);
-          }
-        }, 100); // 10 ticks per second
-      }
 
       // Send initial combat state
       socket.emit('combat:joined', {
@@ -261,16 +162,19 @@ export function registerCombatHandlers(socket, io) {
         combatState: getCombatState(combatInstanceId)
       });
 
-      console.log(`[combat] Player ${playerId} (${getPlayerById(playerId)?.name || 'unknown'}) joined combat instance: ${combatInstanceId}`);
+      console.log(`[combat] Player ${playerId} joined matchmaking combat: ${combatInstanceId}`);
 
       // Notify other players in combat
       socket.to(`combat:${combatInstanceId}`).emit('combat:player-joined', {
         playerId,
         combatInstanceId
       });
+
+      if (typeof ack === 'function') ack({ ok: true, combatInstanceId });
     } catch (error) {
-      console.error('Error joining combat:', error);
-      socket.emit('combat:error', { message: 'Failed to join combat' });
+      console.error('[combat] Error joining matchmaking combat:', error);
+      socket.emit('combat:error', { message: 'Failed to join matchmaking combat' });
+      if (typeof ack === 'function') ack({ ok: false, error: error.message });
     }
   });
 
@@ -521,11 +425,8 @@ export function registerCombatHandlers(socket, io) {
 
       combatInstanceId = null;
     }
-
-    if (combatTickInterval) {
-      clearInterval(combatTickInterval);
-      combatTickInterval = null;
-    }
+    
+    // Note: Combat tick cleanup is handled by global tick system
   });
 
   /**
@@ -551,11 +452,8 @@ export function registerCombatHandlers(socket, io) {
         combatInstanceId
       });
     }
-
-    if (combatTickInterval) {
-      clearInterval(combatTickInterval);
-      combatTickInterval = null;
-    }
+    
+    // Note: Combat tick cleanup is handled by global tick system
   });
 }
 

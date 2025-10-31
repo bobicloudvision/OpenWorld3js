@@ -5,6 +5,7 @@
 
 import { updatePlayerHeroCombatStats } from './heroService.js';
 import * as zoneService from './zoneService.js';
+import { saveCombatMatch } from './combatHistoryService.js';
 
 // Combat state storage (in-memory, move to Redis for production)
 const combatInstances = new Map(); // combatInstanceId -> CombatInstance
@@ -701,6 +702,71 @@ export function endCombatInstance(combatInstanceId, result) {
         }
       }
     });
+  }
+  
+  // Save combat match to history database
+  try {
+    const winners = [];
+    const losers = [];
+    
+    // Determine winners and losers based on their health
+    combatInstance.participants.players?.forEach(playerId => {
+      const playerState = playerCombatState.get(playerId);
+      if (playerState && playerState.health > 0) {
+        winners.push(playerId);
+      } else {
+        losers.push(playerId);
+      }
+    });
+    
+    // If no winners (all dead), it's a draw
+    if (winners.length === 0) {
+      losers.forEach(pid => winners.push(pid));
+      losers.length = 0;
+    }
+    
+    // Build player results with detailed stats
+    const detailedPlayerResults = {};
+    combatInstance.participants.players?.forEach(playerId => {
+      const playerState = playerCombatState.get(playerId);
+      const playerResult = playerResults[playerId] || {};
+      
+      detailedPlayerResults[playerId] = {
+        ...playerResult,
+        health: playerState?.health || 0,
+        maxHealth: playerState?.maxHealth || 100,
+        power: playerState?.power || 0,
+        maxPower: playerState?.maxPower || 100,
+        level: playerResult.newLevel || 1,
+        oldLevel: playerResult.oldLevel || 1,
+        activeHeroId: null, // TODO: Track hero ID
+        damageDealt: 0, // TODO: Track in combat state
+        damageTaken: 0, // TODO: Track in combat state
+        healingDone: 0, // TODO: Track in combat state
+        spellsCast: 0, // TODO: Track in combat state
+        kills: 0,
+        deaths: playerState?.health > 0 ? 0 : 1,
+      };
+    });
+    
+    const matchType = combatInstance.isMatchmaking ? 'matchmaking' : 'world';
+    
+    saveCombatMatch({
+      combatInstanceId,
+      combatType: combatInstance.combatType,
+      matchType,
+      queueType: combatInstance.queueType || null,
+      zoneId: combatInstance.zoneId,
+      result,
+      winners,
+      losers,
+      startTime: combatInstance.state.startTime,
+      endTime: combatInstance.state.endTime,
+      stats: {},
+      playerResults: detailedPlayerResults
+    });
+  } catch (error) {
+    console.error('[combat] Error saving combat history:', error);
   }
   
   return playerResults;

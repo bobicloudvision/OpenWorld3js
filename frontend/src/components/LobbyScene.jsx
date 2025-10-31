@@ -21,14 +21,30 @@ export default function LobbyScene({
   currentZone
 }) {
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
+  const [inCombat, setInCombat] = useState(false)
 
-  // Ensure we leave combat when entering lobby
+  // Listen for combat state changes
   useEffect(() => {
-    if (socket && socket.connected) {
-      console.log('[lobby] Leaving combat and entering lobby')
-      socket.emit('combat:leave')
-      window.__inCombat = false
-    }
+    if (!socket) return;
+
+    const handleCombatJoined = () => {
+      console.log('[lobby] Entered combat');
+      setInCombat(true);
+    };
+
+    const handleCombatEnded = () => {
+      console.log('[lobby] Combat ended');
+      setInCombat(false);
+      socket.emit('combat:leave');
+    };
+
+    socket.on('combat:joined', handleCombatJoined);
+    socket.on('combat:ended', handleCombatEnded);
+
+    return () => {
+      socket.off('combat:joined', handleCombatJoined);
+      socket.off('combat:ended', handleCombatEnded);
+    };
   }, [socket])
 
   useEffect(() => {
@@ -45,65 +61,6 @@ export default function LobbyScene({
 
   return (
     <>
-      {/* Lobby UI */}
-      <div style={{
-        position: 'fixed',
-        top: '50%',
-        left: '50%',
-        transform: 'translate(-50%, -50%)',
-        zIndex: 100,
-        textAlign: 'center',
-        pointerEvents: 'none'
-      }}>
-        <div style={{
-          background: 'rgba(17, 24, 39, 0.9)',
-          padding: '20px 30px',
-          borderRadius: '12px',
-          border: '2px solid #374151',
-          pointerEvents: 'auto'
-        }}>
-          <h2 style={{ 
-            color: '#e5e7eb', 
-            margin: '0 0 15px 0',
-            fontSize: '24px',
-            fontWeight: 'bold'
-          }}>
-            🏰 Lobby
-          </h2>
-          <p style={{ 
-            color: '#9ca3af', 
-            margin: '0 0 20px 0',
-            fontSize: '14px'
-          }}>
-            Explore and chat with other players
-          </p>
-          <button
-            onClick={onEnterBattle}
-            style={{
-              padding: '12px 24px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              background: 'linear-gradient(135deg, #dc2626 0%, #991b1b 100%)',
-              color: 'white',
-              border: '2px solid #7f1d1d',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              boxShadow: '0 4px 12px rgba(220, 38, 38, 0.3)'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'scale(1.05)'
-              e.target.style.boxShadow = '0 6px 16px rgba(220, 38, 38, 0.4)'
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'scale(1)'
-              e.target.style.boxShadow = '0 4px 12px rgba(220, 38, 38, 0.3)'
-            }}
-          >
-            ⚔️ Enter Battle Zone
-          </button>
-        </div>
-      </div>
 
       {/* Hero Info */}
       <div style={{
@@ -186,7 +143,7 @@ export default function LobbyScene({
           <Ground 
             playerPositionRef={playerPositionRef} 
             socket={socket} 
-            disableCombat={true}
+            disableCombat={!inCombat}
             mapFile={currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb'}
           />
           <HiddenElementPlaceholders />

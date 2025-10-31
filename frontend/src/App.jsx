@@ -1,11 +1,10 @@
-import React, { useRef, useEffect, useCallback } from 'react'
+import React, { useRef, useEffect } from 'react'
 import { io } from 'socket.io-client'
 import { me as fetchMe, logout as playerLogout } from './services/authService'
 import './App.css'
 import './components/GameUI.css'
 import AuthOverlay from './components/AuthOverlay'
 import HeroSelection from './components/HeroSelection'
-import GameplayScene from './components/GameplayScene'
 import LobbyScene from './components/LobbyScene'
 import ZoneSelector from './components/ZoneSelector'
 import ZoneTransition from './components/ZoneTransition'
@@ -21,7 +20,6 @@ export default function App() {
   const [availableHeroes, setAvailableHeroes] = React.useState([])
   const [loadingHeroes, setLoadingHeroes] = React.useState(false)
   const [showHeroSelection, setShowHeroSelection] = React.useState(false)
-  const [currentScene, setCurrentScene] = React.useState('battle') // 'lobby' or 'battle' - Start in battle mode
   const [currentZone, setCurrentZone] = React.useState(null)
   const [showZoneSelector, setShowZoneSelector] = React.useState(false)
   const [showMatchmaking, setShowMatchmaking] = React.useState(false)
@@ -125,15 +123,46 @@ export default function App() {
       setSocketReady(false);
     });
 
-    // Listen for combat end - return to lobby after matchmaking battles
+    // Handle matchmaking battle start
+    socket.on('match:started', (data) => {
+      console.log('[app] Match started, joining combat:', data);
+      const { combatInstanceId, zone, position } = data;
+      
+      if (combatInstanceId) {
+        // Join the matchmaking combat instance
+        socket.emit('combat:join-matchmaking', { combatInstanceId }, (response) => {
+          if (response?.ok) {
+            console.log('[app] Successfully joined matchmaking combat');
+            window.__inCombat = true;
+          } else {
+            console.error('[app] Failed to join matchmaking combat:', response?.error);
+          }
+        });
+      }
+      
+      // Update zone if provided
+      if (zone) {
+        setCurrentZone(zone);
+      }
+      
+      // Update position if provided
+      if (position) {
+        playerPositionRef.current = [position.x, position.y, position.z];
+      }
+    });
+
+    // Handle combat end (matchmaking battles)
     socket.on('combat:ended', (data) => {
       console.log('[app] Combat ended:', data);
+      window.__inCombat = false;
+      
+      // Refresh hero data to get updated experience and level
+      socket.emit('get:player:heroes');
+      
+      // If this was a matchmaking battle, return to lobby zone after a delay
       if (data.isMatchmaking) {
         console.log('[app] Matchmaking battle ended, returning to lobby...');
-        // Wait a bit before switching to lobby (let players see the results)
         setTimeout(() => {
-          setCurrentScene('lobby');
-          // Request to join a safe zone (lobby)
           socket.emit('zone:list', {}, (response) => {
             if (response.ok && response.zones) {
               const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone);
@@ -146,12 +175,13 @@ export default function App() {
               }
             }
           });
-        }, 3000); // Wait 3 seconds for results screen
+        }, 3000); // Wait 3 seconds to let players see the results
       }
     });
 
     return () => {
       socket.off('zone:joined');
+      socket.off('match:started');
       socket.off('combat:ended');
       socket.disconnect();
       socketRef.current = null;
@@ -206,24 +236,7 @@ export default function App() {
     { name: 'rightward', keys: ['ArrowRight', 'KeyD'] },
     { name: 'jump', keys: ['Space'] },
     { name: 'run', keys: ['Shift'] },
-    { name: 'attack', keys: ['KeyF'] },
-    { name: 'magic1', keys: ['Digit1'] },
-    { name: 'magic2', keys: ['Digit2'] },
-    { name: 'magic3', keys: ['Digit3'] },
-    { name: 'magic4', keys: ['Digit4'] },
   ]
-  
-  // Memoized callback to prevent infinite re-renders
-  const handleHeroStatsUpdate = useCallback((playerHeroId, stats) => {
-    // Update specific hero's combat stats (health, power) in real-time
-    setPlayerHeroes(prevHeroes => 
-      prevHeroes.map(hero => 
-        hero.playerHeroId === playerHeroId 
-          ? { ...hero, ...stats }
-          : hero
-      )
-    );
-  }, []);
   
   return (
     <>
@@ -345,43 +358,16 @@ export default function App() {
           />
         ) : (
           <>
-            {currentScene === 'lobby' ? (
-              <LobbyScene
-                playerPositionRef={playerPositionRef}
-                keyboardMap={keyboardMap}
-                activeHero={
-                  playerHeroes?.find(h => h.playerHeroId === player.active_hero_id) || null
-                }
-                player={player}
-                socket={socketRef.current}
-                onEnterBattle={() => setCurrentScene('battle')}
-                currentZone={currentZone}
-              />
-            ) : (
-              <GameplayScene
-                playerPositionRef={playerPositionRef}
-                keyboardMap={keyboardMap}
-                activeHero={
-                  playerHeroes?.find(h => h.playerHeroId === player.active_hero_id) || null
-                }
-                player={player}
-                playerHeroes={playerHeroes}
-                availableHeroes={availableHeroes}
-                socket={socketRef.current}
-                onHeroSelected={(updatedPlayer) => {
-                  setPlayer(updatedPlayer);
-                  setShowHeroSelection(false);
-                }}
-                onHeroesUpdate={(updatedPlayerHeroes, updatedAvailableHeroes) => {
-                  setPlayerHeroes(updatedPlayerHeroes);
-                  setAvailableHeroes(updatedAvailableHeroes);
-                }}
-                onHeroStatsUpdate={handleHeroStatsUpdate}
-                onOpenHeroSelection={() => setShowHeroSelection(true)}
-                onReturnToLobby={() => setCurrentScene('lobby')}
-                currentZone={currentZone}
-              />
-            )}
+            <LobbyScene
+              playerPositionRef={playerPositionRef}
+              keyboardMap={keyboardMap}
+              activeHero={
+                playerHeroes?.find(h => h.playerHeroId === player.active_hero_id) || null
+              }
+              player={player}
+              socket={socketRef.current}
+              currentZone={currentZone}
+            />
             {showHeroSelection && (
               <HeroSelection
                 player={player}
