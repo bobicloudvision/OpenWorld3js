@@ -473,57 +473,60 @@ server {
     server_name ${DOMAIN};
     root ${PROJECT_DIR}/public;
 
-    index index.html index.htm index.php;
-
+    index index.html index.htm;
     charset utf-8;
+    client_max_body_size 100M;
 
-    # Frontend static files
+    # Laravel/Filament Admin, API, and Auth routes
+    location ~ ^/(api|admin|sanctum|livewire) {
+        try_files \$uri @laravel;
+    }
+
+    # Filament assets (CSS, JS, fonts)
+    location ~ ^/(css|js|fonts)/filament/ {
+        try_files \$uri @laravel_assets;
+    }
+
+    # Laravel asset handling
+    location @laravel_assets {
+        root ${PROJECT_DIR}/backend-php/public;
+        try_files \$uri =404;
+    }
+
+    # Proxy Laravel requests to index.php
+    location @laravel {
+        rewrite ^/(.*)$ /laravel_handler last;
+    }
+
+    # Handle PHP requests for Laravel
+    location = /laravel_handler {
+        internal;
+        fastcgi_pass unix:/var/run/php/php${PHP_VERSION}-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME ${PROJECT_DIR}/backend-php/public/index.php;
+        fastcgi_param SCRIPT_NAME /index.php;
+        fastcgi_param REQUEST_URI \$request_uri;
+        fastcgi_param DOCUMENT_ROOT ${PROJECT_DIR}/backend-php/public;
+        include fastcgi_params;
+    }
+
+    # Frontend static files (React app)
     location / {
         try_files \$uri \$uri/ /index.html;
     }
 
-    # Laravel API endpoints
-    location /api {
-        alias ${PROJECT_DIR}/backend-php/public;
-        try_files \$uri \$uri/ @laravel;
-
-        location ~ \.php$ {
-            include snippets/fastcgi-php.conf;
-            fastcgi_pass unix:/var/run/php/php${PHP_VERSION}-fpm.sock;
-            fastcgi_param SCRIPT_FILENAME ${PROJECT_DIR}/backend-php/public/index.php;
-            include fastcgi_params;
-        }
-    }
-
-     location /admin {
-        alias ${PROJECT_DIR}/backend-php/public;
-        try_files \$uri \$uri/ @laravel;
-
-        location ~ \.php$ {
-            include snippets/fastcgi-php.conf;
-            fastcgi_pass unix:/var/run/php/php${PHP_VERSION}-fpm.sock;
-            fastcgi_param SCRIPT_FILENAME ${PROJECT_DIR}/backend-php/public/index.php;
-            include fastcgi_params;
-        }
-    }
-
-    location @laravel {
-        rewrite /api/(.*)$ /api/index.php?/\$1 last;
-    }
-
-    # Deny access to .htaccess files
-    location ~ /\.(?!well-known).* {
+    # Deny access to hidden files
+    location ~ /\. {
         deny all;
     }
 
-    # Additional security headers
+    # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
 
     # Logging
     access_log /var/log/nginx/openworld3js-access.log;
-    error_log /var/log/nginx/openworld3js-error.log;
+    error_log /var/log/nginx/openworld3js-error.log debug;
 }
 EOL
 
@@ -691,4 +694,5 @@ echo "  - Reload Nginx: systemctl reload nginx"
 echo "  - Laravel logs: tail -f ${PROJECT_DIR}/backend-php/storage/logs/laravel.log"
 echo ""
 print_message "To redeploy/update, simply run this script again!"
+echo ""
 echo ""
