@@ -28,7 +28,7 @@ export default function PlayerNameBadge({ playerName, height, modelScale = 1 }) 
           color: '#ffffff',
           padding: '6px 12px',
           borderRadius: '12px',
-          fontSize: '14px',
+          fontSize: '10px',
           fontWeight: '600',
           border: '2px solid rgba(100, 150, 255, 0.6)',
           boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5), 0 0 8px rgba(100, 150, 255, 0.3)',
