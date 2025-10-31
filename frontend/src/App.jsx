@@ -6,6 +6,7 @@ import './components/GameUI.css'
 import AuthOverlay from './components/AuthOverlay'
 import HeroSelection from './components/HeroSelection'
 import GameplayScene from './components/GameplayScene'
+import LobbyScene from './components/LobbyScene'
 
 export default function App() {
   const playerPositionRef = React.useRef([0, 0, 0]);
@@ -17,6 +18,7 @@ export default function App() {
   const [availableHeroes, setAvailableHeroes] = React.useState([])
   const [loadingHeroes, setLoadingHeroes] = React.useState(false)
   const [showHeroSelection, setShowHeroSelection] = React.useState(false)
+  const [currentScene, setCurrentScene] = React.useState('lobby') // 'lobby' or 'battle'
   useEffect(() => {
     // Validate stored token on load (non-blocking, logs only)
     fetchMe().then((me) => {
@@ -190,27 +192,41 @@ export default function App() {
           />
         ) : (
           <>
-            <GameplayScene
-              playerPositionRef={playerPositionRef}
-              keyboardMap={keyboardMap}
-              activeHero={
-                playerHeroes?.find(h => h.playerHeroId === player.active_hero_id) || null
-              }
-              player={player}
-              playerHeroes={playerHeroes}
-              availableHeroes={availableHeroes}
-              socket={socketRef.current}
-              onHeroSelected={(updatedPlayer) => {
-                setPlayer(updatedPlayer);
-                setShowHeroSelection(false);
-              }}
-              onHeroesUpdate={(updatedPlayerHeroes, updatedAvailableHeroes) => {
-                setPlayerHeroes(updatedPlayerHeroes);
-                setAvailableHeroes(updatedAvailableHeroes);
-              }}
-              onHeroStatsUpdate={handleHeroStatsUpdate}
-              onOpenHeroSelection={() => setShowHeroSelection(true)}
-            />
+            {currentScene === 'lobby' ? (
+              <LobbyScene
+                playerPositionRef={playerPositionRef}
+                keyboardMap={keyboardMap}
+                activeHero={
+                  playerHeroes?.find(h => h.playerHeroId === player.active_hero_id) || null
+                }
+                player={player}
+                socket={socketRef.current}
+                onEnterBattle={() => setCurrentScene('battle')}
+              />
+            ) : (
+              <GameplayScene
+                playerPositionRef={playerPositionRef}
+                keyboardMap={keyboardMap}
+                activeHero={
+                  playerHeroes?.find(h => h.playerHeroId === player.active_hero_id) || null
+                }
+                player={player}
+                playerHeroes={playerHeroes}
+                availableHeroes={availableHeroes}
+                socket={socketRef.current}
+                onHeroSelected={(updatedPlayer) => {
+                  setPlayer(updatedPlayer);
+                  setShowHeroSelection(false);
+                }}
+                onHeroesUpdate={(updatedPlayerHeroes, updatedAvailableHeroes) => {
+                  setPlayerHeroes(updatedPlayerHeroes);
+                  setAvailableHeroes(updatedAvailableHeroes);
+                }}
+                onHeroStatsUpdate={handleHeroStatsUpdate}
+                onOpenHeroSelection={() => setShowHeroSelection(true)}
+                onReturnToLobby={() => setCurrentScene('lobby')}
+              />
+            )}
             {showHeroSelection && (
               <HeroSelection
                 player={player}

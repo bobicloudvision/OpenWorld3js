@@ -6,6 +6,7 @@ import { addVfx } from '../stores/effectsStore'
 export default function Ground(props) {
   const { scene } = useGLTF('/models/world1.glb')
   const socket = props.socket
+  const disableCombat = props.disableCombat || false
   
   const { 
     castingMode, 
@@ -23,10 +24,15 @@ export default function Ground(props) {
     const targetPosition = [point.x, point.y, point.z]
     console.log('Ground click position:', targetPosition)
     
-    // Show click effect at clicked position (visual cursor)
-    if (window.addClickEffect) {
+    // Show click effect at clicked position (visual cursor) - only if combat is enabled
+    if (window.addClickEffect && !disableCombat) {
       const magicType = castingMode ? player.selectedMagic : null
       window.addClickEffect(targetPosition, magicType)
+    }
+    
+    // Skip all combat logic if in lobby
+    if (disableCombat) {
+      return
     }
     
     if (castingMode && socket && socket.connected) {

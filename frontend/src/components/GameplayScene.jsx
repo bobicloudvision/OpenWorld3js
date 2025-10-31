@@ -27,7 +27,8 @@ export default function GameplayScene({
   onOpenHeroSelection,
   onHeroStatsUpdate,
   socket,
-  player
+  player,
+  onReturnToLobby
 }) {
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [combatInstanceId, setCombatInstanceId] = useState(null)
@@ -50,6 +51,7 @@ export default function GameplayScene({
     if (!socket || !player) return
 
     const joinCombat = () => {
+      console.log('[combat] Joining combat from battle scene')
       socket.emit('combat:join', {
         enemyIds: [],
         zoneCenter: [0, 0, 0],
@@ -57,7 +59,7 @@ export default function GameplayScene({
       })
     }
 
-    // Initial join on mount
+    // Initial join on mount (only when in battle scene)
     joinCombat()
 
     const onJoined = (payload) => {
@@ -147,14 +149,48 @@ export default function GameplayScene({
       socket.off('combat:ended', onEnded)
       socket.off('connect', onSocketConnect)
       socket.off('auth:ok', onAuthOk)
-      if (combatInstanceId) {
-        socket.emit('combat:leave')
-      }
+      // Always leave combat when unmounting battle scene
+      console.log('[combat] Leaving combat (battle scene unmounted)')
+      socket.emit('combat:leave')
+      window.__inCombat = false
     }
   }, [socket, player, onHeroStatsUpdate])
 
   return (
     <>
+      {/* Return to Lobby Button */}
+      {onReturnToLobby && (
+        <button
+          onClick={onReturnToLobby}
+          style={{
+            position: 'fixed',
+            top: 80,
+            right: 20,
+            zIndex: 100,
+            padding: '10px 20px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
+            color: 'white',
+            border: '2px solid #1e40af',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)'
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = 'scale(1.05)'
+            e.target.style.boxShadow = '0 6px 16px rgba(37, 99, 235, 0.4)'
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = 'scale(1)'
+            e.target.style.boxShadow = '0 4px 12px rgba(37, 99, 235, 0.3)'
+          }}
+        >
+          🏰 Return to Lobby
+        </button>
+      )}
+      
       <GameUI 
         playerPositionRef={playerPositionRef}
         onOpenHeroSelection={onOpenHeroSelection}
