@@ -26,6 +26,8 @@ export default function LobbyScene({
   onHeroSelected,
   onHeroesUpdate
 }) {
+  const mapFilePath = currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb';
+  console.log('[LobbyScene] Rendering with zone:', currentZone?.name, 'map_file:', currentZone?.map_file, 'computed mapPath:', mapFilePath);
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [inCombat, setInCombat] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
@@ -237,12 +239,16 @@ export default function LobbyScene({
           </KeyboardControls>    
         
           <Ground 
+            key={currentZone?.id || 'default'}
             playerPositionRef={playerPositionRef} 
             socket={socket} 
             disableCombat={!inCombat}
-            mapFile={currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb'}
+            mapFile={mapFilePath}
           />
-          <HiddenElementPlaceholders />
+          <HiddenElementPlaceholders 
+            key={`placeholders-${currentZone?.id || 'default'}`}
+            mapFile={mapFilePath}
+          />
           <GameManager playerPositionRef={playerPositionRef} />
           
         </Physics>

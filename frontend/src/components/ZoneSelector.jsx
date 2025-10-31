@@ -5,7 +5,7 @@ import useZoneStore from '../stores/zoneStore';
  * Zone Selector Component
  * Displays available zones and allows player to travel
  */
-export default function ZoneSelector({ socket, playerLevel = 1, onClose }) {
+export default function ZoneSelector({ socket, playerLevel = 1, onClose, onZoneChange }) {
   const { availableZones, currentZone, setAvailableZones, canEnterZone } = useZoneStore();
   const [loading, setLoading] = useState(true);
   const [selectedZone, setSelectedZone] = useState(null);
@@ -68,6 +68,13 @@ export default function ZoneSelector({ socket, playerLevel = 1, onClose }) {
       
       if (response.ok) {
         console.log('[zone] Successfully joined zone:', response.zone.name);
+        console.log('[zone] Zone data:', response.zone);
+        
+        // Notify parent component about zone change
+        if (onZoneChange) {
+          onZoneChange(response.zone, response.position);
+        }
+        
         if (onClose) onClose();
       } else {
         alert(`Cannot join zone: ${response.error}`);

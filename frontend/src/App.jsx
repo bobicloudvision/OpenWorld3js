@@ -26,8 +26,69 @@ export default function App() {
   const [showZoneSelector, setShowZoneSelector] = React.useState(false)
   const [showMatchmaking, setShowMatchmaking] = React.useState(false)
   const [inCombatMatch, setInCombatMatch] = React.useState(false)
+  const [isMatchmakingBattle, setIsMatchmakingBattle] = React.useState(false)
   const [showCombatRejoin, setShowCombatRejoin] = React.useState(false)
   const [activeCombatInfo, setActiveCombatInfo] = React.useState(null)
+
+  // Handle zone change (both auto-join and manual selection)
+  const handleZoneChange = React.useCallback((zone, position) => {
+    console.log('[app] 🗺️ Zone changed:', zone.name);
+    console.log('[app] Zone data:', { 
+      id: zone.id, 
+      name: zone.name, 
+      map_file: zone.map_file,
+      environment_file: zone.environment_file,
+      is_combat_zone: zone.is_combat_zone, 
+      is_safe_zone: zone.is_safe_zone 
+    });
+    
+    // Update zone state
+    setCurrentZone(zone);
+    
+    // Switch scenes based on zone type
+    if (zone.is_combat_zone && !zone.is_safe_zone) {
+      console.log('[app] Switching to GameplayScene (combat zone)');
+      setInCombatMatch(true);
+    } else {
+      console.log('[app] Switching to LobbyScene (safe zone)');
+      setInCombatMatch(false);
+    }
+    
+    // Update player position if provided
+    if (position) {
+      playerPositionRef.current = [position.x, position.y, position.z];
+    }
+  }, []);
+
+  // Helper function to load zone data
+  const loadZoneData = React.useCallback((socket) => {
+    console.log('[app] Loading zone data...');
+    // Request list of zones to find default lobby
+    socket.emit('zone:list', {}, (response) => {
+      console.log('[app] Zone list response:', response);
+      if (response.ok && response.zones) {
+        const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone);
+        console.log('[app] Found lobby zone:', lobby);
+        if (lobby) {
+          // Auto-join lobby zone
+          socket.emit('zone:join', { zoneId: lobby.id }, (joinResponse) => {
+            console.log('[app] Zone join response:', joinResponse);
+            if (joinResponse.ok) {
+              handleZoneChange(joinResponse.zone, joinResponse.position);
+              console.log('[app] Auto-joined zone:', joinResponse.zone.name);
+            } else {
+              console.error('[app] Failed to join zone:', joinResponse.error);
+            }
+          });
+        } else {
+          console.warn('[app] No lobby zone found in zones list');
+        }
+      } else {
+        console.error('[app] Failed to get zone list:', response);
+      }
+    });
+  }, [handleZoneChange]);
+
   useEffect(() => {
     // Validate stored token on load (non-blocking, logs only)
     fetchMe().then((me) => {
@@ -83,15 +144,8 @@ export default function App() {
       });
     });
 
-    // Handle zone changes
-    socket.on('zone:joined', ({ zone, position }) => {
-      console.log('[app] Zone changed:', zone.name);
-      setCurrentZone(zone);
-      // Update player position if needed
-      if (position) {
-        playerPositionRef.current = [position.x, position.y, position.z];
-      }
-    });
+    // Note: zone changes are handled via callbacks in handleZoneChange()
+    // The backend doesn't emit a 'zone:joined' event to the joining player
 
     socket.on('player', (socketPlayer) => {
       if (socketPlayer) setPlayer(socketPlayer);
@@ -159,8 +213,8 @@ export default function App() {
         setTimeout(() => {
           console.log('[app] 🔄 NOW switching back to lobby scene...');
           
-          // Switch back to lobby scene
-          setInCombatMatch(false);
+          // Clear matchmaking flag
+          setIsMatchmakingBattle(false);
           
           // Return to lobby zone
           socket.emit('zone:list', {}, (response) => {
@@ -170,6 +224,7 @@ export default function App() {
                 socket.emit('zone:join', { zoneId: lobby.id }, (joinResponse) => {
                   if (joinResponse.ok) {
                     console.log('[app] ✅ Returned to lobby zone:', joinResponse.zone.name);
+                    handleZoneChange(joinResponse.zone, joinResponse.position);
                   }
                 });
               }
@@ -177,20 +232,19 @@ export default function App() {
           });
         }, 7000); // Wait 7 seconds to let players see the results
       } else {
-        // For non-matchmaking battles, switch immediately
-        console.log('[app] Non-matchmaking battle, switching immediately');
-        setInCombatMatch(false);
+        // For non-matchmaking battles in regular combat zones, stay in the zone
+        // The scene state is determined by the current zone type, so no need to change it
+        console.log('[app] Non-matchmaking battle ended, staying in current zone');
       }
     });
 
     return () => {
-      socket.off('zone:joined');
       socket.off('combat:error');
       socket.off('combat:ended');
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [!!player]);
+  }, [!!player, handleZoneChange]);
 
   // Keyboard shortcut: Press 'P' to open matchmaking
   React.useEffect(() => {
@@ -204,35 +258,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [player, socketReady])
 
-  // Helper function to load zone data
-  const loadZoneData = React.useCallback((socket) => {
-    console.log('[app] Loading zone data...');
-    // Request list of zones to find default lobby
-    socket.emit('zone:list', {}, (response) => {
-      console.log('[app] Zone list response:', response);
-      if (response.ok && response.zones) {
-        const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone);
-        console.log('[app] Found lobby zone:', lobby);
-        if (lobby) {
-          // Auto-join lobby zone
-          socket.emit('zone:join', { zoneId: lobby.id }, (joinResponse) => {
-            console.log('[app] Zone join response:', joinResponse);
-            if (joinResponse.ok) {
-              setCurrentZone(joinResponse.zone);
-              console.log('[app] Auto-joined zone:', joinResponse.zone.name);
-            } else {
-              console.error('[app] Failed to join zone:', joinResponse.error);
-            }
-          });
-        } else {
-          console.warn('[app] No lobby zone found in zones list');
-        }
-      } else {
-        console.error('[app] Failed to get zone list:', response);
-      }
-    });
-  }, []);
-
   // Handle combat rejoin
   const handleCombatRejoin = React.useCallback(async (combatInfo) => {
     console.log('[app] 🔄 Rejoining combat:', combatInfo.combatInstanceId);
@@ -244,6 +269,7 @@ export default function App() {
     
     // Switch to combat scene
     setInCombatMatch(true);
+    setIsMatchmakingBattle(combatInfo.isMatchmaking || false);
     setShowCombatRejoin(false);
     
     // Join the combat instance
@@ -261,6 +287,7 @@ export default function App() {
         } else {
           console.error('[app] ❌ Failed to rejoin combat:', response?.error);
           setInCombatMatch(false);
+          setIsMatchmakingBattle(false);
           setShowCombatRejoin(false);
         }
       }
@@ -294,9 +321,10 @@ export default function App() {
     console.log('='.repeat(60));
     const { combatInstanceId, zone, position } = data;
     
-    // Switch to combat scene
+    // Switch to combat scene and mark as matchmaking battle
     setInCombatMatch(true);
-    console.log('[app] inCombatMatch set to TRUE');
+    setIsMatchmakingBattle(true);
+    console.log('[app] inCombatMatch set to TRUE (matchmaking)');
     setShowMatchmaking(false); // Close matchmaking modal
     
     if (combatInstanceId && socketRef.current) {
@@ -340,7 +368,7 @@ export default function App() {
     <div style={{ position: 'fixed', top: 12, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', padding: '0 12px' }}>
     {/* Left side - Zone info and selector */}
     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-      {player && socketReady && !inCombatMatch && (
+      {player && socketReady && !isMatchmakingBattle && (
         <>
           {currentZone && (
             <div style={{
@@ -473,7 +501,7 @@ export default function App() {
                     )
                   );
                 }}
-                skipAutoJoinCombat={true}
+                skipAutoJoinCombat={isMatchmakingBattle}
               />
             ) : (
               <LobbyScene
@@ -516,18 +544,19 @@ export default function App() {
     )}
     
     {/* Zone Selector Modal */}
-    {player && socketReady && showZoneSelector && !inCombatMatch && (
+    {player && socketReady && showZoneSelector && !isMatchmakingBattle && (
       <ZoneSelector
         socket={socketRef.current}
         playerLevel={
           playerHeroes?.find(h => h.playerHeroId === player.active_hero_id)?.level || 1
         }
         onClose={() => setShowZoneSelector(false)}
+        onZoneChange={handleZoneChange}
       />
     )}
     
     {/* Matchmaking Modal */}
-    {player && socketReady && showMatchmaking && !inCombatMatch && (
+    {player && socketReady && showMatchmaking && !isMatchmakingBattle && (
       <MatchmakingQueue
         socket={socketRef.current}
         onClose={() => setShowMatchmaking(false)}

@@ -5,13 +5,14 @@ import { Box3, Vector3 } from 'three'
 import Forest from './Forest'
 
 /**
- * Component that visualizes specific elements from world1.glb as wireframe placeholders
+ * Component that visualizes specific elements from a map file as wireframe placeholders
  * Detects elements by name patterns (house, forest, etc.) regardless of visibility
  * These placeholders show where elements are located and provide collision boxes
  * so they can be replaced dynamically in the future
  */
-export default function HiddenElementPlaceholders() {
-  const { scene } = useGLTF('/models/world1.glb')
+export default function HiddenElementPlaceholders({ mapFile = '/models/world1.glb' }) {
+  console.log('[HiddenElementPlaceholders] Loading map file:', mapFile);
+  const { scene } = useGLTF(mapFile)
   const { scene: houseModel } = useGLTF('/models/houses/house1.glb')
   const showBoundingBox = false
   

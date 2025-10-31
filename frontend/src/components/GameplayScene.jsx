@@ -32,6 +32,9 @@ export default function GameplayScene({
   currentZone,
   skipAutoJoinCombat
 }) {
+  const mapFilePath = currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb';
+  const environmentPath = currentZone?.environment_file || 'models/night.hdr';
+  console.log('[GameplayScene] Rendering with zone:', currentZone?.name, 'map_file:', currentZone?.map_file, 'computed mapPath:', mapFilePath, 'environmentPath:', environmentPath);
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [combatInstanceId, setCombatInstanceId] = useState(null)
   const [hasJoinedOnce, setHasJoinedOnce] = useState(false)
@@ -224,7 +227,7 @@ export default function GameplayScene({
         }}
       >
         <Environment 
-          files={currentZone?.environment_file || "models/night.hdr"} 
+          files={environmentPath} 
           ground={{ scale: 100 }} 
         />
         
@@ -270,11 +273,15 @@ export default function GameplayScene({
         
           
           <Ground 
+            key={currentZone?.id || 'default'}
             playerPositionRef={playerPositionRef} 
             socket={socket}
-            mapFile={currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb'}
+            mapFile={mapFilePath}
           />
-          <HiddenElementPlaceholders />
+          <HiddenElementPlaceholders 
+            key={`placeholders-${currentZone?.id || 'default'}`}
+            mapFile={mapFilePath}
+          />
           <GameManager playerPositionRef={playerPositionRef} />
           
         </Physics>
