@@ -8,7 +8,7 @@ export function registerSocketHandlers(io) {
   io.on('connection', (socket) => {
     registerAuthHandlers(socket, io);
     registerPlayerHandlers(socket);
-    registerHeroHandlers(socket);
+    registerHeroHandlers(socket, io);
 
     socket.on('disconnect', () => {
       unbindSocket(socket.id);

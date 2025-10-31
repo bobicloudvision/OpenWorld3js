@@ -1,8 +1,9 @@
 import { getPlayerIdBySocket } from '../services/sessionService.js';
 import { getPlayerHeroes, getAvailableHeroesToBuy, getHeroById, purchaseHero } from '../services/heroService.js';
 import { setActiveHero, getPlayerById } from '../services/playerService.js';
+import { updatePlayerHeroInGameSession } from '../services/multiplayerService.js';
 
-export function registerHeroHandlers(socket) {
+export function registerHeroHandlers(socket, io) {
   /**
    * Get all heroes owned by the authenticated player
    * Emits: 'player:heroes' with array of player hero objects
@@ -70,6 +71,31 @@ export function registerHeroHandlers(socket) {
       // Get updated player data
       const player = getPlayerById(playerId);
       socket.emit('hero:set:active:ok', { player });
+      
+      // Get player's hero data to send multiplayer update
+      const playerHeroes = getPlayerHeroes(playerId);
+      const activeHero = player.active_hero_id
+        ? playerHeroes.find(ph => ph.playerHeroId === player.active_hero_id)
+        : null;
+      
+      // Update multiplayer session and notify other players
+      if (activeHero) {
+        const heroData = {
+          activeHeroId: player.active_hero_id,
+          heroModel: activeHero.model || null,
+          heroModelScale: activeHero.modelScale || 1,
+          heroModelRotation: activeHero.modelRotation || [0, 0, 0],
+        };
+        
+        // Update in multiplayer session
+        updatePlayerHeroInGameSession(socket.id, heroData);
+        
+        // Broadcast to all other players
+        socket.broadcast.emit('player:hero:changed', {
+          socketId: socket.id,
+          ...heroData,
+        });
+      }
     } else {
       socket.emit('hero:set:active:error', { message: 'Failed to set active hero' });
     }
@@ -93,6 +119,10 @@ export function registerHeroHandlers(socket) {
       return;
     }
 
+    // Get player data before purchase to check if they had an active hero
+    const playerBeforePurchase = getPlayerById(playerId);
+    const hadActiveHero = !!playerBeforePurchase?.active_hero_id;
+    
     const result = purchaseHero(playerId, heroId);
     
     if (result.success) {
@@ -100,12 +130,45 @@ export function registerHeroHandlers(socket) {
       const player = getPlayerById(playerId);
       const playerHeroes = getPlayerHeroes(playerId);
       const availableHeroes = getAvailableHeroesToBuy(playerId);
+      
+      // If player had no active hero and just purchased their first hero, set it as active
+      if (!hadActiveHero && result.playerHeroId) {
+        setActiveHero(playerId, result.playerHeroId);
+        // Refresh player data after setting active hero
+        const updatedPlayer = getPlayerById(playerId);
+        if (updatedPlayer) {
+          player.active_hero_id = updatedPlayer.active_hero_id;
+        }
+      }
+      
       socket.emit('hero:purchase:ok', { 
         player, 
         playerHeroes,
         availableHeroes,
         playerHeroId: result.playerHeroId 
       });
+      
+      // If hero was set as active (first hero or explicit selection), notify other players
+      if (player.active_hero_id) {
+        const activeHero = playerHeroes.find(ph => ph.playerHeroId === player.active_hero_id);
+        if (activeHero) {
+          const heroData = {
+            activeHeroId: player.active_hero_id,
+            heroModel: activeHero.model || null,
+            heroModelScale: activeHero.modelScale || 1,
+            heroModelRotation: activeHero.modelRotation || [0, 0, 0],
+          };
+          
+          // Update in multiplayer session
+          updatePlayerHeroInGameSession(socket.id, heroData);
+          
+          // Broadcast to all other players
+          socket.broadcast.emit('player:hero:changed', {
+            socketId: socket.id,
+            ...heroData,
+          });
+        }
+      }
     } else {
       socket.emit('hero:purchase:error', { message: result.error || 'Failed to purchase hero' });
     }
