@@ -495,6 +495,18 @@ server {
         }
     }
 
+     location /admin {
+        alias ${PROJECT_DIR}/backend-php/public;
+        try_files \$uri \$uri/ @laravel;
+
+        location ~ \.php$ {
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/var/run/php/php${PHP_VERSION}-fpm.sock;
+            fastcgi_param SCRIPT_FILENAME ${PROJECT_DIR}/backend-php/public/index.php;
+            include fastcgi_params;
+        }
+    }
+
     location @laravel {
         rewrite /api/(.*)$ /api/index.php?/\$1 last;
     }
