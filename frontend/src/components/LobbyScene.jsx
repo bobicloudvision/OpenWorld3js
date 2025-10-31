@@ -80,11 +80,25 @@ export default function LobbyScene({
         </div>
         {activeHero && (
           <>
-            <div style={{ color: '#9ca3af', fontSize: '12px' }}>
+            <div style={{ color: '#fbbf24', fontSize: '12px' }}>
               Level {activeHero.level || 1}
             </div>
             <div style={{ color: '#9ca3af', fontSize: '12px' }}>
               Class: {activeHero.className || 'Unknown'}
+            </div>
+            <div style={{ fontSize: '12px' }}>
+              <span style={{ color: '#9ca3af' }}>Health: </span>
+              <span style={{ color: '#ef4444', fontWeight: 'bold' }}>
+                {activeHero.currentHealth || 0}
+              </span>
+              <span style={{ color: '#9ca3af' }}> / </span>
+              <span style={{ color: '#ef4444' }}>{activeHero.maxHealth || 0}</span>
+            </div>
+            <div style={{ fontSize: '12px' }}>
+              <span style={{ color: '#9ca3af' }}>Power: </span>
+              <span style={{ color: '#3b82f6', fontWeight: 'bold' }}>
+                {activeHero.power || 0}
+              </span>
             </div>
           </>
         )}
