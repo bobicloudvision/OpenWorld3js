@@ -19,6 +19,9 @@ import {
 } from '../services/multiplayerService.js';
 import { getSpellForCombat } from '../services/spellService.js';
 
+// Global shared combat instance for PvP (for testing - in production use matchmaking)
+let globalCombatInstanceId = null;
+
 /**
  * Register combat socket handlers
  * @param {Socket} socket - The socket instance
@@ -43,16 +46,39 @@ export function registerCombatHandlers(socket, io) {
    */
   socket.on('combat:join', async (data) => {
     try {
-      // Get or create combat instance
-      if (data.combatInstanceId) {
-        const instance = getCombatInstance(data.combatInstanceId);
-        if (!instance || !instance.state.active) {
-          socket.emit('combat:error', { message: 'Combat instance not found or inactive' });
-          return;
+      // For testing: use a single global combat instance so all players fight each other
+      // Check if global instance exists and is active
+      if (globalCombatInstanceId) {
+        const instance = getCombatInstance(globalCombatInstanceId);
+        if (instance && instance.state.active) {
+          combatInstanceId = globalCombatInstanceId;
+          
+          // Add this player to the existing instance
+          instance.participants.players = instance.participants.players || [];
+          const alreadyParticipant = instance.participants.players.includes(playerId);
+          if (!alreadyParticipant) {
+            instance.participants.players.push(playerId);
+            
+            const playerSession = getPlayerInGameSession(socket.id);
+            const initialPosition = playerSession?.position || [0, 0, 0];
+            const stats = activeHero ? {
+              health: activeHero.health || 100,
+              maxHealth: activeHero.maxHealth || 100,
+              power: activeHero.power || 100,
+              maxPower: activeHero.maxPower || 100,
+              attack: activeHero.attack || 15,
+              defense: activeHero.defense || 5,
+              position: initialPosition
+            } : { position: initialPosition };
+            initializePlayerCombatState(playerId, combatInstanceId, stats);
+          }
+        } else {
+          globalCombatInstanceId = null; // Reset if instance is gone
         }
-        combatInstanceId = data.combatInstanceId;
-      } else {
-        // Create new combat instance (PvE for now)
+      }
+      
+      // If no global instance, create one
+      if (!combatInstanceId) {
         combatInstanceId = initializeCombatInstance(
           'pvp',
           {
@@ -64,6 +90,7 @@ export function registerCombatHandlers(socket, io) {
             radius: data.zoneRadius || 100
           }
         );
+        globalCombatInstanceId = combatInstanceId;
 
         // Initialize player state
         const playerSession = getPlayerInGameSession(socket.id);
@@ -121,6 +148,8 @@ export function registerCombatHandlers(socket, io) {
         combatState: getCombatState(combatInstanceId)
       });
 
+      console.log(`[combat] Player ${playerId} (${getPlayerById(playerId)?.name || 'unknown'}) joined combat instance: ${combatInstanceId}`);
+
       // Notify other players in combat
       socket.to(`combat:${combatInstanceId}`).emit('combat:player-joined', {
         playerId,
@@ -150,12 +179,12 @@ export function registerCombatHandlers(socket, io) {
 
       // Re-fetch active hero to ensure we have latest data
       const currentActiveHero = getActiveHeroForPlayer(playerId);
-      console.log('[combat:cast-spell] Active hero:', {
-        hasHero: !!currentActiveHero,
-        heroLevel: currentActiveHero?.level,
-        spellCount: currentActiveHero?.spells?.length,
-        spellKeys: currentActiveHero?.spells?.map(s => s.key)
-      });
+      // console.log('[combat:cast-spell] Active hero:', {
+      //   hasHero: !!currentActiveHero,
+      //   heroLevel: currentActiveHero?.level,
+      //   spellCount: currentActiveHero?.spells?.length,
+      //   spellKeys: currentActiveHero?.spells?.map(s => s.key)
+      // });
 
       // Get spell definition from database
       const heroSpell = currentActiveHero?.spells?.find(s => s.key === spellKey);
@@ -191,11 +220,11 @@ export function registerCombatHandlers(socket, io) {
       const playerState = getPlayerCombatState(playerId);
       const combatPosition = playerState?.position || playerPosition;
       
-      console.log('[combat:cast-spell] Positions:', {
-        playerPosition,
-        combatPosition,
-        targetPosition
-      });
+      // console.log('[combat:cast-spell] Positions:', {
+      //   playerPosition,
+      //   combatPosition,
+      //   targetPosition
+      // });
 
       // Validate spell cast
       const validation = validateSpellCast(
@@ -227,6 +256,30 @@ export function registerCombatHandlers(socket, io) {
         return;
       }
 
+      // Log attack summary for visibility (attacker -> target names with +/- damage/heal and remaining HP when available)
+      try {
+        const attackerName = (getPlayerById(playerId)?.name) || `player:${playerId}`;
+        const targetsSummary = Array.isArray(result.affectedTargets)
+          ? result.affectedTargets.map(t => {
+              const targetId = (t && (t.targetId ?? t.id ?? t.playerId)) ?? 'unknown';
+              const isPlayer = t && t.targetType === 'player';
+              const name = isPlayer ? (getPlayerById(targetId)?.name || `player:${targetId}`) : `enemy:${targetId}`;
+              const hasHeal = typeof t.heal === 'number' && t.heal > 0;
+              const hasDmg = typeof t.damage === 'number' && t.damage > 0;
+              const signPart = hasHeal ? `+${t.heal}` : (hasDmg ? `-${t.damage}` : '0');
+              let hpPart = '';
+              if (isPlayer) {
+                const targetState = getPlayerCombatState(targetId);
+                if (targetState && typeof targetState.health === 'number') {
+                  hpPart = ` (${targetState.health}/${targetState.maxHealth || '?'})`;
+                }
+              }
+              return `${name} ${signPart}${hpPart}`;
+            }).join(', ')
+          : 'no targets in range';
+        console.log(`[combat] ${attackerName} -> ${targetsSummary} using ${spellKey}`);
+      } catch (_) {}
+
       // Broadcast result to all players in combat
       const broadcastData = {
         actorId: playerId,
@@ -238,12 +291,42 @@ export function registerCombatHandlers(socket, io) {
         timestamp: Date.now()
       };
       
-      console.log('[combat:cast-spell] Broadcasting result:', broadcastData);
+      // console.log('[combat:cast-spell] Broadcasting result:', broadcastData);
       io.to(`combat:${combatInstanceId}`).emit('combat:action-resolved', broadcastData);
       // Also emit directly to the caster to ensure delivery
       socket.emit('combat:action-resolved', broadcastData);
       // Acknowledge back to the emitter
       if (typeof ack === 'function') ack({ ok: true, result: broadcastData });
+
+      // If no targets were hit, log AoE radius and distances to other players/enemies for debugging
+      try {
+        const noHits = !Array.isArray(result.affectedTargets) || result.affectedTargets.length === 0;
+        if (noHits) {
+          const instance = getCombatInstance(combatInstanceId);
+          const aoe = spell.affectRange ?? 0;
+          const players = instance?.participants?.players || [];
+          const enemies = instance?.participants?.enemies || [];
+          const playerDistances = players
+            .filter(pid => pid !== playerId)
+            .map(pid => {
+              const st = getPlayerCombatState(pid);
+              const name = getPlayerById(pid)?.name || `player:${pid}`;
+              if (!st?.position) return `${name}: pos?`;
+              const dx = (targetPosition?.[0] ?? 0) - st.position[0];
+              const dz = (targetPosition?.[2] ?? 0) - st.position[2];
+              const dist = Math.sqrt(dx * dx + dz * dz);
+              return `${name}: ${dist.toFixed(2)}m`; 
+            });
+          const enemyDistances = enemies.map(eid => {
+            const est = getPlayerCombatState(eid); // will be undefined for enemies; just to keep structure consistent
+            const name = `enemy:${eid}`;
+            // enemy positions are stored in combatService enemy state; expose via getCombatInstance snapshot is not available here
+            // so we log unknown when we can't access position directly from this module
+            return `${name}: pos?`;
+          });
+          console.log(`[combat] No targets hit. AoE=${aoe}m. players=${players.length}, enemies=${enemies.length}. Player distances: ${playerDistances.join(', ')}. Enemy distances: ${enemyDistances.join(', ')}`);
+        }
+      } catch (_) {}
 
       // Check win/loss conditions after action
       const conditions = checkCombatConditions(combatInstanceId);
