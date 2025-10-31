@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Heroes\Schemas;
 
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Select;
 use Filament\Schemas\Schema;
 
 class HeroForm
@@ -44,6 +45,13 @@ class HeroForm
                     ->numeric()
                     ->default(1),
                 Textarea::make('model_rotation')
+                    ->columnSpanFull(),
+                Select::make('spells')
+                    ->label('Spells')
+                    ->relationship('spells', 'name')
+                    ->multiple()
+                    ->preload()
+                    ->searchable()
                     ->columnSpanFull(),
             ]);
     }

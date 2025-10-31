@@ -34,11 +34,15 @@ class HeroesTable
                 TextColumn::make('defense')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('spells.name')
+                    ->label('Spells') 
+                    ->badge(),
                 TextColumn::make('model')
                     ->searchable(),
                 TextColumn::make('model_scale')
                     ->numeric()
                     ->sortable(),
+         
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
