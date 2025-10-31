@@ -17,7 +17,8 @@ DOMAIN="your-domain.com"  # Change this to your domain
 DB_NAME="openworld3js"
 DB_USER="openworld3js"
 DB_PASSWORD=$(openssl rand -base64 32)  # Generate random password
-SOCKET_PORT="3000"
+SOCKET_PORT="6060"           # Node.js socket server port (internal)
+SOCKET_PROXY_PORT="3000"     # Nginx proxy port (what clients connect to)
 PHP_VERSION="8.3"
 
 # Function to print colored messages
@@ -50,7 +51,8 @@ print_message "Configuration:"
 echo "  - Domain: ${DOMAIN}"
 echo "  - Project Directory: ${PROJECT_DIR}"
 echo "  - Database: ${DB_NAME}"
-echo "  - Socket Port: ${SOCKET_PORT}"
+echo "  - Socket Port (Internal): ${SOCKET_PORT}"
+echo "  - Socket Port (Public/Proxy): ${SOCKET_PROXY_PORT}"
 echo "  - PHP Version: ${PHP_VERSION}"
 echo ""
 
@@ -301,7 +303,7 @@ SESSION_LIFETIME=120
 
 SANCTUM_STATEFUL_DOMAINS=${DOMAIN}
 
-SOCKET_SERVER_URL=http://${DOMAIN}:${SOCKET_PORT}
+SOCKET_SERVER_URL=http://${DOMAIN}:${SOCKET_PROXY_PORT}
 EOL
     
     # Generate Laravel key for new installation
@@ -449,9 +451,9 @@ cp -r dist/* ${PROJECT_DIR}/public/
 # Configure Nginx
 print_message "Configuring Nginx..."
 cat > /etc/nginx/sites-available/openworld3js << EOL
-# Socket.IO Server
+# Socket.IO Proxy Server (Frontend connects to :${SOCKET_PROXY_PORT}, proxies to :${SOCKET_PORT})
 server {
-    listen ${SOCKET_PORT};
+    listen ${SOCKET_PROXY_PORT};
     server_name ${DOMAIN};
 
     location / {
@@ -561,7 +563,8 @@ fi
 if command -v ufw &> /dev/null; then
     print_message "Configuring firewall..."
     ufw allow 'Nginx Full'
-    ufw allow ${SOCKET_PORT}/tcp
+    ufw allow ${SOCKET_PROXY_PORT}/tcp
+    # Note: SOCKET_PORT (${SOCKET_PORT}) is internal, no need to expose it
     ufw --force enable
 fi
 
@@ -600,7 +603,8 @@ Database Information:
 
 Application URLs:
 - Main Application: http://${DOMAIN}
-- Socket Server: http://${DOMAIN}:${SOCKET_PORT}
+- Socket Server (Public): http://${DOMAIN}:${SOCKET_PROXY_PORT}
+- Socket Server (Internal): http://localhost:${SOCKET_PORT}
 
 Paths:
 - Project Directory: ${PROJECT_DIR}
@@ -666,7 +670,7 @@ print_message "============================================"
 echo ""
 print_message "Your application should now be accessible at:"
 print_message "  - Frontend: http://${DOMAIN}"
-print_message "  - Socket Server: http://${DOMAIN}:${SOCKET_PORT}"
+print_message "  - Socket Server: http://${DOMAIN}:${SOCKET_PROXY_PORT} (proxied to :${SOCKET_PORT})"
 echo ""
 print_message "Deployment information: ${PROJECT_DIR}/DEPLOYMENT_INFO.txt"
 echo ""
