@@ -37,7 +37,7 @@ export function registerRegenerationHandlers(socket, io) {
         resting: result.resting
       });
       
-      console.log(`[regen] Player ${playerId} ${result.resting ? 'started' : 'stopped'} resting`);
+      // console.log(`[regen] Player ${playerId} ${result.resting ? 'started' : 'stopped'} resting`);
     } else {
       socket.emit('regen:error', {
         message: result.error || 'Failed to change resting state'
@@ -61,7 +61,7 @@ export function registerRegenerationHandlers(socket, io) {
     
     if (result) {
       socket.emit('regen:tick', result);
-      console.log(`[regen] Player ${playerId} regenerated: +${result.healthGained} HP, +${result.powerGained} Power`);
+      // console.log(`[regen] Player ${playerId} regenerated: +${result.healthGained} HP, +${result.powerGained} Power`);
     } else {
       socket.emit('regen:no-change', {
         message: 'No regeneration occurred'
@@ -86,17 +86,17 @@ export function startGlobalRegenerationLoop(io) {
       .filter(pid => typeof pid === 'number');
 
     // Debug: log online players
-    console.log(`[regen] Tick - Online players: ${onlinePlayerIds.length} (${onlinePlayerIds.join(', ')})`);
+    // console.log(`[regen] Tick - Online players: ${onlinePlayerIds.length} (${onlinePlayerIds.join(', ')})`);
 
     // Process regeneration for ALL heroes in the database, prioritizing online players
     const result = processAllHeroesRegeneration(onlinePlayerIds);
     
     // Log every tick with details
-    console.log(`[regen] Processed ${result.processed} heroes needing regen, updated ${result.updated}, +${result.totalHealthGained} HP, +${result.totalPowerGained} Power`);
+    // console.log(`[regen] Processed ${result.processed} heroes needing regen, updated ${result.updated}, +${result.totalHealthGained} HP, +${result.totalPowerGained} Power`);
     
     // Log if any regeneration occurred
     if (result.updated > 0) {
-      console.log(`[regen] ✅ Regenerated ${result.updated} heroes: +${result.totalHealthGained} HP, +${result.totalPowerGained} Power`);
+      // console.log(`[regen] ✅ Regenerated ${result.updated} heroes: +${result.totalHealthGained} HP, +${result.totalPowerGained} Power`);
     }
     
     // Notify online players about their regeneration
@@ -116,6 +116,6 @@ export function startGlobalRegenerationLoop(io) {
     }
   }, REGEN_TICK_INTERVAL);
   
-  console.log('[regen] Global regeneration loop started (processes ALL heroes)');
+  // console.log('[regen] Global regeneration loop started (processes ALL heroes)');
 }
 

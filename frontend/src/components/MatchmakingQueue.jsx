@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
  * Matchmaking Queue Component
  * Shows available PvP queues and handles joining/leaving
  */
-export default function MatchmakingQueue({ socket, onClose }) {
+export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
   const [queues, setQueues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inQueue, setInQueue] = useState(false);
@@ -46,8 +46,11 @@ export default function MatchmakingQueue({ socket, onClose }) {
     // Listen for match started
     socket.on('match:started', (data) => {
       console.log('[matchmaking] Match started!', data);
+      // Notify parent component (App)
+      if (onMatchStarted) {
+        onMatchStarted(data);
+      }
       if (onClose) onClose();
-      // Zone transition handled by App
     });
 
     // Listen for match cancelled
@@ -66,7 +69,7 @@ export default function MatchmakingQueue({ socket, onClose }) {
       socket.off('match:started');
       socket.off('match:cancelled');
     };
-  }, [socket, onClose]);
+  }, [socket, onClose, onMatchStarted]);
 
   const handleJoinQueue = (queueType) => {
     if (!socket) return;

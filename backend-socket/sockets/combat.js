@@ -21,6 +21,9 @@ import { leaveCombat } from '../services/regenerationService.js';
 let globalCombatTick = null;
 const activeCombatInstances = new Set();
 
+// Store combat instance IDs per socket (persists across handler re-registrations)
+const socketCombatInstances = new Map(); // socketId -> combatInstanceId
+
 /**
  * Start global combat tick system
  */
@@ -114,19 +117,37 @@ export function registerCombatHandlers(socket, io) {
     return; // Player not authenticated
   }
 
-  // Track combat instance for this socket (set by matchmaking)
-  let combatInstanceId = null;
+  console.log(`[combat] 🔧 Registering combat handlers for socket ${socket.id}, player ${playerId}`);
+
+  // Get combat instance ID from Map (persists across re-registrations)
+  const getCombatInstanceId = () => {
+    const id = socketCombatInstances.get(socket.id);
+    console.log(`[combat] getCombatInstanceId for socket ${socket.id}:`, id, 'Map size:', socketCombatInstances.size);
+    return id;
+  };
+  const setCombatInstanceId = (id) => {
+    socketCombatInstances.set(socket.id, id);
+    console.log(`[combat] Map after set:`, Array.from(socketCombatInstances.entries()));
+  };
+  const clearCombatInstanceId = () => {
+    console.log(`[combat] 🗑️ CLEARING combatInstanceId for socket ${socket.id}`);
+    console.trace('[combat] Clear called from:');
+    socketCombatInstances.delete(socket.id);
+  };
 
   /**
    * Join matchmaking combat instance
    * Used when a player is placed in a matchmaking battle
    */
   socket.on('combat:join-matchmaking', (data, ack) => {
+    console.log(`[combat] 🎯 combat:join-matchmaking handler called for player ${playerId}`);
+    console.log(`[combat] Received combat:join-matchmaking from player ${playerId}:`, data);
     try {
       const { combatInstanceId: instanceId } = data;
       
       if (!instanceId) {
         const error = 'Combat instance ID required';
+        console.error('[combat] ❌ Missing combatInstanceId in data:', data);
         socket.emit('combat:error', { message: error });
         if (typeof ack === 'function') ack({ ok: false, error });
         return;
@@ -136,6 +157,11 @@ export function registerCombatHandlers(socket, io) {
       const instance = getCombatInstance(instanceId);
       if (!instance || !instance.state.active) {
         const error = 'Combat instance not found or inactive';
+        console.error(`[combat] ❌ Instance check failed for ${instanceId}:`, { 
+          exists: !!instance, 
+          active: instance?.state?.active,
+          instanceId 
+        });
         socket.emit('combat:error', { message: error });
         if (typeof ack === 'function') ack({ ok: false, error });
         return;
@@ -145,32 +171,34 @@ export function registerCombatHandlers(socket, io) {
       const isParticipant = instance.participants.players?.includes(playerId);
       if (!isParticipant) {
         const error = 'Player not a participant in this combat';
+        console.error(`[combat] ❌ Player ${playerId} not a participant in ${instanceId}. Participants:`, instance.participants.players);
         socket.emit('combat:error', { message: error });
         if (typeof ack === 'function') ack({ ok: false, error });
         return;
       }
 
       // Set combat instance for this socket
-      combatInstanceId = instanceId;
+      setCombatInstanceId(instanceId);
+      console.log(`[combat] Set combatInstanceId for socket ${socket.id} to:`, instanceId);
 
       // Join socket room for combat instance
-      socket.join(`combat:${combatInstanceId}`);
+      socket.join(`combat:${instanceId}`);
 
       // Send initial combat state
       socket.emit('combat:joined', {
-        combatInstanceId,
-        combatState: getCombatState(combatInstanceId)
+        combatInstanceId: instanceId,
+        combatState: getCombatState(instanceId)
       });
 
-      console.log(`[combat] Player ${playerId} joined matchmaking combat: ${combatInstanceId}`);
+      console.log(`[combat] ✅ Player ${playerId} successfully joined matchmaking combat: ${instanceId}`);
 
       // Notify other players in combat
-      socket.to(`combat:${combatInstanceId}`).emit('combat:player-joined', {
+      socket.to(`combat:${instanceId}`).emit('combat:player-joined', {
         playerId,
-        combatInstanceId
+        combatInstanceId: instanceId
       });
 
-      if (typeof ack === 'function') ack({ ok: true, combatInstanceId });
+      if (typeof ack === 'function') ack({ ok: true, combatInstanceId: instanceId });
     } catch (error) {
       console.error('[combat] Error joining matchmaking combat:', error);
       socket.emit('combat:error', { message: 'Failed to join matchmaking combat' });
@@ -185,10 +213,12 @@ export function registerCombatHandlers(socket, io) {
     try {
       const { spellKey, targetPosition } = data;
 
+      const combatInstanceId = getCombatInstanceId();
       console.log('[combat:cast-spell] Received:', { spellKey, targetPosition, playerId });
+      console.log('[combat:cast-spell] Current combatInstanceId:', combatInstanceId);
 
       if (!combatInstanceId) {
-        console.log('[combat:cast-spell] No combat instance');
+        console.error('[combat:cast-spell] ❌ No combat instance set for this socket');
         socket.emit('combat:error', { message: 'Not in active combat' });
         if (typeof ack === 'function') ack({ ok: false, error: 'Not in active combat' });
         return;
@@ -393,6 +423,7 @@ export function registerCombatHandlers(socket, io) {
    * Update player position in combat
    */
   socket.on('combat:position-update', (data) => {
+    const combatInstanceId = getCombatInstanceId();
     if (!combatInstanceId) return;
 
     const { position } = data;
@@ -412,6 +443,8 @@ export function registerCombatHandlers(socket, io) {
    * Leave combat
    */
   socket.on('combat:leave', () => {
+    console.log(`[combat] ⬅️ combat:leave called for player ${playerId}, socket ${socket.id}`);
+    const combatInstanceId = getCombatInstanceId();
     if (combatInstanceId) {
       socket.leave(`combat:${combatInstanceId}`);
       
@@ -423,7 +456,7 @@ export function registerCombatHandlers(socket, io) {
       // Mark player as leaving combat (enables regeneration)
       leaveCombat(playerId);
 
-      combatInstanceId = null;
+      clearCombatInstanceId();
     }
     
     // Note: Combat tick cleanup is handled by global tick system
@@ -433,6 +466,7 @@ export function registerCombatHandlers(socket, io) {
    * Request current combat state
    */
   socket.on('combat:state-request', () => {
+    const combatInstanceId = getCombatInstanceId();
     if (!combatInstanceId) {
       socket.emit('combat:state', null);
       return;
@@ -446,11 +480,14 @@ export function registerCombatHandlers(socket, io) {
 
   // Cleanup on disconnect
   socket.on('disconnect', () => {
+    console.log(`[combat] 🔌 disconnect called for player ${playerId}, socket ${socket.id}`);
+    const combatInstanceId = getCombatInstanceId();
     if (combatInstanceId) {
       socket.to(`combat:${combatInstanceId}`).emit('combat:player-left', {
         playerId,
         combatInstanceId
       });
+      clearCombatInstanceId();
     }
     
     // Note: Combat tick cleanup is handled by global tick system
@@ -502,4 +539,6 @@ function broadcastCombatState(io, combatInstanceId) {
     io.to(`combat:${combatInstanceId}`).emit('combat:state-update', combatState);
   }
 }
+
+
 

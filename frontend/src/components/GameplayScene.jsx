@@ -29,7 +29,8 @@ export default function GameplayScene({
   socket,
   player,
   onReturnToLobby,
-  currentZone
+  currentZone,
+  skipAutoJoinCombat
 }) {
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [combatInstanceId, setCombatInstanceId] = useState(null)
@@ -60,8 +61,10 @@ export default function GameplayScene({
       })
     }
 
-    // Initial join on mount (only when in battle scene)
-    joinCombat()
+    // Initial join on mount (only when in battle scene and not a matchmaking battle)
+    if (!skipAutoJoinCombat) {
+      joinCombat()
+    }
 
     const onJoined = (payload) => {
       setCombatInstanceId(payload?.combatInstanceId || null)
@@ -124,14 +127,16 @@ export default function GameplayScene({
       }
     }
 
-    // Rejoin on reconnect or after auth OK (e.g., server restart)
+    // Rejoin on reconnect or after auth OK (e.g., server restart) - only for non-matchmaking battles
     const onSocketConnect = () => {
-      if (player) {
+      if (player && !skipAutoJoinCombat) {
         joinCombat()
       }
     }
     const onAuthOk = () => {
-      joinCombat()
+      if (!skipAutoJoinCombat) {
+        joinCombat()
+      }
     }
 
     socket.on('combat:joined', onJoined)
@@ -150,12 +155,15 @@ export default function GameplayScene({
       socket.off('combat:ended', onEnded)
       socket.off('connect', onSocketConnect)
       socket.off('auth:ok', onAuthOk)
-      // Always leave combat when unmounting battle scene
-      console.log('[combat] Leaving combat (battle scene unmounted)')
-      socket.emit('combat:leave')
-      window.__inCombat = false
+      // Only leave combat when unmounting for non-matchmaking battles
+      // For matchmaking battles, combat leave is handled by App.jsx when combat ends
+      if (!skipAutoJoinCombat) {
+        console.log('[combat] Leaving combat (battle scene unmounted)')
+        socket.emit('combat:leave')
+        window.__inCombat = false
+      }
     }
-  }, [socket, player, onHeroStatsUpdate])
+  }, [socket, player, onHeroStatsUpdate, skipAutoJoinCombat])
 
   return (
     <>

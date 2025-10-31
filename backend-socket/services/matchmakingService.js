@@ -300,6 +300,13 @@ async function startCombat(matchId, io) {
     }
 
     // Notify player
+    console.log(`[matchmaking] Emitting match:started to player ${player.playerId} (${player.playerName}) in room ${player.playerId}`);
+    console.log(`[matchmaking] Event data:`, { matchId, combatInstanceId, zoneName: arenaZone.name });
+    
+    // Check how many sockets are in this room
+    const socketsInRoom = await io.in(player.playerId).fetchSockets();
+    console.log(`[matchmaking] Sockets in room ${player.playerId}: ${socketsInRoom.length}`);
+    
     io.to(player.playerId).emit('match:started', {
       matchId,
       combatInstanceId,

@@ -56,6 +56,7 @@ export function registerMatchmakingHandlers(socket, io) {
       // Join socket room for matchmaking updates
       socket.join(`matchmaking-${queueType}`);
       socket.join(playerId); // Personal room for match notifications
+      console.log(`[matchmaking] Socket ${socket.id} joined room ${playerId} for player ${player.name}`);
 
       const result = matchmakingService.joinQueue(playerId, playerData, queueType, io);
       
