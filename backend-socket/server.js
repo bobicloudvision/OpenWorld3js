@@ -3,6 +3,10 @@ import http from 'http';
 import { Server } from 'socket.io';
 import { getDbPath } from './services/db.js';
 import { registerSocketHandlers } from './sockets/index.js';
+import { loadSpellDefinitions } from './services/spellService.js';
+
+// Load spell definitions from database on startup
+loadSpellDefinitions();
 
 // HTTP + Socket.IO
 const httpServer = http.createServer((req, res) => {
