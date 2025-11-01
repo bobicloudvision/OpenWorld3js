@@ -23,6 +23,10 @@ export default function LobbyScene({
   player,
   onEnterBattle,
   currentZone,
+  showLeaderboard,
+  onShowLeaderboardChange,
+  showHeroSwitcher,
+  onShowHeroSwitcherChange,
   onHeroSelected,
   onHeroesUpdate
 }) {
@@ -30,8 +34,6 @@ export default function LobbyScene({
   console.log('[LobbyScene] Rendering with zone:', currentZone?.name, 'map_file:', currentZone?.map_file, 'computed mapPath:', mapFilePath);
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [inCombat, setInCombat] = useState(false)
-  const [showLeaderboard, setShowLeaderboard] = useState(false)
-  const [showHeroSwitcher, setShowHeroSwitcher] = useState(false)
   const [switchInitiated, setSwitchInitiated] = useState(false)
   
   // Use hero switcher hook
@@ -91,15 +93,15 @@ export default function LobbyScene({
 
   // Close modal on successful hero switch
   useEffect(() => {
-    if (switchInitiated && !heroSwitchError && !switchingHero && showHeroSwitcher) {
+    if (switchInitiated && !heroSwitchError && !switchingHero && showHeroSwitcher && onShowHeroSwitcherChange) {
       // Small delay to let user see the success state
       const timer = setTimeout(() => {
-        setShowHeroSwitcher(false)
+        onShowHeroSwitcherChange(false)
         setSwitchInitiated(false)
       }, 500)
       return () => clearTimeout(timer)
     }
-  }, [switchInitiated, heroSwitchError, switchingHero, showHeroSwitcher])
+  }, [switchInitiated, heroSwitchError, switchingHero, showHeroSwitcher, onShowHeroSwitcherChange])
 
   const handleSwitchHero = (playerHeroId) => {
     setSwitchInitiated(true)
@@ -108,66 +110,14 @@ export default function LobbyScene({
 
   return (
     <>
-      {/* Leaderboard Button */}
-      <button
-        onClick={() => setShowLeaderboard(true)}
-        style={{
-          position: 'fixed',
-          top: 20,
-          right: 200,
-          zIndex: 1000,
-          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-          border: '2px solid #fbbf24',
-          borderRadius: '8px',
-          padding: '10px 16px',
-          color: '#000',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
-          transition: 'transform 0.2s',
-          pointerEvents: 'auto'
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-      >
-        🏆 Leaderboard
-      </button>
-
       {/* Leaderboard Modal */}
       {showLeaderboard && (
         <Leaderboard 
           socket={socket} 
           player={player}
-          onClose={() => setShowLeaderboard(false)} 
+          onClose={() => onShowLeaderboardChange && onShowLeaderboardChange(false)} 
         />
       )}
-
-      {/* Hero Switcher Button */}
-      <button
-        onClick={() => setShowHeroSwitcher(true)}
-        style={{
-          position: 'fixed',
-          top: 20,
-          right: 20,
-          zIndex: 1000,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          border: '2px solid #667eea',
-          borderRadius: '8px',
-          padding: '10px 16px',
-          color: '#fff',
-          fontSize: '14px',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)',
-          transition: 'transform 0.2s',
-          pointerEvents: 'auto'
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-      >
-        ⚔️ Switch Hero
-      </button>
 
       {/* Hero Switcher Modal */}
       {showHeroSwitcher && (
@@ -177,14 +127,14 @@ export default function LobbyScene({
           loading={switchingHero}
           error={heroSwitchError}
           onSelectHero={handleSwitchHero}
-          onClose={() => setShowHeroSwitcher(false)}
+          onClose={() => onShowHeroSwitcherChange && onShowHeroSwitcherChange(false)}
         />
       )}
 
       {/* Hero Info */}
       <HeroStatsPanel 
         activeHero={activeHero} 
-        onOpenHeroSelection={() => setShowHeroSwitcher(true)}
+        onOpenHeroSelection={() => onShowHeroSwitcherChange && onShowHeroSwitcherChange(true)}
       />
 
       <Chat socket={socket} currentPlayerId={player?.id} />

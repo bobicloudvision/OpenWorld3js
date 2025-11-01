@@ -11,6 +11,7 @@ import ZoneSelector from './components/ZoneSelector'
 import ZoneTransition from './components/ZoneTransition'
 import MatchmakingQueue from './components/MatchmakingQueue'
 import CombatRejoinModal from './components/CombatRejoinModal'
+import GameHeader from './components/GameHeader'
 
 export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }) {
   const playerPositionRef = React.useRef([0, 0, 0]);
@@ -29,6 +30,8 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
   const [isMatchmakingBattle, setIsMatchmakingBattle] = React.useState(false)
   const [showCombatRejoin, setShowCombatRejoin] = React.useState(false)
   const [activeCombatInfo, setActiveCombatInfo] = React.useState(null)
+  const [showLeaderboard, setShowLeaderboard] = React.useState(false)
+  const [showHeroSwitcher, setShowHeroSwitcher] = React.useState(false)
 
   // Handle zone change (both auto-join and manual selection)
   const handleZoneChange = React.useCallback((zone, position) => {
@@ -483,54 +486,35 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
   
   return (
     <>
-
-
-
-    {/* Top Bar */}
-    <div className="fixed top-3 left-0 right-0 z-[100] flex justify-between px-3">
-    {/* Left side - Zone info and selector */}
-    <div className="flex gap-2 items-center">
-      {player && socketReady && !isMatchmakingBattle && (
-        <>
-          {currentZone && (
-            <div className="bg-gray-900/90 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-xs flex items-center gap-2">
-              <span className="text-base">🗺️</span>
-              <div>
-                <div className="font-bold">{currentZone.name}</div>
-                <div className="text-[10px] text-gray-400">{currentZone.type.toUpperCase()}</div>
-              </div>
-            </div>
-          )}
-          <button
-            onClick={() => setShowZoneSelector(true)}
-            className="px-4 py-2 text-xs bg-gradient-to-br from-blue-500 to-blue-600 text-white border-2 border-blue-800 rounded-lg cursor-pointer font-bold transition-all duration-200 hover:scale-105"
-          >
-            {currentZone ? 'Change Zone' : '🗺️ Select Zone'}
-          </button>
-          <button
-            onClick={() => {
-              if (!currentZone) {
-                alert('You must be in a zone to join matchmaking. Please select a zone first.');
-                return;
-              }
-              setShowMatchmaking(true);
-            }}
-            disabled={!currentZone}
-            className={`px-4 py-2 text-xs text-white border-2 rounded-lg font-bold transition-all duration-200 ${
-              currentZone
-                ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-900 cursor-pointer hover:scale-105 opacity-100'
-                : 'bg-gradient-to-br from-gray-600 to-gray-700 border-gray-700 cursor-not-allowed opacity-60'
-            }`}
-            title={!currentZone ? 'You must be in a zone to find a match' : 'Find a PvP match'}
-          >
-            ⚔️ Find Match
-          </button>
-        </>
-      )}
-    </div>
-      
-      {/* Right side - Empty (player info is in Header) */}
-    </div>
+    {/* Game Header */}
+    {player && socketReady && (
+      <GameHeader
+        player={player}
+        playerHeroes={playerHeroes}
+        currentZone={currentZone}
+        socketRef={socketRef}
+        isMatchmakingBattle={isMatchmakingBattle}
+        onShowZoneSelector={() => setShowZoneSelector(true)}
+        onShowMatchmaking={() => {
+          if (!currentZone) {
+            alert('You must be in a zone to join matchmaking. Please select a zone first.');
+            return;
+          }
+          setShowMatchmaking(true);
+        }}
+        onShowHeroSelection={() => setShowHeroSelection(true)}
+        onShowLeaderboard={() => setShowLeaderboard(true)}
+        onShowHeroSwitcher={() => setShowHeroSwitcher(true)}
+        onLogout={() => {
+          setPlayer(null);
+          setSocketReady(false);
+          if (socketRef.current) {
+            socketRef.current.disconnect();
+            socketRef.current = null;
+          }
+        }}
+      />
+    )}
     <AuthOverlay
       open={authOpen}
       onClose={() => setAuthOpen(false)}
@@ -593,6 +577,10 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
                 player={player}
                 socket={socketRef.current}
                 currentZone={currentZone}
+                showLeaderboard={showLeaderboard}
+                onShowLeaderboardChange={setShowLeaderboard}
+                showHeroSwitcher={showHeroSwitcher}
+                onShowHeroSwitcherChange={setShowHeroSwitcher}
                 onHeroSelected={(updatedPlayer) => {
                   setPlayer(updatedPlayer);
                 }}

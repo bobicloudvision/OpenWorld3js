@@ -18,17 +18,23 @@ export default function FantasyButton({
     primary: {
       background: 'linear-gradient(to bottom, #fbbf24, #d97706, #b45309)',
       hoverBackground: 'linear-gradient(to bottom, #fcd34d, #f59e0b, #d97706)',
-      border: 'border-amber-600'
+      border: 'border-amber-600',
+      textColor: 'text-amber-950',
+      textShadow: '0 1px 2px rgba(255,255,255,0.3)'
     },
     secondary: {
-      background: 'linear-gradient(to bottom, #6b7280, #4b5563, #374151)',
-      hoverBackground: 'linear-gradient(to bottom, #9ca3af, #6b7280, #4b5563)',
-      border: 'border-gray-600'
+      background: 'linear-gradient(to bottom, #9ca3af, #6b7280, #4b5563)',
+      hoverBackground: 'linear-gradient(to bottom, #d1d5db, #9ca3af, #6b7280)',
+      border: 'border-gray-500',
+      textColor: 'text-gray-100',
+      textShadow: '1px 1px 3px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.5)'
     },
     danger: {
       background: 'linear-gradient(to bottom, #ef4444, #dc2626, #b91c1c)',
       hoverBackground: 'linear-gradient(to bottom, #f87171, #ef4444, #dc2626)',
-      border: 'border-red-600'
+      border: 'border-red-600',
+      textColor: 'text-white',
+      textShadow: '0 1px 2px rgba(0,0,0,0.5)'
     }
   };
 
@@ -46,11 +52,11 @@ export default function FantasyButton({
       type={type}
       onClick={onClick}
       disabled={disabled}
-      className={`relative font-bold text-amber-950 border-2 ${variantStyle.border} rounded cursor-pointer transition-all duration-200 uppercase tracking-wider ${fullWidth ? 'w-full' : ''} ${sizeStyle} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+      className={`relative font-bold ${variantStyle.textColor} border-2 ${variantStyle.border} rounded cursor-pointer transition-all duration-200 uppercase tracking-wider ${fullWidth ? 'w-full' : ''} ${sizeStyle} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
       style={{
         background: disabled ? variantStyle.background : variantStyle.background,
         boxShadow: '0 4px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.3)',
-        textShadow: '0 1px 2px rgba(255,255,255,0.3)'
+        textShadow: variantStyle.textShadow
       }}
       onMouseEnter={(e) => {
         if (!disabled) {
