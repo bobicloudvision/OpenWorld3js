@@ -116,268 +116,130 @@ export default function ZoneSelector({ socket, playerLevel = 1, onClose, onZoneC
 
   if (error) {
     return (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.9)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '20px'
-      }}>
-        <div style={{
-          background: '#1f2937',
-          borderRadius: '16px',
-          border: '2px solid #ef4444',
-          padding: '32px',
-          maxWidth: '600px',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚠️</div>
-          <h2 style={{ color: '#ef4444', margin: '0 0 16px 0', fontSize: '24px' }}>
+      <FantasyModal isOpen={true} onClose={onClose} maxWidth="600px" className="text-center">
+        <div className="p-8">
+          <div className="text-6xl mb-4 filter drop-shadow-lg">⚠️</div>
+          <h2 className="text-red-400 m-0 mb-4 text-2xl font-bold" style={{
+            textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(239, 68, 68, 0.6)',
+            fontFamily: 'Georgia, serif'
+          }}>
             Zone System Not Set Up
           </h2>
-          <p style={{ color: '#e5e7eb', margin: '0 0 24px 0', fontSize: '16px' }}>
+          <p className="text-amber-100 m-0 mb-6 text-base" style={{
+            textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+          }}>
             {error}
           </p>
-          <div style={{
-            background: '#111827',
-            padding: '16px',
-            borderRadius: '8px',
-            marginBottom: '24px',
-            textAlign: 'left',
-            fontFamily: 'monospace',
-            fontSize: '14px',
-            color: '#10b981'
-          }}>
-            <div>cd backend-php</div>
-            <div>php artisan migrate</div>
-            <div>php artisan db:seed --class=ZoneSeeder</div>
-          </div>
+      
           {onClose && (
-            <button
-              onClick={onClose}
-              style={{
-                padding: '12px 24px',
-                fontSize: '16px',
-                background: '#374151',
-                color: '#e5e7eb',
-                border: 'none',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            >
+            <FantasyButton onClick={onClose} variant="secondary">
               Close
-            </button>
+            </FantasyButton>
           )}
         </div>
-      </div>
+      </FantasyModal>
     );
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0, 0, 0, 0.9)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '20px'
-    }}>
-      <div style={{
-        background: '#1f2937',
-        borderRadius: '16px',
-        border: '2px solid #374151',
-        maxWidth: '800px',
-        width: '100%',
-        maxHeight: '80vh',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid #374151',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h2 style={{ margin: 0, color: '#e5e7eb', fontSize: '24px' }}>
-            🗺️ Select Zone
-          </h2>
-          {onClose && (
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#9ca3af',
-                fontSize: '24px',
-                cursor: 'pointer',
-                padding: '4px 8px'
-              }}
+    <FantasyModal isOpen={true} onClose={onClose} title="🗺️ Select Zone" maxWidth="900px">
+
+      {/* Zone Grid */}
+      <div className="flex-1 overflow-auto p-6 grid gap-4 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))' }}>
+        {availableZones.map((zone) => {
+          const isCurrentZone = currentZone?.id === zone.id;
+          const canEnter = canEnterZone(zone, playerLevel);
+          const isSelected = selectedZone?.id === zone.id;
+
+          return (
+            <FantasyCard
+              key={zone.id}
+              title={zone.name}
+              hoverable={canEnter}
+              onClick={() => canEnter && handleZoneSelect(zone)}
+              className={`relative ${!canEnter ? 'opacity-50 cursor-not-allowed' : ''} ${isSelected ? 'ring-2 ring-amber-500' : ''}`}
             >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {/* Zone Grid */}
-        <div style={{
-          flex: 1,
-          overflow: 'auto',
-          padding: '20px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-          gap: '16px',
-          alignContent: 'start'
-        }}>
-          {availableZones.map((zone) => {
-            const isCurrentZone = currentZone?.id === zone.id;
-            const canEnter = canEnterZone(zone, playerLevel);
-            const isSelected = selectedZone?.id === zone.id;
-
-            return (
-              <div
-                key={zone.id}
-                onClick={() => canEnter && handleZoneSelect(zone)}
-                style={{
-                  background: isSelected ? '#374151' : '#111827',
-                  border: `2px solid ${isSelected ? '#3b82f6' : '#374151'}`,
-                  borderRadius: '12px',
-                  padding: '16px',
-                  cursor: canEnter ? 'pointer' : 'not-allowed',
-                  opacity: canEnter ? 1 : 0.5,
-                  transition: 'all 0.2s',
-                  position: 'relative'
-                }}
-                onMouseEnter={(e) => canEnter && (e.target.style.transform = 'scale(1.02)')}
-                onMouseLeave={(e) => (e.target.style.transform = 'scale(1)')}
-              >
-                {isCurrentZone && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '8px',
-                    right: '8px',
-                    background: '#10b981',
-                    color: 'white',
-                    padding: '4px 8px',
-                    borderRadius: '4px',
-                    fontSize: '10px',
-                    fontWeight: 'bold'
-                  }}>
+              {isCurrentZone && (
+                <div className="absolute top-2 right-2 z-20">
+                  <FantasyBadge variant="success" size="sm">
                     CURRENT
-                  </div>
+                  </FantasyBadge>
+                </div>
+              )}
+
+              {/* Zone Type Indicator */}
+              <div className="flex items-center gap-2 mb-3">
+                <div 
+                  className="w-3 h-3 rounded-full"
+                  style={{ background: getZoneTypeColor(zone.type) }}
+                />
+                <FantasyBadge 
+                  variant={zone.type === 'pvp' ? 'danger' : zone.type === 'pve' ? 'success' : 'default'} 
+                  size="sm"
+                >
+                  {zone.type.toUpperCase()}
+                </FantasyBadge>
+              </div>
+
+              <p className="text-amber-200 text-sm mb-4 min-h-[40px]" style={{
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+              }}>
+                {zone.description}
+              </p>
+
+              <div className="flex flex-col gap-2 text-xs text-amber-300 mb-4" style={{
+                fontFamily: 'Georgia, serif'
+              }}>
+                <div>Level: <span className="font-bold text-amber-200">{zone.min_level}{zone.max_level ? `-${zone.max_level}` : '+'}</span></div>
+                <div>Players: <span className="font-bold text-amber-200">{zone.stats?.playerCount || 0}/{zone.max_players}</span></div>
+                {zone.is_safe_zone && (
+                  <FantasyBadge variant="success" size="sm" className="w-fit">
+                    🛡️ Safe Zone
+                  </FantasyBadge>
                 )}
+                {zone.is_combat_zone && !zone.is_safe_zone && (
+                  <FantasyBadge variant="danger" size="sm" className="w-fit">
+                    ⚔️ Combat Zone
+                  </FantasyBadge>
+                )}
+              </div>
 
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '12px'
-                }}>
-                  <div style={{
-                    width: '12px',
-                    height: '12px',
-                    borderRadius: '50%',
-                    background: getZoneTypeColor(zone.type)
-                  }} />
-                  <h3 style={{
-                    margin: 0,
-                    color: '#e5e7eb',
-                    fontSize: '16px',
-                    fontWeight: 'bold'
-                  }}>
-                    {zone.name}
-                  </h3>
-                </div>
-
-                <p style={{
-                  color: '#9ca3af',
-                  fontSize: '13px',
-                  margin: '0 0 12px 0',
-                  minHeight: '40px'
-                }}>
-                  {zone.description}
-                </p>
-
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '4px',
-                  fontSize: '12px',
-                  color: '#9ca3af'
-                }}>
-                  <div>Level: {zone.min_level}{zone.max_level ? `-${zone.max_level}` : '+'}</div>
-                  <div>Type: {zone.type.toUpperCase()}</div>
-                  <div>Players: {zone.stats?.playerCount || 0}/{zone.max_players}</div>
-                  {zone.is_safe_zone && (
-                    <div style={{ color: '#10b981' }}>🛡️ Safe Zone</div>
-                  )}
-                  {zone.is_combat_zone && !zone.is_safe_zone && (
-                    <div style={{ color: '#ef4444' }}>⚔️ Combat Zone</div>
-                  )}
-                </div>
-
-                {!canEnter && (
-                  <div style={{
-                    marginTop: '12px',
-                    padding: '8px',
-                    background: '#7f1d1d',
-                    borderRadius: '6px',
-                    color: '#fca5a5',
-                    fontSize: '11px',
-                    textAlign: 'center'
+              {!canEnter && (
+                <div className="bg-red-900/50 p-2 rounded border border-red-600/50 text-center">
+                  <div className="text-red-300 text-xs font-bold" style={{
+                    textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
                   }}>
                     Level {zone.min_level} Required
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer with Travel Button */}
-        <div style={{
-          padding: '20px',
-          borderTop: '1px solid #374151',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ color: '#9ca3af', fontSize: '14px' }}>
-            {selectedZone ? (
-              <>Selected: <strong style={{ color: '#e5e7eb' }}>{selectedZone.name}</strong></>
-            ) : (
-              'Select a zone to travel'
-            )}
-          </div>
-          <button
-            onClick={handleTravel}
-            disabled={!selectedZone || selectedZone.id === currentZone?.id}
-            style={{
-              padding: '12px 32px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              background: selectedZone && selectedZone.id !== currentZone?.id
-                ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                : '#374151',
-              color: selectedZone && selectedZone.id !== currentZone?.id ? 'white' : '#6b7280',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: selectedZone && selectedZone.id !== currentZone?.id ? 'pointer' : 'not-allowed',
-              transition: 'all 0.2s'
-            }}
-          >
-            Travel
-          </button>
-        </div>
+                </div>
+              )}
+            </FantasyCard>
+          );
+        })}
       </div>
-    </div>
+
+      {/* Footer with Travel Button */}
+      <div className="p-5 border-t border-amber-700/60 flex justify-between items-center" style={{
+        background: 'linear-gradient(to bottom, rgba(139, 69, 19, 0.2), rgba(101, 67, 33, 0.1))'
+      }}>
+        <div className="text-amber-200 text-sm" style={{
+          textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+        }}>
+          {selectedZone ? (
+            <>Selected: <strong className="text-amber-300">{selectedZone.name}</strong></>
+          ) : (
+            'Select a zone to travel'
+          )}
+        </div>
+        <FantasyButton
+          onClick={handleTravel}
+          disabled={!selectedZone || selectedZone.id === currentZone?.id}
+          variant={selectedZone && selectedZone.id !== currentZone?.id ? 'primary' : 'secondary'}
+        >
+          Travel
+        </FantasyButton>
+      </div>
+    </FantasyModal>
   );
 }
 
