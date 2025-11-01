@@ -154,31 +154,53 @@ export default function Chat({ socket, currentPlayerId }) {
                 }
               `}</style>
               {messages.length === 0 ? (
-                <div className="text-gray-400 text-center py-5 italic text-sm">No messages yet. Start chatting!</div>
+                <div className="text-amber-400/70 text-center py-5 italic text-sm" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
+                  No messages yet. Start chatting!
+                </div>
               ) : (
                 messages.map((msg, index) => {
                   const isOwnMessage = msg.playerId === currentPlayerId
                   return (
                     <div
                       key={index}
-                      className={`p-2 rounded-md transition-all duration-200 border-l-[3px] ${
+                      className={`relative p-3 rounded-md transition-all duration-200 border-l-[3px] ${
                         isOwnMessage 
-                          ? 'bg-indigo-500/20 border-l-indigo-500 hover:bg-indigo-500/30' 
-                          : 'bg-white/8 border-l-indigo-500/60 hover:bg-white/12'
+                          ? 'bg-gradient-to-r from-amber-900/40 to-amber-950/40 border-l-amber-400 hover:from-amber-900/60 hover:to-amber-950/60' 
+                          : 'bg-gradient-to-r from-amber-950/30 to-amber-900/20 border-l-amber-600/60 hover:from-amber-950/40 hover:to-amber-900/30'
                       }`}
+                      style={{
+                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4), 0 1px 2px rgba(0,0,0,0.2)',
+                        textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                      }}
                     >
-                      <div className="flex justify-between items-center mb-1">
-                        <span className={`font-bold text-[13px] ${
-                          isOwnMessage ? 'text-indigo-300' : 'text-indigo-500'
-                        }`}>
+                      {/* Inner decorative border for own messages */}
+                      {isOwnMessage && (
+                        <div className="absolute inset-1 border border-amber-600/20 rounded pointer-events-none"></div>
+                      )}
+                      
+                      <div className="flex justify-between items-center mb-1.5 relative z-10">
+                        <span 
+                          className={`font-bold text-[13px] uppercase tracking-wide ${
+                            isOwnMessage ? 'text-amber-300' : 'text-amber-400'
+                          }`}
+                          style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                        >
                           {msg.playerName}
                         </span>
-                        <span className="text-xs text-gray-500">{formatTime(msg.timestamp)}</span>
+                        <span 
+                          className="text-xs text-amber-600/80"
+                          style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
+                        >
+                          {formatTime(msg.timestamp)}
+                        </span>
                       </div>
                       <div 
-                        className="text-sm text-gray-200 leading-normal break-words font-sans"
+                        className={`text-sm leading-normal break-words font-sans relative z-10 ${
+                          isOwnMessage ? 'text-amber-100' : 'text-amber-200'
+                        }`}
                         style={{ 
-                          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif"
+                          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif",
+                          textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
                         }}
                       >
                         {parseEmoticons(msg.message)}
@@ -190,13 +212,20 @@ export default function Chat({ socket, currentPlayerId }) {
               <div ref={messagesEndRef} />
             </div>
 
-            <form className="flex gap-2 pt-2.5 mt-2.5 border-t border-amber-600/30" onSubmit={handleSendMessage}>
+            <form 
+              className="flex gap-2 pt-2.5 mt-2.5 border-t border-amber-600/30" 
+              onSubmit={handleSendMessage}
+              onKeyDown={(e) => e.stopPropagation()}
+              onKeyUp={(e) => e.stopPropagation()}
+            >
               <FantasyInput
                 type="text"
                 placeholder="Type a message... (Enter to send)"
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
+                onKeyUp={handleKeyUp}
                 maxLength={500}
                 className="flex-1"
               />
