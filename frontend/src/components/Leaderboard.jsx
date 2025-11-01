@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FantasyModal, FantasyButton, FantasyCard, FantasyPanel } from './ui';
 
 export default function Leaderboard({ socket, player, onClose }) {
   const [activeTab, setActiveTab] = useState('players'); // 'players', 'heroes', 'myStats'
@@ -60,91 +61,21 @@ export default function Leaderboard({ socket, player, onClose }) {
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0, 0, 0, 0.8)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '20px'
-    }}>
-      <div style={{
-        background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)',
-        borderRadius: '16px',
-        width: '100%',
-        maxWidth: '1200px',
-        maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        border: '2px solid #334155',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '24px',
-          borderBottom: '2px solid #334155',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h2 style={{
-            margin: 0,
-            fontSize: '28px',
-            fontWeight: 'bold',
-            background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
-          }}>
-            🏆 Leaderboard
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              background: '#ef4444',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '8px 16px',
-              color: 'white',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            ✕ Close
-          </button>
-        </div>
-
+    <FantasyModal isOpen={true} onClose={onClose} title="🏆 Leaderboard" maxWidth="1200px">
         {/* Tabs */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          padding: '16px 24px',
-          borderBottom: '1px solid #334155'
-        }}>
+        <div className="flex gap-2 p-4 border-b border-amber-700/60">
           {['players', 'heroes', 'myStats'].map(tab => (
-            <button
+            <FantasyButton
               key={tab}
               onClick={() => setActiveTab(tab)}
-              style={{
-                padding: '10px 20px',
-                background: activeTab === tab 
-                  ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                  : '#1e293b',
-                border: activeTab === tab ? '2px solid #60a5fa' : '2px solid #334155',
-                borderRadius: '8px',
-                color: 'white',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: 'bold',
-                transition: 'all 0.2s'
-              }}
+              variant={activeTab === tab ? 'primary' : 'secondary'}
+              size="sm"
+              className={activeTab === tab ? '' : 'opacity-70'}
             >
               {tab === 'players' && '👥 Players'}
               {tab === 'heroes' && '⚔️ Heroes'}
               {tab === 'myStats' && '📊 My Stats'}
-            </button>
+            </FantasyButton>
           ))}
         </div>
 

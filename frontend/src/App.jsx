@@ -466,46 +466,27 @@ export default function App() {
   
   return (
     <>
+
+
+
     {/* Top Bar */}
-    <div style={{ position: 'fixed', top: 12, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', padding: '0 12px' }}>
+    <div className="fixed top-3 left-0 right-0 z-[100] flex justify-between px-3">
     {/* Left side - Zone info and selector */}
-    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+    <div className="flex gap-2 items-center">
       {player && socketReady && !isMatchmakingBattle && (
         <>
           {currentZone && (
-            <div style={{
-              background: 'rgba(17, 24, 39, 0.9)',
-              border: '1px solid #374151',
-              borderRadius: 8,
-              padding: '8px 12px',
-              color: '#e5e7eb',
-              fontSize: 12,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}>
-              <span style={{ fontSize: 16 }}>🗺️</span>
+            <div className="bg-gray-900/90 border border-gray-700 rounded-lg px-3 py-2 text-gray-200 text-xs flex items-center gap-2">
+              <span className="text-base">🗺️</span>
               <div>
-                <div style={{ fontWeight: 'bold' }}>{currentZone.name}</div>
-                <div style={{ fontSize: 10, color: '#9ca3af' }}>{currentZone.type.toUpperCase()}</div>
+                <div className="font-bold">{currentZone.name}</div>
+                <div className="text-[10px] text-gray-400">{currentZone.type.toUpperCase()}</div>
               </div>
             </div>
           )}
           <button
             onClick={() => setShowZoneSelector(true)}
-            style={{
-              padding: '8px 16px',
-              fontSize: 12,
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              color: 'white',
-              border: '2px solid #1e40af',
-              borderRadius: 8,
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+            className="px-4 py-2 text-xs bg-gradient-to-br from-blue-500 to-blue-600 text-white border-2 border-blue-800 rounded-lg cursor-pointer font-bold transition-all duration-200 hover:scale-105"
           >
             {currentZone ? 'Change Zone' : '🗺️ Select Zone'}
           </button>
@@ -518,26 +499,11 @@ export default function App() {
               setShowMatchmaking(true);
             }}
             disabled={!currentZone}
-            style={{
-              padding: '8px 16px',
-              fontSize: 12,
-              background: currentZone 
-                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
-              color: 'white',
-              border: currentZone ? '2px solid #7f1d1d' : '2px solid #374151',
-              borderRadius: 8,
-              cursor: currentZone ? 'pointer' : 'not-allowed',
-              fontWeight: 'bold',
-              transition: 'all 0.2s',
-              opacity: currentZone ? 1 : 0.6
-            }}
-            onMouseEnter={(e) => {
-              if (currentZone) e.target.style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              if (currentZone) e.target.style.transform = 'scale(1)';
-            }}
+            className={`px-4 py-2 text-xs text-white border-2 rounded-lg font-bold transition-all duration-200 ${
+              currentZone
+                ? 'bg-gradient-to-br from-red-500 to-red-600 border-red-900 cursor-pointer hover:scale-105 opacity-100'
+                : 'bg-gradient-to-br from-gray-600 to-gray-700 border-gray-700 cursor-not-allowed opacity-60'
+            }`}
             title={!currentZone ? 'You must be in a zone to find a match' : 'Find a PvP match'}
           >
             ⚔️ Find Match
@@ -547,13 +513,13 @@ export default function App() {
     </div>
       
       {/* Right side - Player info */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <div className="flex gap-2 items-center">
         {player ? (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ color: '#e5e7eb', fontSize: 12 }}>Hi, {player.name}</span>
+          <div className="flex gap-2 items-center">
+            <span className="text-gray-200 text-xs">Hi, {player.name}</span>
             <button
               onClick={async () => { await playerLogout(); if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; } setPlayer(null); setAuthOpen(true); }}
-              style={{ padding: '6px 10px', fontSize: 12, background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: 6 }}
+              className="px-2.5 py-1.5 text-xs bg-gray-700 text-gray-200 border border-gray-600 rounded-md"
             >
               Logout
             </button>
@@ -561,7 +527,7 @@ export default function App() {
         ) : (
           <button
             onClick={() => setAuthOpen(true)}
-            style={{ padding: '8px 12px', fontSize: 12, background: '#2563eb', color: 'white', border: 'none', borderRadius: 6 }}
+            className="px-3 py-2 text-xs bg-blue-600 text-white border-none rounded-md"
           >
             Login / Sign Up
           </button>
@@ -575,8 +541,8 @@ export default function App() {
     />
     {/* <GameInstructions /> */}
     {player && !socketReady && (
-      <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)', zIndex: 50 }}>
-        <div style={{ padding: '12px 16px', background: '#111827', color: '#e5e7eb', border: '1px solid #374151', borderRadius: 8, fontSize: 13 }}>
+      <div className="fixed inset-0 flex items-center justify-center bg-black/35 z-50">
+        <div className="px-4 py-3 bg-gray-900 text-gray-200 border border-gray-700 rounded-lg text-[13px]">
           Connecting to game server...
         </div>
       </div>

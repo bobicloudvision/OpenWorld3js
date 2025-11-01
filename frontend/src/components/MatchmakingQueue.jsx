@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { FantasyModal, FantasyButton, FantasyCard, FantasyPanel } from './ui';
 
 /**
  * Matchmaking Queue Component
@@ -98,196 +99,135 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
   // Match countdown screen
   if (matchFound) {
     return (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.95)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2000
-      }}>
-        <div style={{
-          background: '#1f2937',
-          borderRadius: '16px',
-          border: '2px solid #10b981',
-          padding: '40px',
-          textAlign: 'center',
-          maxWidth: '600px'
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⚔️</div>
-          <h2 style={{ color: '#10b981', margin: '0 0 24px 0', fontSize: '32px' }}>
-            Match Found!
+      <FantasyModal isOpen={true} maxWidth="650px" showCloseButton={false} className="text-center">
+        <div className="p-10">
+          <div className="text-6xl mb-4 filter drop-shadow-lg">⚔️</div>
+          <h2 className="text-amber-300 m-0 mb-6 text-4xl font-bold" style={{
+            textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(217, 119, 6, 0.8), 0 0 30px rgba(245, 158, 11, 0.5)',
+            fontFamily: 'Georgia, serif',
+            letterSpacing: '2px'
+          }}>
+            MATCH FOUND!
           </h2>
           
           {/* Countdown */}
-          <div style={{
-            fontSize: '72px',
-            fontWeight: 'bold',
-            color: countdown <= 3 ? '#ef4444' : '#3b82f6',
-            margin: '24px 0',
-            textShadow: '0 0 20px currentColor'
+          <div className={`text-8xl font-bold my-8 ${
+            countdown <= 3 ? 'text-red-400' : 'text-amber-300'
+          }`} style={{ 
+            textShadow: '3px 3px 6px rgba(0,0,0,0.9), 0 0 30px currentColor',
+            fontFamily: 'Georgia, serif'
           }}>
             {countdown}
           </div>
 
           {/* Players */}
-          <div style={{
-            background: '#111827',
-            padding: '20px',
-            borderRadius: '8px',
-            marginTop: '24px'
-          }}>
-            <div style={{ color: '#9ca3af', marginBottom: '12px', fontSize: '14px' }}>
-              Players in match:
-            </div>
+          <FantasyPanel title="Players in Match:" className="mt-6">
             {matchPlayers.map((player, index) => (
-              <div key={index} style={{
-                color: '#e5e7eb',
-                padding: '8px',
-                marginBottom: '4px',
-                fontSize: '16px'
+              <div key={index} className="text-amber-100 p-3 mb-2 text-base border-b border-amber-800/50 last:border-0" style={{
+                textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
+                fontFamily: 'Georgia, serif'
               }}>
-                {player.playerName} (Level {player.playerLevel})
+                <span className="font-bold">{player.playerName}</span> <span className="text-amber-300">Level {player.playerLevel}</span>
               </div>
             ))}
-          </div>
+          </FantasyPanel>
 
-          <div style={{ color: '#9ca3af', marginTop: '24px', fontSize: '14px' }}>
+          <div className="text-amber-200 mt-6 text-sm italic" style={{
+            textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+          }}>
             Prepare for battle...
           </div>
         </div>
-      </div>
+      </FantasyModal>
     );
   }
 
   // Queue status screen
   if (inQueue && queueStatus) {
     return (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.9)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2000
-      }}>
-        <div style={{
-          background: '#1f2937',
-          borderRadius: '16px',
-          border: '2px solid #3b82f6',
-          padding: '32px',
-          textAlign: 'center',
-          maxWidth: '500px'
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
-          <h2 style={{ color: '#e5e7eb', margin: '0 0 8px 0', fontSize: '24px' }}>
-            Searching for Opponents
-          </h2>
-          <div style={{ color: '#9ca3af', marginBottom: '24px', fontSize: '14px' }}>
-            {queueStatus.name || queueStatus.queueType}
-          </div>
-
-          {/* Player count */}
-          <div style={{
-            background: '#111827',
-            padding: '24px',
-            borderRadius: '8px',
-            marginBottom: '24px'
-          }}>
-            <div style={{
-              fontSize: '48px',
-              fontWeight: 'bold',
-              color: '#3b82f6',
-              marginBottom: '8px'
+      <>
+        <FantasyModal isOpen={true} maxWidth="550px" showCloseButton={false} className="text-center">
+          <div className="p-8">
+            <div className="text-6xl mb-4 filter drop-shadow-lg">🔍</div>
+            <h2 className="text-amber-300 m-0 mb-3 text-3xl font-bold" style={{
+              textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(217, 119, 6, 0.6)',
+              fontFamily: 'Georgia, serif',
+              letterSpacing: '1px'
             }}>
-              {queueStatus.currentPlayers} / {queueStatus.minPlayers}
+              Searching for Opponents
+            </h2>
+            <div className="text-amber-200 mb-8 text-sm font-semibold uppercase tracking-wider" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}> 
+              {queueStatus.name || queueStatus.queueType}
             </div>
-            <div style={{ color: '#9ca3af', fontSize: '14px' }}>
-              Players in queue
-            </div>
-          </div>
 
-          {/* Waiting players */}
-          {queueStatus.players && queueStatus.players.length > 0 && (
-            <div style={{
-              background: '#111827',
-              padding: '16px',
-              borderRadius: '8px',
-              marginBottom: '24px'
-            }}>
-              <div style={{ color: '#9ca3af', marginBottom: '8px', fontSize: '12px' }}>
-                Waiting players:
+            {/* Player count */}
+            <FantasyPanel className="mb-6">
+              <div className="text-6xl font-bold text-amber-300 mb-3" style={{
+                textShadow: '2px 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(217, 119, 6, 0.8)',
+                fontFamily: 'Georgia, serif'
+              }}>
+                {queueStatus.currentPlayers} / {queueStatus.minPlayers}
               </div>
-              {queueStatus.players.map((player, index) => (
-                <div key={index} style={{
-                  color: '#e5e7eb',
-                  padding: '4px',
-                  fontSize: '14px'
-                }}>
-                  {player.playerName} (Level {player.playerLevel})
-                </div>
-              ))}
+              <div className="text-amber-200 text-sm font-semibold uppercase" style={{
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+              }}>
+                Players in Queue
+              </div>
+            </FantasyPanel>
+
+            {/* Waiting players */}
+            {queueStatus.players && queueStatus.players.length > 0 && (
+              <FantasyPanel title="Waiting Players:" className="mb-6">
+                {queueStatus.players.map((player, index) => (
+                  <div key={index} className="text-amber-100 p-2 text-sm border-b border-amber-800/50 last:border-0" style={{
+                    textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+                    fontFamily: 'Georgia, serif'
+                  }}>
+                    <span className="font-bold">{player.playerName}</span> <span className="text-amber-300">Level {player.playerLevel}</span>
+                  </div>
+                ))}
+              </FantasyPanel>
+            )}
+
+            {/* Animated dots */}
+            <div className="text-amber-400 text-3xl mb-8" style={{
+              textShadow: '0 0 10px rgba(217, 119, 6, 0.8)'
+            }}>
+              <span className="dot-pulse inline-block mx-2">●</span>
+              <span className="dot-pulse inline-block mx-2" style={{ animationDelay: '0.2s' }}>●</span>
+              <span className="dot-pulse inline-block mx-2" style={{ animationDelay: '0.4s' }}>●</span>
             </div>
-          )}
 
-          {/* Animated dots */}
-          <div style={{ color: '#3b82f6', fontSize: '24px', marginBottom: '24px' }}>
-            <span className="dot-pulse">●</span>
-            <span className="dot-pulse" style={{ animationDelay: '0.2s' }}>●</span>
-            <span className="dot-pulse" style={{ animationDelay: '0.4s' }}>●</span>
+            <FantasyButton onClick={handleLeaveQueue} size="md">
+              Leave Queue
+            </FantasyButton>
           </div>
-
-          <button
-            onClick={handleLeaveQueue}
-            style={{
-              padding: '12px 32px',
-              fontSize: '16px',
-              background: '#374151',
-              color: '#e5e7eb',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              transition: 'all 0.2s'
-            }}
-            onMouseEnter={(e) => e.target.style.background = '#4b5563'}
-            onMouseLeave={(e) => e.target.style.background = '#374151'}
-          >
-            Leave Queue
-          </button>
-        </div>
+        </FantasyModal>
 
         {/* Animation styles */}
         <style>{`
           @keyframes pulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
           }
           .dot-pulse {
-            display: inline-block;
-            margin: 0 4px;
             animation: pulse 1.5s ease-in-out infinite;
           }
         `}</style>
-      </div>
+      </>
     );
   }
 
   // Queue selection screen
   if (loading) {
     return (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2000
-      }}>
-        <div style={{ color: '#e5e7eb', fontSize: '18px' }}>
+      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[2000]">
+        <div className="text-amber-300 text-xl font-bold" style={{
+          textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(217, 119, 6, 0.6)',
+          fontFamily: 'Georgia, serif'
+        }}>
           Loading queues...
         </div>
       </div>
@@ -295,153 +235,62 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
   }
 
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(0, 0, 0, 0.9)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2000,
-      padding: '20px'
-    }}>
-      <div style={{
-        background: '#1f2937',
-        borderRadius: '16px',
-        border: '2px solid #374151',
-        maxWidth: '800px',
-        width: '100%',
-        maxHeight: '80vh',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        {/* Header */}
-        <div style={{
-          padding: '20px',
-          borderBottom: '1px solid #374151',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <h2 style={{ margin: 0, color: '#e5e7eb', fontSize: '24px' }}>
-            ⚔️ PvP Matchmaking
-          </h2>
-          {onClose && (
-            <button
-              onClick={onClose}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#9ca3af',
-                fontSize: '24px',
-                cursor: 'pointer',
-                padding: '4px 8px'
-              }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-
-        {/* Queue grid */}
-        <div style={{
-          flex: 1,
-          overflow: 'auto',
-          padding: '20px',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-          gap: '16px',
-          alignContent: 'start'
-        }}>
-          {queues.map((queue) => (
-            <div
-              key={queue.type}
-              style={{
-                background: '#111827',
-                border: '2px solid #374151',
-                borderRadius: '12px',
-                padding: '20px',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
-              onMouseLeave={(e) => e.currentTarget.style.borderColor = '#374151'}
-              onClick={() => handleJoinQueue(queue.type)}
-            >
-              <h3 style={{
-                margin: '0 0 8px 0',
-                color: '#e5e7eb',
-                fontSize: '18px',
-                fontWeight: 'bold'
-              }}>
-                {queue.name}
-              </h3>
-              
-              <div style={{
-                color: '#9ca3af',
-                fontSize: '14px',
-                marginBottom: '16px'
-              }}>
-                {queue.teams ? 'Team Battle' : 'Free For All'}
-              </div>
-
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '8px',
-                marginBottom: '16px',
-                fontSize: '13px'
-              }}>
-                <div style={{ color: '#9ca3af' }}>
-                  Players: {queue.minPlayers}-{queue.maxPlayers}
-                </div>
-                <div style={{ color: '#9ca3af' }}>
-                  Countdown: {queue.countdownSeconds}s
-                </div>
-              </div>
-
-              {/* Current players in queue */}
-              {queue.currentPlayers > 0 && (
-                <div style={{
-                  background: '#1f2937',
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  marginBottom: '16px'
-                }}>
-                  <div style={{ color: '#3b82f6', fontSize: '12px', fontWeight: 'bold' }}>
-                    {queue.currentPlayers} players in queue
-                  </div>
-                </div>
-              )}
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleJoinQueue(queue.type);
-                }}
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => e.target.style.transform = 'scale(1.05)'}
-                onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-              >
-                Join Queue
-              </button>
+    <FantasyModal isOpen={true} onClose={onClose} title="⚔️ PVP MATCHMAKING" maxWidth="900px">
+      {/* Queue grid */}
+      <div className="flex-1 overflow-auto p-6 grid gap-6 content-start" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+        {queues.map((queue) => (
+          <FantasyCard
+            key={queue.type}
+            title={queue.name}
+            hoverable
+            onClick={() => handleJoinQueue(queue.type)}
+          >
+            <div className="text-amber-300 text-sm mb-5 font-semibold uppercase tracking-wider" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}>
+              {queue.teams ? 'Team Battle' : 'Free For All'}
             </div>
-          ))}
-        </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-5 text-sm" style={{ fontFamily: 'Georgia, serif' }}>
+              <div className="text-amber-200" style={{
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+              }}>
+                <span className="font-bold text-amber-300">Players:</span> {queue.minPlayers}-{queue.maxPlayers}
+              </div>
+              <div className="text-amber-200" style={{
+                textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+              }}>
+                <span className="font-bold text-amber-300">Countdown:</span> {queue.countdownSeconds}s
+              </div>
+            </div>
+
+            {/* Current players in queue */}
+            {queue.currentPlayers > 0 && (
+              <div className="bg-amber-800/50 py-3 px-4 rounded border border-amber-600/50 mb-5" style={{
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4)'
+              }}>
+                <div className="text-amber-300 text-sm font-bold" style={{
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                }}>
+                  ⭐ {queue.currentPlayers} players in queue
+                </div>
+              </div>
+            )}
+
+            <FantasyButton
+              onClick={(e) => {
+                e.stopPropagation();
+                handleJoinQueue(queue.type);
+              }}
+              fullWidth
+              size="lg"
+            >
+              Join Queue
+            </FantasyButton>
+          </FantasyCard>
+        ))}
       </div>
-    </div>
+    </FantasyModal>
   );
 }
 

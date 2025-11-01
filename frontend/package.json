@@ -12,13 +12,15 @@
     "@react-three/drei": ">=9.0",
     "@react-three/fiber": ">=9.0",
     "@react-three/rapier": ">=2.0.0",
+    "@tailwindcss/vite": "^4.1.16",
     "@use-gesture/core": "10.3.0",
     "ecctrl": "^1.0.97",
     "r3f-perf": "^7.2.3",
     "react": ">=19.1.0",
     "react-dom": ">=19.1.0",
-    "three": ">=0.177.0",
-    "socket.io-client": "^4.7.5"
+    "socket.io-client": "^4.7.5",
+    "tailwindcss": "^4.1.16",
+    "three": ">=0.177.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
