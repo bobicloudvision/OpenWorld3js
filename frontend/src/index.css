@@ -8,21 +8,11 @@
   }
 }
 
-html {
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-}
 
 body {
   font-family: 'Cinzel', Georgia, serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-  margin: 0;
-  padding: 0;
 }
 
 #root {
@@ -30,7 +20,6 @@ body {
   height: 100vh;
   height: 100dvh; /* Dynamic viewport height for mobile */
   background:  rgba(17, 24, 39, 0.98);
-  overflow: hidden;
 }
 
 canvas {

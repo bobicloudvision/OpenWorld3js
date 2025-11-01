@@ -5,4 +5,6 @@ export { default as FantasyPanel } from './FantasyPanel';
 export { default as FantasyProgressBar } from './FantasyProgressBar';
 export { default as FantasyBadge } from './FantasyBadge';
 export { default as FantasyInput } from './FantasyInput';
+export { default as FantasyTooltip } from './FantasyTooltip';
+export { default as FantasyCompactProgressBar } from './FantasyCompactProgressBar';
 
