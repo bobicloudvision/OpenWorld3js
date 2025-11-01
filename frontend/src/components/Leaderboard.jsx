@@ -84,7 +84,6 @@ export default function Leaderboard({ socket, player, onClose }) {
           {loading && (
             <div className="text-center text-amber-200 py-10" style={{
               textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-              fontFamily: 'Georgia, serif'
             }}>
               Loading...
             </div>
@@ -255,7 +254,6 @@ export default function Leaderboard({ socket, player, onClose }) {
                 <div>
                   <h3 className="text-amber-200 mb-4 text-xl font-bold" style={{
                     textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-                    fontFamily: 'Georgia, serif'
                   }}>Your Statistics</h3>
                   <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                     <StatCard label="Global Rank" value={`#${playerStats.rank}`} color="#fbbf24" />
@@ -274,7 +272,6 @@ export default function Leaderboard({ socket, player, onClose }) {
                 <div>
                   <h3 className="text-amber-200 mb-4 text-xl font-bold" style={{
                     textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-                    fontFamily: 'Georgia, serif'
                   }}>Recent Matches</h3>
                   <div className="flex flex-col gap-2">
                     {recentMatches.map((match, idx) => (

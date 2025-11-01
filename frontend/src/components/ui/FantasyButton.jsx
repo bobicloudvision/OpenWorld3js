@@ -50,8 +50,7 @@ export default function FantasyButton({
       style={{
         background: disabled ? variantStyle.background : variantStyle.background,
         boxShadow: '0 4px 8px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.3), inset 0 -1px 0 rgba(0,0,0,0.3)',
-        textShadow: '0 1px 2px rgba(255,255,255,0.3)',
-        fontFamily: 'Georgia, serif'
+        textShadow: '0 1px 2px rgba(255,255,255,0.3)'
       }}
       onMouseEnter={(e) => {
         if (!disabled) {

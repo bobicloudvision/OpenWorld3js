@@ -44,7 +44,6 @@ export default function FantasyModal({
               className="m-0 text-amber-300 text-3xl font-bold"
               style={{
                 textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(217, 119, 6, 0.6)',
-                fontFamily: 'Georgia, serif',
                 letterSpacing: '2px'
               }}
             >

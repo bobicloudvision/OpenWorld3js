@@ -42,7 +42,6 @@ export default function FantasyCard({
           className="m-0 mb-4 text-amber-200 text-xl font-bold relative z-10"
           style={{
             textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
-            fontFamily: 'Georgia, serif',
             letterSpacing: '1px'
           }}
         >

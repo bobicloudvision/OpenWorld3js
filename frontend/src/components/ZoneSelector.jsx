@@ -100,7 +100,6 @@ export default function ZoneSelector({ socket, playerLevel = 1, onClose, onZoneC
         <div className="text-center">
           <div className="text-amber-300 text-lg font-bold mb-2" style={{
             textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(217, 119, 6, 0.6)',
-            fontFamily: 'Georgia, serif'
           }}>
             Loading zones...
           </div>
@@ -121,7 +120,6 @@ export default function ZoneSelector({ socket, playerLevel = 1, onClose, onZoneC
           <div className="text-6xl mb-4 filter drop-shadow-lg">⚠️</div>
           <h2 className="text-red-400 m-0 mb-4 text-2xl font-bold" style={{
             textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(239, 68, 68, 0.6)',
-            fontFamily: 'Georgia, serif'
           }}>
             Zone System Not Set Up
           </h2>
@@ -187,9 +185,7 @@ export default function ZoneSelector({ socket, playerLevel = 1, onClose, onZoneC
                 {zone.description}
               </p>
 
-              <div className="flex flex-col gap-2 text-xs text-amber-300 mb-4" style={{
-                fontFamily: 'Georgia, serif'
-              }}>
+              <div className="flex flex-col gap-2 text-xs text-amber-300 mb-4">
                 <div>Level: <span className="font-bold text-amber-200">{zone.min_level}{zone.max_level ? `-${zone.max_level}` : '+'}</span></div>
                 <div>Players: <span className="font-bold text-amber-200">{zone.stats?.playerCount || 0}/{zone.max_players}</span></div>
                 {zone.is_safe_zone && (
@@ -198,7 +194,7 @@ export default function ZoneSelector({ socket, playerLevel = 1, onClose, onZoneC
                   </FantasyBadge>
                 )}
                 {zone.is_combat_zone && !zone.is_safe_zone && (
-                  <FantasyBadge variant="danger" size="sm" className="w-fit">
+                  <FantasyBadge variant="danger" size="sm" className="w-fit"> 
                     ⚔️ Combat Zone
                   </FantasyBadge>
                 )}

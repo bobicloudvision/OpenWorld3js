@@ -15,10 +15,9 @@ export default function HeroStatsPanel({ activeHero, onOpenHeroSelection }) {
           <div>
             <h3 className="m-0 mb-1 text-amber-300 text-xl font-bold" style={{
               textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(217, 119, 6, 0.6)',
-              fontFamily: 'Georgia, serif'
             }}>
               {activeHero.name}
-            </h3>
+            </h3> 
             <div className="text-amber-300 text-sm" style={{
               textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
             }}>

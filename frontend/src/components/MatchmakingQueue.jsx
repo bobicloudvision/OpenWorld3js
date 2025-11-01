@@ -104,7 +104,6 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
           <div className="text-6xl mb-4 filter drop-shadow-lg">⚔️</div>
           <h2 className="text-amber-300 m-0 mb-6 text-4xl font-bold" style={{
             textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 20px rgba(217, 119, 6, 0.8), 0 0 30px rgba(245, 158, 11, 0.5)',
-            fontFamily: 'Georgia, serif',
             letterSpacing: '2px'
           }}>
             MATCH FOUND!
@@ -114,8 +113,7 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
           <div className={`text-8xl font-bold my-8 ${
             countdown <= 3 ? 'text-red-400' : 'text-amber-300'
           }`} style={{ 
-            textShadow: '3px 3px 6px rgba(0,0,0,0.9), 0 0 30px currentColor',
-            fontFamily: 'Georgia, serif'
+            textShadow: '3px 3px 6px rgba(0,0,0,0.9), 0 0 30px currentColor'
           }}>
             {countdown}
           </div>
@@ -124,9 +122,8 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
           <FantasyPanel title="Players in Match:" className="mt-6">
             {matchPlayers.map((player, index) => (
               <div key={index} className="text-amber-100 p-3 mb-2 text-base border-b border-amber-800/50 last:border-0" style={{
-                textShadow: '1px 1px 3px rgba(0,0,0,0.9)',
-                fontFamily: 'Georgia, serif'
-              }}>
+                textShadow: '1px 1px 3px rgba(0,0,0,0.9)'
+              }}> 
                 <span className="font-bold">{player.playerName}</span> <span className="text-amber-300">Level {player.playerLevel}</span>
               </div>
             ))}
@@ -151,7 +148,6 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
             <div className="text-6xl mb-4 filter drop-shadow-lg">🔍</div>
             <h2 className="text-amber-300 m-0 mb-3 text-3xl font-bold" style={{
               textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(217, 119, 6, 0.6)',
-              fontFamily: 'Georgia, serif',
               letterSpacing: '1px'
             }}>
               Searching for Opponents
@@ -166,7 +162,6 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
             <FantasyPanel className="mb-6">
               <div className="text-6xl font-bold text-amber-300 mb-3" style={{
                 textShadow: '2px 2px 4px rgba(0,0,0,0.9), 0 0 20px rgba(217, 119, 6, 0.8)',
-                fontFamily: 'Georgia, serif'
               }}>
                 {queueStatus.currentPlayers} / {queueStatus.minPlayers}
               </div>
@@ -183,7 +178,6 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
                 {queueStatus.players.map((player, index) => (
                   <div key={index} className="text-amber-100 p-2 text-sm border-b border-amber-800/50 last:border-0" style={{
                     textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
-                    fontFamily: 'Georgia, serif'
                   }}>
                     <span className="font-bold">{player.playerName}</span> <span className="text-amber-300">Level {player.playerLevel}</span>
                   </div>
@@ -226,7 +220,6 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
       <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[2000]">
         <div className="text-amber-300 text-xl font-bold" style={{
           textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(217, 119, 6, 0.6)',
-          fontFamily: 'Georgia, serif'
         }}>
           Loading queues...
         </div>
@@ -251,7 +244,7 @@ export default function MatchmakingQueue({ socket, onClose, onMatchStarted }) {
               {queue.teams ? 'Team Battle' : 'Free For All'}
             </div>
 
-            <div className="grid grid-cols-2 gap-4 mb-5 text-sm" style={{ fontFamily: 'Georgia, serif' }}>
+            <div className="grid grid-cols-2 gap-4 mb-5 text-sm">
               <div className="text-amber-200" style={{
                 textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
               }}>
