@@ -76,6 +76,17 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Game route without Layout */}
+        <Route 
+          path="/game" 
+          element={
+            <GameApp 
+              onPlayerChange={setPlayer}
+              socketRef={socketRef}
+            />
+          } 
+        />
+        {/* Website pages with Layout */}
         <Route 
           path="/" 
           element={
@@ -87,15 +98,6 @@ export default function App() {
           }
         >
           <Route index element={<HomePage />} />
-          <Route 
-            path="game" 
-            element={
-              <GameApp 
-                onPlayerChange={setPlayer}
-                socketRef={socketRef}
-              />
-            } 
-          />
           <Route 
             path="leaderboard" 
             element={

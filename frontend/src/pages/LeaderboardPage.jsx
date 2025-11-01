@@ -59,7 +59,6 @@ export default function LeaderboardPage({ socket: externalSocket, player }) {
     <div 
       className="container mx-auto px-4 py-8 min-h-screen"
       style={{
-        background: 'linear-gradient(to bottom, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.98))',
         minHeight: '100vh'
       }}
     >
