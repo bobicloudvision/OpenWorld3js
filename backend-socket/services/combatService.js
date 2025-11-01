@@ -7,6 +7,7 @@ import { updatePlayerHeroCombatStats } from './heroService.js';
 import * as zoneService from './zoneService.js';
 import { saveCombatMatch } from './combatHistoryService.js';
 import { getActiveHeroForPlayer, updatePlayerExperience } from './playerService.js';
+import * as enemyService from './enemyService.js';
 
 // Combat state storage (in-memory, move to Redis for production)
 const combatInstances = new Map(); // combatInstanceId -> CombatInstance
@@ -36,7 +37,8 @@ export function initializeCombatInstance(combatType, participants, zone, zoneId 
       active: true,
       startTime: Date.now(),
       endTime: null,
-      emptyStartTime: null // Track when combat became empty (all players disconnected)
+      emptyStartTime: null, // Track when combat became empty (all players disconnected)
+      initializationComplete: false // Track if enemies/players are fully initialized
     },
     activeParticipants: new Set(participants.players || []), // Track actively connected players
     combatLog: []
@@ -83,9 +85,35 @@ export function initializeCombatInstance(combatType, participants, zone, zoneId 
   }
   
   if (participants.enemies) {
+    let enemiesInitialized = 0;
     participants.enemies.forEach(enemyId => {
-      initializeEnemyCombatState(enemyId, combatInstanceId);
+      // Get enemy data from enemyService to use correct stats
+      const enemy = enemyService.getEnemy(enemyId);
+      if (enemy) {
+        initializeEnemyCombatState(enemyId, combatInstanceId, {
+          health: enemy.health,
+          maxHealth: enemy.maxHealth,
+          attack: enemy.attack,
+          defense: enemy.defense,
+          position: enemy.position
+        });
+        enemiesInitialized++;
+        console.log(`[combat] Initialized enemy ${enemyId} (${enemy.name}) in combat ${combatInstanceId} with ${enemy.health}/${enemy.maxHealth} HP`);
+      } else {
+        console.warn(`[combat] Enemy ${enemyId} not found in enemyService, using defaults`);
+        initializeEnemyCombatState(enemyId, combatInstanceId);
+        enemiesInitialized++;
+      }
     });
+    
+    // Mark initialization as complete when all enemies are initialized
+    if (enemiesInitialized === participants.enemies.length) {
+      combatInstance.state.initializationComplete = true;
+      console.log(`[combat] All ${enemiesInitialized} enemies initialized for combat ${combatInstanceId}`);
+    }
+  } else {
+    // No enemies (PvP) - initialization complete immediately
+    combatInstance.state.initializationComplete = true;
   }
   
   return combatInstanceId;
@@ -638,17 +666,63 @@ export function checkCombatConditions(combatInstanceId) {
     return { ended: false };
   }
   
+  // Minimum combat duration - prevent instant victories (wait 2 seconds after start)
+  const MIN_COMBAT_DURATION = 2000; // 2 seconds
+  const combatDuration = Date.now() - combatInstance.state.startTime;
+  if (combatDuration < MIN_COMBAT_DURATION) {
+    // Too early to check - combat just started
+    return { ended: false };
+  }
+  
+  // For PvE, ensure initialization is complete before checking conditions
+  if ((combatInstance.combatType === 'pve' || combatInstance.combatType === 'team_pve') &&
+      !combatInstance.state.initializationComplete) {
+    // Still initializing enemies - don't check conditions yet
+    return { ended: false };
+  }
+  
   // Check if all enemies defeated (PvE) — only if there are enemies present
   if ((combatInstance.combatType === 'pve' || combatInstance.combatType === 'team_pve') &&
       Array.isArray(combatInstance.participants.enemies) &&
       combatInstance.participants.enemies.length > 0) {
-    const allEnemiesDead = combatInstance.participants.enemies?.every(enemyId => {
+    
+    // Check both enemyCombatState and enemyService for enemy status
+    const enemyStatuses = combatInstance.participants.enemies.map(enemyId => {
       const enemyState = enemyCombatState.get(enemyId);
-      return !enemyState || !enemyState.alive;
+      const enemy = enemyService.getEnemy(enemyId);
+      
+      // Get alive status - prefer combat state, fallback to enemy service, default to true (assume alive)
+      let alive = true; // Default to alive (safer - won't cause false victories)
+      if (enemyState !== undefined) {
+        alive = enemyState.alive !== false && enemyState.health > 0;
+      } else if (enemy !== undefined) {
+        alive = enemy.alive !== false && enemy.health > 0;
+      }
+      
+      return {
+        enemyId,
+        inCombatState: !!enemyState,
+        inEnemyService: !!enemy,
+        alive: alive,
+        health: enemyState?.health ?? enemy?.health ?? 0
+      };
+    });
+    
+    const allEnemiesDead = enemyStatuses.every(status => {
+      // If enemy is not in either system, something went wrong - don't count as dead immediately
+      // Wait for initialization to complete
+      if (!status.inCombatState && !status.inEnemyService) {
+        console.warn(`[combat] Enemy ${status.enemyId} not found in either system - may still be initializing`);
+        return false; // Don't end combat if enemy not initialized yet
+      }
+      
+      // Enemy is dead if: not alive or health <= 0
+      return !status.alive || status.health <= 0;
     });
     
     if (allEnemiesDead) {
-      console.log('[combat] PvE Victory - All enemies defeated');
+      const aliveCount = enemyStatuses.filter(s => s.alive && s.health > 0).length;
+      console.log(`[combat] 🏆 PvE Victory - All ${combatInstance.participants.enemies.length} enemies defeated (${aliveCount} were alive before check)`);
       return {
         ended: true,
         result: 'victory',
@@ -656,6 +730,7 @@ export function checkCombatConditions(combatInstanceId) {
         losers: combatInstance.participants.enemies || []
       };
     }
+    // Removed verbose "continues" logging - only log when combat ends
   }
   
   // PvP: Check if only one player (or team) remains alive
@@ -918,9 +993,12 @@ export function endCombatInstance(combatInstanceId, result) {
     });
   }
   
+  // Clean up enemy combat state and remove enemies from enemy service (for matchmaking)
   if (combatInstance.participants.enemies) {
     combatInstance.participants.enemies.forEach(enemyId => {
       enemyCombatState.delete(enemyId);
+      // Remove from enemy service (for matchmaking-spawned enemies)
+      enemyService.removeEnemy(enemyId);
     });
   }
   

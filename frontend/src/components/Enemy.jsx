@@ -54,8 +54,15 @@ export default function Enemy({ enemy, playerPositionRef }) {
     updateMixer(delta)
     
     // Update group position and rotation to match enemy state from backend
+    // Apply Y offset to match Player component offset (accounts for model origin)
+    // Player uses -0.94, but enemy models might need different offset
+    const MODEL_Y_OFFSET = -0.94 // Match player offset to keep enemies on ground
     if (groupRef.current) {
-      groupRef.current.position.set(enemy.position[0], enemy.position[1], enemy.position[2])
+      groupRef.current.position.set(
+        enemy.position[0], 
+        enemy.position[1] + MODEL_Y_OFFSET, // Adjust Y to keep on ground
+        enemy.position[2]
+      )
       // Use facingAngle from backend state
       if (enemy.facingAngle !== undefined) {
         groupRef.current.rotation.y = enemy.facingAngle

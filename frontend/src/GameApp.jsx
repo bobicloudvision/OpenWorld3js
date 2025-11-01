@@ -113,11 +113,24 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
     }).catch(() => { console.log('Auth check failed'); setAuthOpen(true) });
   }, []);
 
-  // Connect to socket server when authenticated
+  // Helper function to set up socket event listeners - must be defined before useEffect
+  const setupSocketListeners = React.useCallback((socket) => {
+    if (!socket) return;
+
+    console.log('[GameApp] Setting up socket event listeners');
+    
+    // Note: All these listeners are already registered by the useSocketConnection hook for auth
+    // But GameApp needs to listen to game-specific events
+    
+    // GameApp-specific listeners are set up below in the useEffect
+    // This function is a placeholder for now
+  }, []);
+
+  // Connect to socket server when authenticated or use external socket
   useEffect(() => {
     if (!player) {
-      // If logging out or not authenticated, ensure socket is closed
-      if (socketRef.current) {
+      // If logging out or not authenticated, ensure socket is closed (only if we created it)
+      if (!externalSocketRef && socketRef.current) {
         socketRef.current.disconnect();
         socketRef.current = null;
       }
@@ -125,6 +138,21 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
       return;
     }
 
+    // If external socket is provided, use it instead of creating a new one
+    if (externalSocketRef) {
+      console.log('[GameApp] Using external socket connection - will set up listeners when socket is ready');
+      // Just wait for socket to be ready, listeners will be set up below
+      const checkSocketReady = setInterval(() => {
+        if (externalSocketRef.current && externalSocketRef.current.connected) {
+          clearInterval(checkSocketReady);
+          setSocketReady(true);
+          console.log('[GameApp] External socket is ready');
+        }
+      }, 100);
+      return () => clearInterval(checkSocketReady);
+    }
+
+    // Only create a new socket if no external socket is provided
     setSocketReady(false);
     const token = localStorage.getItem('playerToken');
     const socketUrl = import.meta.env.SOCKET_URL || 'http://localhost:6060';
@@ -364,19 +392,12 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
     });
 
     return () => {
-      socket.off('combat:error');
-      socket.off('combat:ended');
-      socket.off('regen:tick');
-      socket.off('consumable:used');
-      socket.off('consumable:channeling-completed');
-      socket.off('hero:level-up');
-      socket.off('player:level-up');
-      socket.disconnect();
-      if (!externalSocketRef) {
+      if (!externalSocketRef && socketRef.current) {
+        socketRef.current.disconnect();
         socketRef.current = null;
       }
     };
-  }, [!!player, handleZoneChange, externalSocketRef]);
+  }, [player, externalSocketRef, handleZoneChange, loadZoneData, onPlayerChange, inCombatMatch]);
 
   // Load enemies when zone changes or socket connects
   // This must be a separate useEffect at the top level (not nested in socket setup)

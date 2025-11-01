@@ -120,6 +120,9 @@ export function registerZoneHandlers(socket, io) {
       // Join socket room for this zone
       socket.join(`zone-${zoneId}`);
       
+      // Notify socket about zone change (for position tracking reset)
+      socket.emit('zone:changed', { zoneId, position: spawnPosition });
+      
       // Get portals for this zone
       const portals = await zoneService.getZonePortals(zoneId);
       

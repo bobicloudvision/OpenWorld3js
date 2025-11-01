@@ -154,8 +154,8 @@ export default function LobbyScene({
             {/* Render other players */}
             <OtherPlayers socket={socket} currentPlayerId={player?.id} /> 
             
-            <Shapes />
-            
+            {/* <Shapes />
+             */}
           </KeyboardControls>    
         
           <Ground 

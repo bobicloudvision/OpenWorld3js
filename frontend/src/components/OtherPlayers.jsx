@@ -84,14 +84,22 @@ function OtherPlayer({ otherPlayer }) {
   })
   
   // Update target position and rotation when they change from server
+  // Use JSON.stringify to detect actual value changes, not just reference changes
+  // This ensures the effect triggers even if the array reference is the same but values changed
+  const positionKey = JSON.stringify(otherPlayer.position)
+  const rotationKey = JSON.stringify(otherPlayer.rotation)
+  
   useEffect(() => {
     if (otherPlayer.position && Array.isArray(otherPlayer.position) && otherPlayer.position.length === 3) {
-      setTargetPosition(otherPlayer.position)
+      // Always create a new array to ensure state update is triggered
+      setTargetPosition([...otherPlayer.position])
     }
     if (otherPlayer.rotation && Array.isArray(otherPlayer.rotation) && otherPlayer.rotation.length === 3) {
-      setTargetRotation(otherPlayer.rotation)
+      // Always create a new array to ensure state update is triggered
+      setTargetRotation([...otherPlayer.rotation])
     }
-  }, [otherPlayer.position, otherPlayer.rotation])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positionKey, rotationKey])
   
   // Apply hero model scale and rotation offset (model-specific rotation)
   const modelScale = otherPlayer.heroModelScale ?? 1
@@ -153,8 +161,12 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
     const handlePlayersJoined = (players) => {
       const playersMap = new Map()
       const now = Date.now()
+      const seenSocketIds = new Set()
+      
       players.forEach(player => {
-        if (player.playerId !== currentPlayerId) {
+        // Skip current player and prevent duplicates
+        if (player.playerId !== currentPlayerId && player.socketId && !seenSocketIds.has(player.socketId)) {
+          seenSocketIds.add(player.socketId)
           playersMap.set(player.socketId, player)
           playerLastUpdateRef.current.set(player.socketId, now)
         }
@@ -164,10 +176,24 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
     
     // Handle new player joining
     const handlePlayerJoined = (playerData) => {
-      if (playerData.playerId === currentPlayerId) return
+      if (playerData.playerId === currentPlayerId || !playerData.socketId) return
       setOtherPlayers(prev => {
+        // If player already exists, merge data (in case hero data arrived before full join)
+        // If not, add as new player
         const updated = new Map(prev)
-        updated.set(playerData.socketId, playerData)
+        if (prev.has(playerData.socketId)) {
+          // Merge with existing data to preserve position updates
+          const existing = prev.get(playerData.socketId)
+          updated.set(playerData.socketId, {
+            ...existing,
+            ...playerData,
+            // Preserve position/rotation if not in new data
+            position: playerData.position || existing.position,
+            rotation: playerData.rotation || existing.rotation,
+          })
+        } else {
+          updated.set(playerData.socketId, playerData)
+        }
         playerLastUpdateRef.current.set(playerData.socketId, Date.now())
         return updated
       })
@@ -180,10 +206,19 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
         const updated = new Map(prev)
         const player = updated.get(socketId)
         if (player) {
+          // Always create new array references to ensure React detects changes
+          // Even if values are the same, create new arrays to trigger React re-render
+          const newPosition = position && Array.isArray(position) && position.length === 3 
+            ? [...position] 
+            : player.position ? [...player.position] : [0, 0, 0]
+          const newRotation = rotation && Array.isArray(rotation) && rotation.length === 3 
+            ? [...rotation] 
+            : player.rotation ? [...player.rotation] : [0, 0, 0]
+          
           updated.set(socketId, {
             ...player,
-            position: position || player.position,
-            rotation: rotation || player.rotation,
+            position: newPosition,
+            rotation: newRotation,
           })
           playerLastUpdateRef.current.set(socketId, now)
         } else {
@@ -193,8 +228,8 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
           updated.set(socketId, {
             socketId,
             playerId: null, // Will be set when full data arrives
-            position: position || [0, 0, 0],
-            rotation: rotation || [0, 0, 0],
+            position: position && Array.isArray(position) && position.length === 3 ? [...position] : [0, 0, 0],
+            rotation: rotation && Array.isArray(rotation) && rotation.length === 3 ? [...rotation] : [0, 0, 0],
             name: `Player ${socketId.substring(0, 6)}`,
           })
           playerLastUpdateRef.current.set(socketId, now)
@@ -295,9 +330,14 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
     }
   }, [socket])
   
+  // Ensure unique players by socketId (defensive check)
+  const uniquePlayers = Array.from(otherPlayers.values()).filter((player, index, self) => 
+    player.socketId && index === self.findIndex(p => p.socketId === player.socketId)
+  )
+  
   return (
     <>
-      {Array.from(otherPlayers.values()).map(player => (
+      {uniquePlayers.map(player => (
         <OtherPlayer key={player.socketId} otherPlayer={player} />
       ))}
     </>

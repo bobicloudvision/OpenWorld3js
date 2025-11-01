@@ -270,8 +270,8 @@ export default function GameplayScene({
             {/* Render other players */}
             <OtherPlayers socket={socket} currentPlayerId={player?.id} /> 
             
-            <Shapes />
-            {/* <Enemies playerPositionRef={playerPositionRef} /> */} 
+            {/* <Shapes /> */}
+            <Enemies playerPositionRef={playerPositionRef} /> 
             <CombatController playerPositionRef={playerPositionRef} />
 
             <MagicEffectsManager />
@@ -286,10 +286,10 @@ export default function GameplayScene({
             socket={socket}
             mapFile={mapFilePath}
           />
-          <HiddenElementPlaceholders 
+          {/* <HiddenElementPlaceholders 
             key={`placeholders-${currentZone?.id || 'default'}`}
             mapFile={mapFilePath}
-          />
+          /> */}
           <GameManager playerPositionRef={playerPositionRef} />
           
         </Physics>

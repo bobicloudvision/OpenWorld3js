@@ -7,6 +7,7 @@ import * as zoneService from './zoneService.js';
 import { initializeCombatInstance } from './combatService.js';
 import { registerCombatInstance } from '../sockets/combat.js';
 import { getActiveHeroForPlayer } from './playerService.js';
+import * as enemyService from './enemyService.js';
 
 // Queue storage
 const queues = new Map(); // queueType -> Queue
@@ -55,6 +56,38 @@ const QUEUE_TYPES = {
     maxPlayers: 10,
     countdownSeconds: 20,
     teams: false
+  },
+  // PvE Queue Types
+  solo_pve: {
+    name: 'Solo Adventure',
+    minPlayers: 1,
+    maxPlayers: 1,
+    countdownSeconds: 5,
+    teams: false,
+    isPvE: true,
+    enemyCount: 3, // Number of enemies to spawn
+    enemyTypes: ['goblin-warrior'] // Enemy types to use
+  },
+  co_op: {
+    name: 'Co-op Adventure',
+    minPlayers: 2,
+    maxPlayers: 4,
+    countdownSeconds: 10,
+    teams: false,
+    isPvE: true,
+    enemyCount: 6, // Scales with player count
+    enemyTypes: ['goblin-warrior', 'dark-mage', 'orc-berserker']
+  },
+  elite_pve: {
+    name: 'Elite Challenge',
+    minPlayers: 1,
+    maxPlayers: 3,
+    countdownSeconds: 10,
+    teams: false,
+    isPvE: true,
+    enemyCount: 8, // More challenging
+    enemyTypes: ['orc-berserker', 'dark-mage'],
+    enemyLevel: 'elite' // Harder enemies
   }
 };
 
@@ -301,9 +334,18 @@ async function startCombat(matchId, io) {
 
   const config = QUEUE_TYPES[match.queueType];
 
-  // Get all available PvP arena zones
+  // Get all available arena zones (PvP or PvE)
   const zones = await zoneService.getActiveZones();
-  const arenaZones = zones.filter(z => z.type === 'pvp' && z.is_combat_zone);
+  const isPvE = config.isPvE || false;
+  const arenaZones = zones.filter(z => {
+    if (isPvE) {
+      // For PvE, use any combat zone (can be pve type or pvp type)
+      return z.is_combat_zone;
+    } else {
+      // For PvP, use PvP arena zones
+      return z.type === 'pvp' && z.is_combat_zone;
+    }
+  });
   
   if (arenaZones.length === 0) {
     console.error('[matchmaking] No arena zones found!');
@@ -348,10 +390,51 @@ async function startCombat(matchId, io) {
     };
   }
 
+  // Spawn enemies for PvE matches
+  let enemyIds = [];
+  if (config.isPvE) {
+    const spawnPos = JSON.parse(arenaZone.spawn_position);
+    const enemyCount = config.enemyCount || 3;
+    const enemyTypes = config.enemyTypes || ['goblin-warrior'];
+    
+    // Scale enemy count with player count for co-op
+    const scaledEnemyCount = Math.ceil(enemyCount * (match.players.length / (config.maxPlayers || 1)));
+    
+    console.log(`[matchmaking] Spawning ${scaledEnemyCount} enemies for PvE match ${matchId}`);
+    
+    // Spawn enemies around the spawn position
+    for (let i = 0; i < scaledEnemyCount; i++) {
+      // Random enemy type from configured types
+      const enemyType = enemyTypes[Math.floor(Math.random() * enemyTypes.length)];
+      
+      // Position enemies in a circle around spawn area
+      const angle = (i / scaledEnemyCount) * Math.PI * 2;
+      const radius = 10 + (i * 2); // Spread them out
+      const enemyPosition = [
+        spawnPos.x + Math.cos(angle) * radius,
+        spawnPos.y || 0,
+        spawnPos.z + Math.sin(angle) * radius
+      ];
+      
+      const enemyId = `match-${matchId}-enemy-${i}`;
+      enemyService.initializeEnemy(enemyId, enemyType, arenaZone.id, enemyPosition);
+      enemyIds.push(enemyId);
+      
+      console.log(`[matchmaking] Spawned ${enemyType} enemy ${enemyId} at [${enemyPosition.join(', ')}]`);
+    }
+    
+    // Add enemies to participants
+    participants.enemies = enemyIds;
+  }
+
   // Initialize combat instance in the arena zone
   const spawnPos = JSON.parse(arenaZone.spawn_position);
+  const combatType = config.isPvE 
+    ? (config.teams ? 'team_pve' : 'pve')
+    : (config.teams ? 'team_pvp' : 'pvp');
+    
   const combatInstanceId = initializeCombatInstance(
-    config.teams ? 'team_pvp' : 'pvp',
+    combatType,
     participants,
     { center: [spawnPos.x, spawnPos.y, spawnPos.z], radius: 50 },
     arenaZone.id, // Combat takes place in arena zone
@@ -375,6 +458,13 @@ async function startCombat(matchId, io) {
       console.error('[matchmaking] Error adding player to zone:', error);
     }
 
+    // Notify player about zone change (clears position tracking for anti-teleport)
+    // This must happen BEFORE match:started so position tracking is reset
+    io.to(player.playerId).emit('zone:changed', { 
+      zoneId: arenaZone.id, 
+      position: spawnPos 
+    });
+
     // Notify player
     console.log(`[matchmaking] Emitting match:started to player ${player.playerId} (${player.playerName}) in room ${player.playerId}`);
     console.log(`[matchmaking] Event data:`, { matchId, combatInstanceId, zoneName: arenaZone.name });
@@ -388,7 +478,10 @@ async function startCombat(matchId, io) {
       combatInstanceId,
       zone: arenaZone,
       position: spawnPos,
-      teams: config.teams ? participants.teams : null
+      teams: config.teams ? participants.teams : null,
+      isPvE: config.isPvE || false,
+      enemyCount: enemyIds.length,
+      enemies: config.isPvE ? enemyIds : null // Include enemy IDs for PvE matches
     });
   }
 }
@@ -403,6 +496,18 @@ function cancelMatch(matchId, io, reason) {
   // Clear countdown if exists
   if (match.countdownInterval) {
     clearInterval(match.countdownInterval);
+  }
+
+  // Clean up enemies if match was started (combat instance exists)
+  if (match.combatInstanceId && match.zoneId) {
+    // Get enemies spawned for this match and remove them
+    const enemiesInZone = enemyService.getEnemiesInZone(match.zoneId);
+    enemiesInZone.forEach(enemy => {
+      if (enemy.id.startsWith(`match-${matchId}-`)) {
+        enemyService.removeEnemy(enemy.id);
+        console.log(`[matchmaking] Removed enemy ${enemy.id} from cancelled match`);
+      }
+    });
   }
 
   // Notify players

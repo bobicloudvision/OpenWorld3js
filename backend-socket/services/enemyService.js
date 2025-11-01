@@ -222,6 +222,7 @@ const ATTACK_RANGE = 3;
 const MAGIC_RANGE = 8;
 const DETECTION_RANGE = 25;
 const FOV_ANGLE = Math.PI * 0.75; // 135 degrees
+const CLOSE_DETECTION_RANGE = 15; // Within this range, detect regardless of FOV (allows enemies to turn and chase)
 
 /**
  * Get movement speed based on enemy type
@@ -353,8 +354,16 @@ export function processEnemyAI(enemy, delta, playersInZone) {
     );
     
     if (distance < minDistance && distance <= DETECTION_RANGE) {
-      // Check if player is in FOV
-      if (isPlayerInFOV(enemy.position, playerPosition, enemy.facingAngle)) {
+      // For initial detection:
+      // - If player is very close (CLOSE_DETECTION_RANGE), detect regardless of FOV (allows turning to face)
+      // - If player is in FOV, always detect
+      // - If enemy was already tracking, continue tracking (allows chase even if facing away temporarily)
+      const wasTrackingPlayer = enemy.playerVisible;
+      const inFOV = isPlayerInFOV(enemy.position, playerPosition, enemy.facingAngle);
+      const isCloseEnough = distance <= CLOSE_DETECTION_RANGE;
+      
+      // Detect if: in FOV OR very close OR was already tracking
+      if (inFOV || isCloseEnough || wasTrackingPlayer) {
         nearestPlayer = { ...player, position: playerPosition, distance };
         minDistance = distance;
       }

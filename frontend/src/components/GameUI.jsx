@@ -63,80 +63,11 @@ export default function GameUI({ playerPositionRef, onOpenHeroSelection, activeH
     }
   }, [socket])
   
-  
-  if (gameState === 'victory') {
-    return (
-      <div className="game-overlay">
-        <FantasyCard className="min-w-[400px]">
-          <h1 className="text-4xl font-bold text-green-400 mb-4" style={{ textShadow: '0 0 20px rgba(34, 197, 94, 0.8)' }}>Victory!</h1>
-          <p className="text-amber-200 mb-6">All enemies defeated!</p>
-          <FantasyButton onClick={resetGame} variant="primary" size="lg" className="w-full">Play Again</FantasyButton>
-        </FantasyCard>
-      </div>
-    )
-  }
-  
-  if (gameState === 'defeat') {
-    return (
-      <div className="game-overlay">
-        <FantasyCard className="min-w-[400px]">
-          <h1 className="text-4xl font-bold text-red-400 mb-4" style={{ textShadow: '0 0 20px rgba(239, 68, 68, 0.8)' }}>Defeat!</h1>
-          <p className="text-amber-200 mb-6">You have been defeated!</p>
-          <FantasyButton onClick={resetGame} variant="danger" size="lg" className="w-full">Try Again</FantasyButton>
-        </FantasyCard>
-      </div>
-    )
-  }
+
   
   return (
     <div className="game-ui">
       {/* Combat Result Notification */}
-      {combatResult && (
-        <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-[1000] pointer-events-auto" style={{ animation: 'combatResultSlideIn 0.5s ease-out' }}>
-          <FantasyCard className="min-w-[400px] text-center" style={{
-            borderColor: combatResult.type === 'victory' ? '#ffd700' : combatResult.type === 'defeat' ? '#ff4444' : '#888',
-            background: combatResult.type === 'victory' 
-              ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(0, 0, 0, 0.95) 50%)'
-              : combatResult.type === 'defeat'
-              ? 'linear-gradient(135deg, rgba(255, 68, 68, 0.2) 0%, rgba(0, 0, 0, 0.95) 50%)'
-              : 'linear-gradient(135deg, rgba(136, 136, 136, 0.2) 0%, rgba(0, 0, 0, 0.95) 50%)'
-          }}>
-            <h2 className={`text-4xl font-bold mb-4 ${combatResult.type === 'victory' ? 'text-yellow-400' : combatResult.type === 'defeat' ? 'text-red-400' : 'text-gray-400'}`} style={{ 
-              textShadow: '0 0 20px currentColor',
-              animation: combatResult.type === 'victory' ? 'victoryPulse 1.5s ease-in-out infinite' : 'none'
-            }}>
-              {combatResult.type === 'victory' && '🏆 VICTORY!'}
-              {combatResult.type === 'defeat' && '💀 DEFEATED!'}
-              {combatResult.type === 'draw' && '🤝 DRAW!'}
-            </h2>
-            <p className="text-amber-200 text-lg mb-4">
-              {combatResult.type === 'victory' && 'You have won the battle!'}
-              {combatResult.type === 'defeat' && 'You have been defeated!'}
-              {combatResult.type === 'draw' && 'The battle ended in a draw!'}
-            </p>
-            {(combatResult.winners?.length > 0 || combatResult.losers?.length > 0) && (
-              <div className="mt-4 pt-4 border-t border-amber-700/30">
-                {combatResult.winners?.length > 0 && (
-                  <div className="mb-2">
-                    <span className="text-amber-300/80">Winners: </span>
-                    {combatResult.winners.map((winner, idx) => (
-                      <FantasyBadge key={idx} variant="success" size="sm" className="mx-1">{winner}</FantasyBadge>
-                    ))}
-                  </div>
-                )}
-                {combatResult.losers?.length > 0 && (
-                  <div>
-                    <span className="text-amber-300/80">Losers: </span>
-                    {combatResult.losers.map((loser, idx) => (
-                      <FantasyBadge key={idx} variant="danger" size="sm" className="mx-1">{loser}</FantasyBadge>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </FantasyCard>
-        </div>
-      )}
       
       {/* Level Up Notification */}
       {levelUpInfo && (
