@@ -68,11 +68,57 @@ export function registerMultiplayerHandlers(socket, io) {
   });
 
   // Handle position updates from this player
+  // SECURITY: Validate position updates to prevent teleport hacks
+  const lastPosition = new Map(); // socketId -> { position, timestamp }
+  const MAX_MOVEMENT_SPEED = 20; // Max units per second (prevents teleporting)
+  
   socket.on('player:position:update', (data) => {
     const { position, rotation } = data;
+    
+    // Validate position format
     if (!Array.isArray(position) || position.length !== 3) {
+      console.warn(`[multiplayer] Invalid position format from socket ${socket.id}`);
       return; // Invalid position data
     }
+    
+    // Validate position values are numbers
+    if (!position.every(val => typeof val === 'number' && isFinite(val))) {
+      console.warn(`[multiplayer] Invalid position values from socket ${socket.id}`);
+      return;
+    }
+    
+    // Check for position validation (anti-teleport)
+    const lastPosData = lastPosition.get(socket.id);
+    if (lastPosData) {
+      const now = Date.now();
+      const timeDelta = (now - lastPosData.timestamp) / 1000; // Convert to seconds
+      const distance = Math.sqrt(
+        Math.pow(position[0] - lastPosData.position[0], 2) +
+        Math.pow(position[1] - lastPosData.position[1], 2) +
+        Math.pow(position[2] - lastPosData.position[2], 2)
+      );
+      
+      // Prevent teleporting (moving faster than max speed)
+      if (timeDelta > 0 && distance / timeDelta > MAX_MOVEMENT_SPEED) {
+        console.warn(`[multiplayer] Player ${playerId} attempted to teleport: ${(distance / timeDelta).toFixed(2)} units/sec (max: ${MAX_MOVEMENT_SPEED})`);
+        // Use last valid position instead
+        updatePlayerPositionInGameSession(socket.id, lastPosData.position, rotation);
+        
+        // Still broadcast but with corrected position
+        const currentZoneId = getPlayerZone(playerId);
+        if (currentZoneId) {
+          socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
+            socketId: socket.id,
+            position: lastPosData.position,
+            rotation,
+          });
+        }
+        return;
+      }
+    }
+    
+    // Update last valid position
+    lastPosition.set(socket.id, { position: [...position], timestamp: Date.now() });
 
     // Update player position in game session
     updatePlayerPositionInGameSession(socket.id, position, rotation);
@@ -86,6 +132,11 @@ export function registerMultiplayerHandlers(socket, io) {
         rotation,
       });
     }
+  });
+  
+  // Cleanup last position on disconnect
+  socket.on('disconnect', () => {
+    lastPosition.delete(socket.id);
   });
 
   // Handle hero updates (when player changes hero)

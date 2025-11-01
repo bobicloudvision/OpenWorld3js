@@ -298,8 +298,33 @@ const useGameStore = create(
         }
       },
       
-      // Enemy stats
-      enemies: getInitialEnemies(),
+      // Enemy stats (now synced from backend)
+      enemies: [],
+      
+      // Enemy sync methods (called from socket handlers)
+      setEnemies: (enemies) => set({ enemies }),
+      updateEnemyState: (enemyUpdates) => {
+        set((state) => {
+          const enemyMap = new Map(state.enemies.map(e => [e.id, e]));
+          
+          // Update or add enemies
+          enemyUpdates.forEach(update => {
+            const existing = enemyMap.get(update.id);
+            if (existing) {
+              enemyMap.set(update.id, { ...existing, ...update });
+            } else {
+              enemyMap.set(update.id, update);
+            }
+          });
+          
+          return { enemies: Array.from(enemyMap.values()) };
+        });
+      },
+      removeEnemy: (enemyId) => {
+        set((state) => ({
+          enemies: state.enemies.filter(e => e.id !== enemyId)
+        }));
+      },
       
       // Game state
       gameState: 'playing', // 'playing', 'victory', 'defeat'
@@ -753,7 +778,7 @@ const useGameStore = create(
               shield: 0
             }
           },
-          enemies: getInitialEnemies(),
+          enemies: [],
           gameState: 'playing',
           combatLog: []
         })
@@ -763,7 +788,7 @@ const useGameStore = create(
       name: "ow3-game", // localStorage key
       partialize: (state) => ({ 
         player: state.player,
-        enemies: state.enemies,
+        // Don't persist enemies - they're synced from backend
         gameState: state.gameState
       }),
     }

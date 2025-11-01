@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react'
 import { io } from 'socket.io-client'
 import { me as fetchMe, logout as playerLogout } from './services/authService'
+import useGameStore from './stores/gameStore'
 import './App.css'
 import './components/GameUI.css'
 import AuthOverlay from './components/AuthOverlay'
@@ -286,6 +287,35 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
       socket.emit('get:player');
     });
 
+    // Handle enemy state updates from backend
+    socket.on('enemy:state-update', (data) => {
+      const { zoneId, enemies } = data;
+      if (enemies && Array.isArray(enemies)) {
+        useGameStore.getState().updateEnemyState(enemies);
+      }
+    });
+    
+    // Handle enemy spawn events
+    socket.on('enemy:spawned', (data) => {
+      const { enemies } = data;
+      if (enemies && Array.isArray(enemies)) {
+        useGameStore.getState().updateEnemyState(enemies);
+      }
+    });
+    
+    // Handle enemy destruction
+    socket.on('enemy:destroyed', (data) => {
+      const { enemyId } = data;
+      useGameStore.getState().removeEnemy(enemyId);
+    });
+    
+    // Handle enemy attacks on player
+    socket.on('enemy:attack', (data) => {
+      const { enemyId, enemyName, damage, type } = data;
+      console.log(`[app] Enemy ${enemyName} (${enemyId}) attacked player for ${damage} ${type} damage`);
+      // TODO: Apply damage to player - this should be handled by combat service
+    });
+    
     // Handle combat errors
     socket.on('combat:error', (error) => {
       console.error('[app] Combat error:', error);
@@ -347,6 +377,19 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
       }
     };
   }, [!!player, handleZoneChange, externalSocketRef]);
+
+  // Load enemies when zone changes or socket connects
+  // This must be a separate useEffect at the top level (not nested in socket setup)
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (socketReady && socket && socket.connected && currentZone?.id) {
+      socket.emit('enemy:get-zone-enemies', {}, (response) => {
+        if (response?.ok && response.enemies) {
+          useGameStore.getState().setEnemies(response.enemies);
+        }
+      });
+    }
+  }, [socketReady, currentZone?.id]);
 
   // Keyboard shortcut: Press 'P' to open matchmaking
   React.useEffect(() => {

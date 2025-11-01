@@ -5,6 +5,7 @@ import { getDbPath } from './services/db.js';
 import { registerSocketHandlers } from './sockets/index.js';
 import { loadSpellDefinitions } from './services/spellService.js';
 import { startGlobalRegenerationLoop } from './sockets/regeneration.js';
+import { startEnemyGameLoop } from './sockets/enemy.js';
 
 // Load spell definitions from database on startup
 loadSpellDefinitions();
@@ -28,6 +29,9 @@ registerSocketHandlers(io);
 
 // Start global regeneration loop
 startGlobalRegenerationLoop(io);
+
+// Start enemy AI game loop
+startEnemyGameLoop(io);
 
 const PORT = Number(process.env.SOCKET_PORT || 6060);
 httpServer.listen(PORT, () => {
