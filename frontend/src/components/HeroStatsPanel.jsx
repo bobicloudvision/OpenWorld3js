@@ -136,7 +136,7 @@ export default function HeroStatsPanel({ activeHero, onOpenHeroSelection }) {
             <>
               <div className="h-8 w-px bg-amber-700/50"></div>
               <FantasyButton
-                onClick={onOpenHeroSelection}
+                onClick={onOpenHeroSelection} 
                 size="sm"
                 className="text-xs px-2 py-1"
               >

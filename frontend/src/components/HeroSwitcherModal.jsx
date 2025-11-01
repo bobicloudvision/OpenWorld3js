@@ -1,17 +1,50 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import FantasyModal from './ui/FantasyModal'
 import FantasyCard from './ui/FantasyCard'
 import FantasyButton from './ui/FantasyButton'
 import FantasyBadge from './ui/FantasyBadge'
+import { useHeroSwitcher } from '../hooks/useHeroSwitcher'
 
 export default function HeroSwitcherModal({ 
   player, 
-  playerHeroes, 
-  loading,
-  error, 
-  onSelectHero, 
+  socket,
+  onHeroSelected,
+  onHeroesUpdate,
   onClose 
 }) {
+  const { 
+    playerHeroes, 
+    loading, 
+    error,
+    fetchHeroes, 
+    switchHero 
+  } = useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate)
+  
+  const switchInitiatedRef = useRef(false)
+
+  // Fetch heroes when modal opens
+  useEffect(() => {
+    if (!socket) return
+    fetchHeroes()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket]) // Only depend on socket, fetchHeroes is stable enough
+
+  // Auto-close modal on successful hero switch
+  useEffect(() => {
+    if (switchInitiatedRef.current && !loading && !error && onClose) {
+      // Switch completed successfully
+      const timer = setTimeout(() => {
+        onClose()
+        switchInitiatedRef.current = false
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [loading, error, onClose])
+
+  const handleSelectHero = (playerHeroId) => {
+    switchInitiatedRef.current = true
+    switchHero(playerHeroId)
+  }
   return (
     <FantasyModal
       isOpen={true}
@@ -40,7 +73,7 @@ export default function HeroSwitcherModal({
               return (
                 <FantasyCard
                   key={hero.playerHeroId}
-                  onClick={() => !isActive && onSelectHero(hero.playerHeroId)}
+                  onClick={() => !isActive && handleSelectHero(hero.playerHeroId)}
                   hoverable={!isActive}
                   className={isActive ? 'border-green-500/60' : ''}
                   style={isActive ? {
@@ -77,7 +110,7 @@ export default function HeroSwitcherModal({
                     <FantasyButton
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSelectHero(hero.playerHeroId);
+                        handleSelectHero(hero.playerHeroId);
                       }}
                       disabled={loading}
                       fullWidth

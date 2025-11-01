@@ -13,7 +13,6 @@ import Chat from './Chat'
 import Leaderboard from './Leaderboard'
 import HeroSwitcherModal from './HeroSwitcherModal'
 import HeroStatsPanel from './HeroStatsPanel'
-import { useHeroSwitcher } from '../hooks/useHeroSwitcher'
 
 export default function LobbyScene({ 
   playerPositionRef, 
@@ -26,7 +25,7 @@ export default function LobbyScene({
   showLeaderboard,
   onShowLeaderboardChange,
   showHeroSwitcher,
-  onShowHeroSwitcherChange,
+  onShowHeroSwitcherChange, 
   onHeroSelected,
   onHeroesUpdate
 }) {
@@ -34,17 +33,6 @@ export default function LobbyScene({
   console.log('[LobbyScene] Rendering with zone:', currentZone?.name, 'map_file:', currentZone?.map_file, 'computed mapPath:', mapFilePath);
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [inCombat, setInCombat] = useState(false)
-  const [switchInitiated, setSwitchInitiated] = useState(false)
-  
-  // Use hero switcher hook
-  const { 
-    playerHeroes, 
-    loading: switchingHero, 
-    error: heroSwitchError,
-    setError: setHeroSwitchError,
-    fetchHeroes, 
-    switchHero 
-  } = useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate)
 
   // Listen for combat state changes
   useEffect(() => {
@@ -82,31 +70,6 @@ export default function LobbyScene({
     }
   }, [])
 
-  // Fetch player heroes when hero switcher is opened
-  useEffect(() => {
-    if (!socket || !showHeroSwitcher) return
-    // Clear any previous errors and switch state when opening modal
-    setHeroSwitchError('')
-    setSwitchInitiated(false)
-    fetchHeroes()
-  }, [socket, showHeroSwitcher, fetchHeroes, setHeroSwitchError])
-
-  // Close modal on successful hero switch
-  useEffect(() => {
-    if (switchInitiated && !heroSwitchError && !switchingHero && showHeroSwitcher && onShowHeroSwitcherChange) {
-      // Small delay to let user see the success state
-      const timer = setTimeout(() => {
-        onShowHeroSwitcherChange(false)
-        setSwitchInitiated(false)
-      }, 500)
-      return () => clearTimeout(timer)
-    }
-  }, [switchInitiated, heroSwitchError, switchingHero, showHeroSwitcher, onShowHeroSwitcherChange])
-
-  const handleSwitchHero = (playerHeroId) => {
-    setSwitchInitiated(true)
-    switchHero(playerHeroId)
-  }
 
   return (
     <>
@@ -123,10 +86,9 @@ export default function LobbyScene({
       {showHeroSwitcher && (
         <HeroSwitcherModal
           player={player}
-          playerHeroes={playerHeroes}
-          loading={switchingHero}
-          error={heroSwitchError}
-          onSelectHero={handleSwitchHero}
+          socket={socket}
+          onHeroSelected={onHeroSelected}
+          onHeroesUpdate={onHeroesUpdate}
           onClose={() => onShowHeroSwitcherChange && onShowHeroSwitcherChange(false)}
         />
       )}
