@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FantasyModal, FantasyButton, FantasyCard, FantasyPanel } from './ui';
+import { FantasyModal, FantasyButton, FantasyCard, FantasyPanel, FantasyBadge } from './ui';
 
 export default function Leaderboard({ socket, player, onClose }) {
   const [activeTab, setActiveTab] = useState('players'); // 'players', 'heroes', 'myStats'
@@ -136,11 +136,12 @@ export default function Leaderboard({ socket, player, onClose }) {
                         className={`border-b border-amber-800/50 ${entry.playerId === player?.id ? 'bg-amber-700/20' : ''}`}
                       >
                         <td className={tableCellStyle}>
-                          <span className="px-2 py-1 rounded font-bold text-xs" style={{
-                            ...getRankStyle(entry.rank)
-                          }}>
+                          <FantasyBadge
+                            variant={entry.rank === 1 ? 'rank-1' : entry.rank === 2 ? 'rank-2' : entry.rank === 3 ? 'rank-3' : 'default'}
+                            size="sm"
+                          >
                             #{entry.rank}
-                          </span>
+                          </FantasyBadge>
                         </td>
                         <td className={tableCellStyle}>
                           <div className="font-bold text-amber-100">
@@ -194,11 +195,12 @@ export default function Leaderboard({ socket, player, onClose }) {
                       className={`border-b border-amber-800/50 ${entry.playerId === player?.id ? 'bg-amber-700/20' : ''}`}
                     >
                       <td className={tableCellStyle}>
-                        <span className="px-2 py-1 rounded font-bold text-xs" style={{
-                          ...getRankStyle(entry.rank)
-                        }}>
+                        <FantasyBadge
+                          variant={entry.rank === 1 ? 'rank-1' : entry.rank === 2 ? 'rank-2' : entry.rank === 3 ? 'rank-3' : 'default'}
+                          size="sm"
+                        >
                           #{entry.rank}
-                        </span>
+                        </FantasyBadge>
                       </td>
                       <td className={tableCellStyle}>
                         <div className="text-amber-300 text-xs">
@@ -328,12 +330,6 @@ function StatCard({ label, value, color }) {
   );
 }
 
-function getRankStyle(rank) {
-  if (rank === 1) return { background: '#fbbf24', color: '#000' };
-  if (rank === 2) return { background: '#94a3b8', color: '#000' };
-  if (rank === 3) return { background: '#cd7f32', color: '#000' };
-  return { background: '#1e293b', color: '#94a3b8' };
-}
 
 const tableHeaderStyle = 'px-3 py-3 text-left text-amber-300 text-sm font-bold';
 const tableCellStyle = 'px-3 py-3 text-amber-100 text-sm';

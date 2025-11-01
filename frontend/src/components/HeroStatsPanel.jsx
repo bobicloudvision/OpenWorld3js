@@ -1,5 +1,5 @@
 import React from 'react'
-import { FantasyCard, FantasyButton, FantasyProgressBar } from './ui'
+import { FantasyCard, FantasyButton, FantasyProgressBar, FantasyBadge } from './ui'
 
 export default function HeroStatsPanel({ activeHero, onOpenHeroSelection }) {
   if (!activeHero) return null
@@ -100,18 +100,18 @@ export default function HeroStatsPanel({ activeHero, onOpenHeroSelection }) {
                 const g = parseInt(spell.color?.substring(3,5) || 'ff', 16);
                 const b = parseInt(spell.color?.substring(5,7) || 'ff', 16);
                 return (
-                  <div 
+                  <FantasyBadge
                     key={idx}
-                    className="px-2 py-1 rounded text-xs text-white cursor-help border"
+                    size="sm"
+                    className="cursor-help"
                     style={{
                       background: `rgba(${r}, ${g}, ${b}, 0.2)`,
-                      borderColor: spell.color || '#ffffff',
-                      textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                      borderColor: spell.color || '#ffffff'
                     }}
                     title={`${spell.name}\nDamage: ${spell.damage}\nCost: ${spell.powerCost}\nCooldown: ${spell.cooldown}s`}
                   >
                     {spell.name}
-                  </div>
+                  </FantasyBadge>
                 );
               })}
             </div>

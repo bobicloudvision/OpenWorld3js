@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import useZoneStore from '../stores/zoneStore';
+import { FantasyModal, FantasyButton, FantasyCard, FantasyBadge } from './ui';
 
 /**
  * Zone Selector Component
@@ -95,22 +96,17 @@ export default function ZoneSelector({ socket, playerLevel = 1, onClose, onZoneC
 
   if (loading) {
     return (
-      <div style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
-      }}>
-        <div style={{ 
-          color: '#e5e7eb', 
-          fontSize: '18px',
-          textAlign: 'center'
-        }}>
-          <div>Loading zones...</div>
-          <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px' }}>
+      <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-[1000]">
+        <div className="text-center">
+          <div className="text-amber-300 text-lg font-bold mb-2" style={{
+            textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(217, 119, 6, 0.6)',
+            fontFamily: 'Georgia, serif'
+          }}>
+            Loading zones...
+          </div>
+          <div className="text-amber-200 text-xs" style={{
+            textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+          }}>
             (Waiting for server response...)
           </div>
         </div>
