@@ -103,11 +103,18 @@ export default function Header({ player, socketRef, onLogout }) {
                 </FantasyButton>
               </>
             ) : (
-              <Link to="/login">
-                <FantasyButton variant="primary" size="sm">
-                  Login / Sign Up
-                </FantasyButton>
-              </Link>
+              <>
+                <Link to="/login">
+                  <FantasyButton variant="primary" size="sm">
+                    Login
+                  </FantasyButton>
+                </Link>
+                <Link to="/register">
+                  <FantasyButton variant="secondary" size="sm">
+                    Sign Up
+                  </FantasyButton>
+                </Link>
+              </>
             )}
           </div>
         </div>

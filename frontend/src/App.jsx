@@ -6,6 +6,7 @@ import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import GameApp from './GameApp'
 import LeaderboardPage from './pages/LeaderboardPage'
+import AuthPage from './pages/AuthPage'
 
 export default function App() {
   const [player, setPlayer] = React.useState(null)
@@ -102,6 +103,26 @@ export default function App() {
                 socket={socketReady ? socketRef.current : null}
                 player={player}
               />
+            } 
+          />
+          <Route 
+            path="login" 
+            element={
+              <div className="relative" style={{ minHeight: 'calc(100vh - 200px)' }}>
+                <AuthPage 
+                  onAuthenticated={setPlayer}
+                />
+              </div>
+            } 
+          />
+          <Route 
+            path="register" 
+            element={
+              <div className="relative" style={{ minHeight: 'calc(100vh - 200px)' }}>
+                <AuthPage 
+                  onAuthenticated={setPlayer}
+                />
+              </div>
             } 
           />
         </Route>
