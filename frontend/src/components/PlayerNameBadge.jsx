@@ -10,7 +10,7 @@ import { Html } from '@react-three/drei'
  */
 export default function PlayerNameBadge({ playerName, height, modelScale = 1 }) {
   // Calculate badge height above model
-  const badgeHeight = (height || 2.2) * modelScale - 0.1;
+  const badgeHeight = (height || 2.2) * modelScale - 0.4;
   
   return (
     <Html
@@ -28,10 +28,9 @@ export default function PlayerNameBadge({ playerName, height, modelScale = 1 }) 
         style={{
           background: 'linear-gradient(135deg, rgba(139, 69, 19, 0.25) 0%, rgba(101, 67, 33, 0.25) 100%)',
           color: '#fbbf24',
-          padding: '6px 14px',
+          padding: '2px 7px',
           borderRadius: '8px',
-          fontSize: '11px',
-          fontWeight: '700',
+          fontSize: '9px',
           border: '2px solid rgba(217, 119, 6, 0.6)',
           boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.6), 0 0 20px rgba(217, 119, 6, 0.3)',
           textShadow: '1px 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(217, 119, 6, 0.5)',
@@ -47,9 +46,6 @@ export default function PlayerNameBadge({ playerName, height, modelScale = 1 }) 
         <div
           style={{
             position: 'absolute',
-            inset: '3px',
-            border: '1px solid rgba(217, 119, 6, 0.3)',
-            borderRadius: '6px',
             pointerEvents: 'none',
           }}
         />
