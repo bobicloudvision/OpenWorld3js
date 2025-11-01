@@ -108,11 +108,11 @@ export default function HeroSelection({ player, playerHeroes, availableHeroes, s
                     } : {}}
                   >
                     <div className="flex justify-center mb-4">
-                      <HeroModelPreview
+                      {/* <HeroModelPreview
                         modelPath={hero.model}
                         modelScale={hero.modelScale ?? 1}
                         modelRotation={hero.modelRotation ?? [0, -1.5707963267948966, 0]}
-                      />
+                      /> */}
                     </div>
                     <h3 className="text-amber-200 text-xl font-bold mb-3 text-center" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
                       {hero.name}
@@ -165,11 +165,11 @@ export default function HeroSelection({ player, playerHeroes, availableHeroes, s
                     hoverable={true}
                   >
                     <div className="flex justify-center mb-4">
-                      <HeroModelPreview
+                      {/* <HeroModelPreview
                         modelPath={hero.model}
                         modelScale={hero.modelScale ?? 1}
                         modelRotation={hero.modelRotation ?? [0, -1.5707963267948966, 0]}
-                      />
+                      /> */}
                     </div>
                     <h3 className="text-amber-200 text-xl font-bold mb-3 text-center" style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>
                       {hero.name}
