@@ -1,7 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { me as fetchMe } from './services/authService'
-import { useSocketConnection } from './hooks/useSocketConnection'
+import { useGameSocketManager } from './hooks/useGameSocketManager'
 import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import GameApp from './GameApp'
@@ -10,7 +10,19 @@ import AuthPage from './pages/AuthPage'
 
 export default function App() {
   const [player, setPlayer] = React.useState(null)
-  const { socketRef, socketReady, disconnect } = useSocketConnection(player)
+  
+  // Centralized socket manager - single source of truth for all socket connections
+  const { socketRef, socketReady, disconnect } = useGameSocketManager(
+    player,
+    // onAuthSuccess - called when socket authenticates (can be used for initial setup)
+    (socket) => {
+      console.log('[App] Socket authenticated, ID:', socket.id)
+    },
+    // onAuthError - called when authentication fails
+    (error) => {
+      console.error('[App] Socket authentication failed:', error)
+    }
+  )
 
   // Check authentication on mount
   React.useEffect(() => {
@@ -36,9 +48,10 @@ export default function App() {
           path="/game" 
           element={
             <GameApp 
-            onPlayerChange={setPlayer}
-            socketRef={socketRef}
-          />
+              onPlayerChange={setPlayer}
+              socketRef={socketRef}
+              socketReady={socketReady}
+            />
           } 
         />
         {/* Website pages with Layout */}
