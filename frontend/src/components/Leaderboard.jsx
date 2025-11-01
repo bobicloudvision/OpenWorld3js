@@ -12,7 +12,7 @@ export default function Leaderboard({ socket, player, onClose }) {
 
   // Fetch leaderboard data
   useEffect(() => {
-    if (!socket || !player) return;
+    if (!socket) return;
 
     const handleLeaderboardData = ({ leaderboard }) => {
       setLeaderboardData(leaderboard);
@@ -43,8 +43,11 @@ export default function Leaderboard({ socket, player, onClose }) {
     setLoading(true);
     socket.emit('leaderboard:get', { sortBy, limit: 100 });
     socket.emit('leaderboard:get:heroes', { limit: 50 });
-    socket.emit('leaderboard:get:player-stats');
-    socket.emit('leaderboard:get:recent-matches', { limit: 10 });
+    // Only fetch player-specific data if player is logged in
+    if (player) {
+      socket.emit('leaderboard:get:player-stats');
+      socket.emit('leaderboard:get:recent-matches', { limit: 10 });
+    }
 
     return () => {
       socket.off('leaderboard:data', handleLeaderboardData);
@@ -52,7 +55,7 @@ export default function Leaderboard({ socket, player, onClose }) {
       socket.off('leaderboard:player-stats', handlePlayerStats);
       socket.off('leaderboard:recent-matches', handleRecentMatches);
     };
-  }, [socket, player, sortBy]);
+  }, [socket, sortBy]);
 
   const handleSortChange = (newSort) => {
     setSortBy(newSort);
@@ -60,11 +63,11 @@ export default function Leaderboard({ socket, player, onClose }) {
     socket.emit('leaderboard:get', { sortBy: newSort, limit: 100 });
   };
 
-  return (
-    <FantasyModal isOpen={true} onClose={onClose} title="🏆 Leaderboard" maxWidth="1200px">
-        {/* Tabs */}
-        <div className="flex gap-2 p-4 border-b border-amber-700/60">
-          {['players', 'heroes', 'myStats'].map(tab => (
+  const content = (
+    <>
+      {/* Tabs */}
+      <div className="flex gap-2 p-4 border-b border-amber-700/60">
+          {['players', 'heroes', ...(player ? ['myStats'] : [])].map(tab => (
             <FantasyButton
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -308,7 +311,23 @@ export default function Leaderboard({ socket, player, onClose }) {
             </div>
           )}
         </div>
-    </FantasyModal>
+    </>
+  );
+
+  // If onClose is provided, render as modal, otherwise render as page content
+  if (onClose !== undefined && onClose !== null) {
+    return (
+      <FantasyModal isOpen={true} onClose={onClose} title="🏆 Leaderboard" maxWidth="1200px">
+        {content}
+      </FantasyModal>
+    );
+  }
+
+  // Page mode - render without modal wrapper
+  return (
+    <FantasyCard className="w-full bg-amber-950/90 border-4 border-amber-700/60 p-6">
+      {content}
+    </FantasyCard>
   );
 }
 

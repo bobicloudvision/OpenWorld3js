@@ -13,17 +13,13 @@ import { getPlayerIdBySocket } from '../services/sessionService.js';
 export function registerLeaderboardHandlers(socket) {
   
   /**
-   * Get global player leaderboard
+   * Get global player leaderboard (PUBLIC - no authentication required)
    */
   socket.on('leaderboard:get', ({ sortBy = 'wins', limit = 100 } = {}) => {
     const playerId = getPlayerIdBySocket(socket.id);
-    if (!playerId) {
-      socket.emit('leaderboard:error', { message: 'Not authenticated' });
-      return;
-    }
     
     try {
-      console.log(`[leaderboard] Player ${playerId} requesting leaderboard (sortBy: ${sortBy})`);
+      console.log(`[leaderboard] ${playerId ? `Player ${playerId}` : 'Public user'} requesting leaderboard (sortBy: ${sortBy})`);
       
       const leaderboard = getGlobalLeaderboard({ sortBy, limit });
       
@@ -76,17 +72,13 @@ export function registerLeaderboardHandlers(socket) {
   });
   
   /**
-   * Get hero leaderboard
+   * Get hero leaderboard (PUBLIC - no authentication required)
    */
   socket.on('leaderboard:get:heroes', ({ limit = 50 } = {}) => {
     const playerId = getPlayerIdBySocket(socket.id);
-    if (!playerId) {
-      socket.emit('leaderboard:heroes:error', { message: 'Not authenticated' });
-      return;
-    }
     
     try {
-      console.log(`[leaderboard] Player ${playerId} requesting hero leaderboard`);
+      console.log(`[leaderboard] ${playerId ? `Player ${playerId}` : 'Public user'} requesting hero leaderboard`);
       
       const heroLeaderboard = getHeroLeaderboard(limit);
       
