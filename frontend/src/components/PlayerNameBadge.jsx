@@ -10,7 +10,7 @@ import { Html } from '@react-three/drei'
  */
 export default function PlayerNameBadge({ playerName, height, modelScale = 1 }) {
   // Calculate badge height above model
-  const badgeHeight = (height || 2.2) * modelScale
+  const badgeHeight = (height || 2.2) * modelScale - 0.1;
   
   return (
     <Html
@@ -20,27 +20,42 @@ export default function PlayerNameBadge({ playerName, height, modelScale = 1 }) 
       style={{
         pointerEvents: 'none',
         transform: 'translate3d(-50%, -50%, 0)',
+        zIndex: 1, // Keep badge behind UI elements (UI elements use z-[1000]+)
       }}
+      wrapperClass="player-name-badge-wrapper"
     >
       <div
         style={{
-          background: 'linear-gradient(135deg, rgba(30, 30, 40, 0.95) 0%, rgba(20, 20, 30, 0.95) 100%)',
-          color: '#ffffff',
-          padding: '6px 12px',
-          borderRadius: '12px',
-          fontSize: '10px',
-          fontWeight: '600',
-          border: '2px solid rgba(100, 150, 255, 0.6)',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5), 0 0 8px rgba(100, 150, 255, 0.3)',
-          textShadow: '0 2px 4px rgba(0, 0, 0, 0.8)',
+          background: 'linear-gradient(135deg, rgba(139, 69, 19, 0.25) 0%, rgba(101, 67, 33, 0.25) 100%)',
+          color: '#fbbf24',
+          padding: '6px 14px',
+          borderRadius: '8px',
+          fontSize: '11px',
+          fontWeight: '700',
+          border: '2px solid rgba(217, 119, 6, 0.6)',
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.6), 0 0 20px rgba(217, 119, 6, 0.3)',
+          textShadow: '1px 1px 3px rgba(0,0,0,0.9), 0 0 8px rgba(217, 119, 6, 0.5)',
           textAlign: 'center',
           whiteSpace: 'nowrap',
           backdropFilter: 'blur(4px)',
           transform: 'translateZ(0)', // Enable hardware acceleration
-          letterSpacing: '0.5px',
+          letterSpacing: '1px',
+          position: 'relative',
         }}
       >
-        {playerName}
+        {/* Inner decorative border similar to FantasyCard */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: '3px',
+            border: '1px solid rgba(217, 119, 6, 0.3)',
+            borderRadius: '6px',
+            pointerEvents: 'none',
+          }}
+        />
+        <span style={{ position: 'relative', zIndex: 1 }}>
+          {playerName}
+        </span>
       </div>
     </Html>
   )

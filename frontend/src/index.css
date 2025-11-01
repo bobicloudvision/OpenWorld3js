@@ -35,6 +35,13 @@ canvas {
   position: absolute;
   top: 0;
   left: 0;
+  z-index: 1; /* Keep Canvas behind UI elements */
+}
+
+/* Ensure player name badges stay behind UI elements */
+.player-name-badge-wrapper {
+  z-index: 1 !important;
+  position: relative;
 }
 
 /* Custom Scrollbar Styling */

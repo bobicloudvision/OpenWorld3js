@@ -148,7 +148,8 @@ export default function LobbyScene({
           height: '100%',
           position: 'absolute',
           top: 0,
-          left: 0
+          left: 0,
+          zIndex: 1 // Keep Canvas behind UI elements (UI elements use z-[1000]+)
         }}
         onClick={(event) => {
           if (event.target === event.currentTarget) {

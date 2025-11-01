@@ -17,11 +17,11 @@ export default function FantasyModal({
 
   return (
     <div 
-      className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-[2000] p-5"
+      className="fixed inset-0 flex items-center justify-center z-[2000] p-5"
       onClick={onClose}
     > 
       <div  
-        className={`relative bg-gradient-to-b from-amber-950/95 via-yellow-950/95 to-amber-900/95 rounded-lg border-4 border-amber-600 max-w-[${maxWidth}] w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl ${className}`}
+        className={`relative backdrop-blur-md bg-gradient-to-b from-amber-950/95 via-yellow-950/95 to-amber-900/95 rounded-lg border-4 border-amber-600 max-w-[${maxWidth}] w-full max-h-[85vh] overflow-hidden flex flex-col shadow-2xl ${className}`}
         onClick={(e) => e.stopPropagation()}
         style={{
           backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(139, 69, 19, 0.3), rgba(0, 0, 0, 0.85))',

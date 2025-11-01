@@ -13,7 +13,7 @@ export default function FantasyCard({
 }) {
   return (
     <div
-      className={`relative bg-gradient-to-b from-amber-900/70 to-amber-950/80 border-[3px] border-amber-700/60 rounded-lg p-6 transition-all duration-300 ${hoverable ? 'cursor-pointer' : ''} ${className}`}
+      className={`relative bg-gradient-to-b from-amber-900/5 to-amber-950/5 border-[3px] border-amber-700/60 rounded-lg p-6 transition-all duration-300 ${hoverable ? 'cursor-pointer' : ''} ${className}`}
       style={{
         boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5), 0 4px 15px rgba(0,0,0,0.6), 0 0 20px rgba(217, 119, 6, 0.2)'
       }}

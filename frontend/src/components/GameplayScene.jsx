@@ -217,7 +217,7 @@ export default function GameplayScene({
 
       <Chat socket={socket} currentPlayerId={player?.id} />
       
-      <EcctrlJoystick />
+      {/* <EcctrlJoystick /> */}
       <Canvas 
         shadows
         style={{
@@ -225,7 +225,8 @@ export default function GameplayScene({
           height: '100%',
           position: 'absolute',
           top: 0,
-          left: 0
+          left: 0,
+          zIndex: 1 // Keep Canvas behind UI elements (UI elements use z-[1000]+)
         }}
         onClick={(event) => {
           if (event.target === event.currentTarget) {

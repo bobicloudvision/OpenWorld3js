@@ -11,7 +11,7 @@ export default function FantasyPanel({
 }) {
   return (
     <div 
-      className={`bg-gradient-to-b from-amber-900/60 to-amber-950/80 p-6 rounded-md border-2 border-amber-700/50 ${className}`}
+      className={`bg-gradient-to-b from-amber-900/5 to-amber-950/5 p-6 rounded-md border-2 border-amber-700/50 ${className}`}
       style={{
         boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.5), 0 0 15px rgba(217, 119, 6, 0.3)'
       }}
