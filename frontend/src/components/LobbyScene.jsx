@@ -189,7 +189,7 @@ export default function LobbyScene({
 
       <Chat socket={socket} currentPlayerId={player?.id} />
       
-      <EcctrlJoystick />
+      {/* <EcctrlJoystick /> */}
       <Canvas 
         shadows
         style={{ pointerEvents: 'auto' }}

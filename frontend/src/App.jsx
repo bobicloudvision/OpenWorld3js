@@ -12,12 +12,14 @@ export default function App() {
   const [player, setPlayer] = React.useState(null)
   const socketRef = React.useRef(null)
   const [socketReady, setSocketReady] = React.useState(false)
+  const playerIdRef = React.useRef(null)
 
   // Check authentication on mount
   React.useEffect(() => {
     fetchMe().then((response) => {
       if (response && response.data) {
         setPlayer(response.data)
+        playerIdRef.current = response.data.id
       }
     }).catch(() => {
       console.log('Auth check failed')
@@ -32,7 +34,19 @@ export default function App() {
         socketRef.current = null
       }
       setSocketReady(false)
+      playerIdRef.current = null
       return
+    }
+
+    // Prevent reconnection loop: if socket exists and is connected, don't reconnect
+    if (socketRef.current && socketRef.current.connected) {
+      // Only update if player ID changed (different user)
+      if (playerIdRef.current !== player.id) {
+        socketRef.current.disconnect()
+        socketRef.current = null
+      } else {
+        return // Already connected with same player, skip reconnection
+      }
     }
 
     const token = localStorage.getItem('playerToken')
@@ -40,32 +54,55 @@ export default function App() {
 
     const socket = io(socketUrl, { transports: ['websocket'] })
     socketRef.current = socket
+    playerIdRef.current = player.id
 
-    socket.on('connect', () => {
+    const handleConnect = () => {
       socket.emit('auth', { token })
-    })
+    }
 
-    socket.on('auth:ok', ({ player: socketPlayer }) => {
-      setPlayer(socketPlayer)
+    const handleAuthOk = ({ player: socketPlayer }) => {
+      // Only update player if ID changed or if it's the first time
+      if (!playerIdRef.current || playerIdRef.current !== socketPlayer.id) {
+        setPlayer(socketPlayer)
+        playerIdRef.current = socketPlayer.id
+      }
       setSocketReady(true)
-    })
+    }
 
-    socket.on('auth:error', () => {
+    const handleAuthError = () => {
       setSocketReady(false)
-    })
+      playerIdRef.current = null
+    }
 
-    socket.on('disconnect', () => {
+    const handleDisconnect = () => {
       setSocketReady(false)
-    })
+    }
+
+    socket.on('connect', handleConnect)
+    socket.on('auth:ok', handleAuthOk)
+    socket.on('auth:error', handleAuthError)
+    socket.on('disconnect', handleDisconnect)
 
     return () => {
-      socket.disconnect()
-      socketRef.current = null
+      // Remove all event listeners
+      socket.off('connect', handleConnect)
+      socket.off('auth:ok', handleAuthOk)
+      socket.off('auth:error', handleAuthError)
+      socket.off('disconnect', handleDisconnect)
+      
+      // Only disconnect if this effect is cleaning up due to player becoming null
+      // Don't disconnect if we're just preventing a reconnect loop
+      if (!player) {
+        socket.disconnect()
+        socketRef.current = null
+        playerIdRef.current = null
+      }
     }
   }, [player])
 
   const handleLogout = () => {
     setPlayer(null)
+    playerIdRef.current = null
     if (socketRef.current) {
       socketRef.current.disconnect()
       socketRef.current = null
