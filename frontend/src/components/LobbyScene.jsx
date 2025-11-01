@@ -142,7 +142,14 @@ export default function LobbyScene({
       {/* <EcctrlJoystick /> */}
       <Canvas 
         shadows
-        style={{ pointerEvents: 'auto' }}
+        style={{ 
+          pointerEvents: 'auto',
+          width: '100%',
+          height: '100%',
+          position: 'absolute',
+          top: 0,
+          left: 0
+        }}
         onClick={(event) => {
           if (event.target === event.currentTarget) {
             console.log('Canvas click detected (empty area)')

@@ -485,7 +485,7 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
   ]
   
   return (
-    <>
+    <div className="game-app-container">
     {/* Game Header */}
     {player && socketReady && (
       <GameHeader
@@ -643,6 +643,6 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef }
         onDecline={handleCombatRejoinDecline}
       />
     )}
-      </>
+    </div>
   )
 }

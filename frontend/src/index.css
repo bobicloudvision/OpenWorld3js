@@ -8,22 +8,44 @@
   }
 }
 
+html {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
 body {
   font-family: 'Cinzel', Georgia, serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
-  overflow-y: auto;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile */
   background:  rgba(17, 24, 39, 0.98);
+  overflow: hidden;
 }
 
 canvas {
   display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Ensure React Three Fiber Canvas container fills parent */
+.r3f-canvas-container {
+  width: 100% !important;
+  height: 100% !important;
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 /* Custom Scrollbar Styling */
