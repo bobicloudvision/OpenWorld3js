@@ -1,230 +1,123 @@
 import React from 'react'
+import { FantasyCard, FantasyButton, FantasyProgressBar } from './ui'
 
 export default function HeroStatsPanel({ activeHero, onOpenHeroSelection }) {
   if (!activeHero) return null
 
   return (
-    <div className="hero-stats" style={{
-      position: 'fixed',
-      top: '80px',
-      left: '20px',
-      zIndex: 1000,
-      background: 'rgba(0, 0, 0, 0.85)',
-      padding: '20px',
-      borderRadius: '12px',
-      minWidth: '320px',
-      border: '2px solid rgba(102, 126, 234, 0.5)',
-      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-      pointerEvents: 'auto',
-    }}>
-      {/* Hero Header */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '15px',
-        paddingBottom: '12px',
-        borderBottom: '2px solid rgba(102, 126, 234, 0.3)'
-      }}>
-        <div>
-          <h3 style={{ 
-            margin: '0 0 4px 0', 
-            color: '#667eea',
-            fontSize: '1.3em',
-            fontWeight: 'bold',
-            textShadow: '0 0 10px rgba(102, 126, 234, 0.5)'
-          }}>
-            {activeHero.name}
-          </h3>
-          <div style={{ fontSize: '0.85em', color: '#9ca3af' }}>
-            {activeHero.heroName} • Level {activeHero.level}
+    <div 
+      className="fixed top-20 left-5 z-[1000] pointer-events-auto"
+      style={{ minWidth: '320px' }}
+    >
+      <FantasyCard className="p-5">
+        {/* Hero Header */}
+        <div className="flex justify-between items-center mb-4 pb-3 border-b border-amber-700/50">
+          <div>
+            <h3 className="m-0 mb-1 text-amber-300 text-xl font-bold" style={{
+              textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 15px rgba(217, 119, 6, 0.6)',
+              fontFamily: 'Georgia, serif'
+            }}>
+              {activeHero.name}
+            </h3>
+            <div className="text-amber-300 text-sm" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}>
+              {activeHero.heroName} • Level {activeHero.level}
+            </div>
+          </div>
+          {onOpenHeroSelection && (
+            <FantasyButton
+              onClick={onOpenHeroSelection}
+              size="sm"
+            >
+              Change
+            </FantasyButton>
+          )}
+        </div>
+
+        {/* Hero Health Bar */}
+        <FantasyProgressBar
+          label={`❤️ Health: ${Math.round(activeHero.health)}/${activeHero.maxHealth}${activeHero.health <= 0 ? ' (DEFEATED!)' : ''}`}
+          current={activeHero.health}
+          max={activeHero.maxHealth}
+          variant="health"
+          height="h-6"
+        />
+        
+        {/* Hero Power Bar */}
+        <FantasyProgressBar
+          label={`⚡ Power: ${Math.round(activeHero.power)}/${activeHero.maxPower}`}
+          current={activeHero.power}
+          max={activeHero.maxPower}
+          variant="power"
+          height="h-6"
+        />
+        
+        {/* Hero Experience Bar */}
+        <FantasyProgressBar
+          label={`⭐ Experience: ${activeHero.experience}/${100 * activeHero.level}`}
+          current={activeHero.experience}
+          max={100 * activeHero.level}
+          variant="experience"
+          height="h-5"
+        />
+      
+        {/* Hero Combat Stats */}
+        <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-amber-700/50">
+          <div className="bg-red-500/15 p-2 rounded border border-red-500/30 text-center">
+            <div className="text-xs text-amber-300 mb-1 uppercase tracking-wider" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}>Attack</div>
+            <div className="text-lg font-bold text-red-400" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}>
+              ⚔️ {activeHero.attack}
+            </div>
+          </div>
+          <div className="bg-blue-500/15 p-2 rounded border border-blue-500/30 text-center">
+            <div className="text-xs text-amber-300 mb-1 uppercase tracking-wider" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}>Defense</div>
+            <div className="text-lg font-bold text-blue-400" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}>
+              🛡️ {activeHero.defense}
+            </div>
           </div>
         </div>
-        {onOpenHeroSelection && (
-          <button
-            onClick={onOpenHeroSelection}
-            style={{
-              padding: '6px 12px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              border: 'none',
-              borderRadius: '6px',
-              color: '#fff',
-              fontSize: '0.85em',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)'
-              e.currentTarget.style.boxShadow = '0 0 10px rgba(102, 126, 234, 0.5)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)'
-              e.currentTarget.style.boxShadow = 'none'
-            }}
-          >
-            Change
-          </button>
+
+        {/* Hero Spells */}
+        {activeHero.spells && activeHero.spells.length > 0 && (
+          <div className="mt-4 pt-3 border-t border-amber-700/50">
+            <div className="text-sm text-amber-300 mb-2 font-bold uppercase tracking-wider" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+            }}>
+              📜 Spells ({activeHero.spells.length})
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activeHero.spells.map((spell, idx) => {
+                const r = parseInt(spell.color?.substring(1,3) || 'ff', 16);
+                const g = parseInt(spell.color?.substring(3,5) || 'ff', 16);
+                const b = parseInt(spell.color?.substring(5,7) || 'ff', 16);
+                return (
+                  <div 
+                    key={idx}
+                    className="px-2 py-1 rounded text-xs text-white cursor-help border"
+                    style={{
+                      background: `rgba(${r}, ${g}, ${b}, 0.2)`,
+                      borderColor: spell.color || '#ffffff',
+                      textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                    }}
+                    title={`${spell.name}\nDamage: ${spell.damage}\nCost: ${spell.powerCost}\nCooldown: ${spell.cooldown}s`}
+                  >
+                    {spell.name}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
-      </div>
-
-      {/* Hero Health Bar */}
-      <div className="stat-bar" style={{ marginBottom: '12px' }}>
-        <label style={{ 
-          fontSize: '0.9em', 
-          fontWeight: 'bold',
-          color: activeHero.health <= 0 ? '#ff4444' : '#fff'
-        }}>
-          ❤️ Health: {Math.round(activeHero.health)}/{activeHero.maxHealth} 
-          {activeHero.health <= 0 ? ' (DEFEATED!)' : ''}
-        </label>
-        <div className="bar health-bar" style={{ 
-          background: 'rgba(255, 0, 0, 0.2)',
-          height: '24px',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          border: '1px solid rgba(255, 0, 0, 0.4)'
-        }}>
-          <div 
-            className="bar-fill" 
-            style={{ 
-              width: `${Math.max(0, (activeHero.health / activeHero.maxHealth) * 100)}%`,
-              background: activeHero.health <= 0 
-                ? 'linear-gradient(90deg, #ff0000 0%, #aa0000 100%)'
-                : 'linear-gradient(90deg, #ff4444 0%, #ff0000 100%)',
-              height: '100%',
-              transition: 'width 0.3s ease',
-              boxShadow: 'inset 0 0 10px rgba(255, 255, 255, 0.3)'
-            }}
-          />
-        </div>
-      </div>
-      
-      {/* Hero Power Bar */}
-      <div className="stat-bar" style={{ marginBottom: '12px' }}>
-        <label style={{ fontSize: '0.9em', fontWeight: 'bold' }}>
-          ⚡ Power: {Math.round(activeHero.power)}/{activeHero.maxPower}
-        </label>
-        <div className="bar power-bar" style={{ 
-          background: 'rgba(68, 68, 255, 0.2)',
-          height: '24px',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          border: '1px solid rgba(68, 68, 255, 0.4)'
-        }}>
-          <div 
-            className="bar-fill" 
-            style={{ 
-              width: `${Math.max(0, (activeHero.power / activeHero.maxPower) * 100)}%`,
-              background: 'linear-gradient(90deg, #6666ff 0%, #4444ff 100%)',
-              height: '100%',
-              transition: 'width 0.3s ease',
-              boxShadow: 'inset 0 0 10px rgba(255, 255, 255, 0.3)'
-            }}
-          />
-        </div>
-      </div>
-      
-      {/* Hero Experience Bar */}
-      <div className="stat-bar" style={{ marginBottom: '12px' }}>
-        <label style={{ fontSize: '0.9em', fontWeight: 'bold' }}>
-          ⭐ Experience: {activeHero.experience}/{100 * activeHero.level}
-        </label>
-        <div className="bar exp-bar" style={{ 
-          background: 'rgba(255, 170, 0, 0.2)',
-          height: '20px',
-          borderRadius: '10px',
-          overflow: 'hidden',
-          border: '1px solid rgba(255, 170, 0, 0.4)'
-        }}>
-          <div 
-            className="bar-fill" 
-            style={{ 
-              width: `${Math.max(0, (activeHero.experience / (100 * activeHero.level)) * 100)}%`,
-              background: 'linear-gradient(90deg, #ffcc00 0%, #ffaa00 100%)',
-              height: '100%',
-              transition: 'width 0.3s ease',
-              boxShadow: 'inset 0 0 10px rgba(255, 255, 255, 0.3)'
-            }}
-          />
-        </div>
-      </div>
-      
-      {/* Hero Combat Stats */}
-      <div className="stat-info" style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '8px',
-        marginTop: '15px',
-        paddingTop: '12px',
-        borderTop: '1px solid rgba(102, 126, 234, 0.3)'
-      }}>
-        <div style={{ 
-          background: 'rgba(255, 68, 68, 0.15)',
-          padding: '8px 12px',
-          borderRadius: '6px',
-          border: '1px solid rgba(255, 68, 68, 0.3)',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '0.75em', color: '#9ca3af', marginBottom: '2px' }}>Attack</div>
-          <div style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#ff4444' }}>
-            ⚔️ {activeHero.attack}
-          </div>
-        </div>
-        <div style={{ 
-          background: 'rgba(68, 136, 255, 0.15)',
-          padding: '8px 12px',
-          borderRadius: '6px',
-          border: '1px solid rgba(68, 136, 255, 0.3)',
-          textAlign: 'center'
-        }}>
-          <div style={{ fontSize: '0.75em', color: '#9ca3af', marginBottom: '2px' }}>Defense</div>
-          <div style={{ fontSize: '1.2em', fontWeight: 'bold', color: '#4488ff' }}>
-            🛡️ {activeHero.defense}
-          </div>
-        </div>
-      </div>
-
-      {/* Hero Spells */}
-      {activeHero.spells && activeHero.spells.length > 0 && (
-        <div style={{
-          marginTop: '15px',
-          paddingTop: '12px',
-          borderTop: '1px solid rgba(102, 126, 234, 0.3)'
-        }}>
-          <div style={{ 
-            fontSize: '0.85em', 
-            color: '#9ca3af', 
-            marginBottom: '8px',
-            fontWeight: 'bold'
-          }}>
-            📜 Spells ({activeHero.spells.length})
-          </div>
-          <div style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: '6px'
-          }}>
-            {activeHero.spells.map((spell, idx) => (
-              <div 
-                key={idx}
-                style={{
-                  background: `rgba(${parseInt(spell.color?.substring(1,3) || 'ff', 16)}, ${parseInt(spell.color?.substring(3,5) || 'ff', 16)}, ${parseInt(spell.color?.substring(5,7) || 'ff', 16)}, 0.2)`,
-                  border: `1px solid ${spell.color || '#ffffff'}`,
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '0.75em',
-                  color: '#fff',
-                  cursor: 'help',
-                  title: `${spell.name}\nDamage: ${spell.damage}\nCost: ${spell.powerCost}\nCooldown: ${spell.cooldown}s`
-                }}
-              >
-                {spell.name}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      </FantasyCard>
     </div>
   )
 }

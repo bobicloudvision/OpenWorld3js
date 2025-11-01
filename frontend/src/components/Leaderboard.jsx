@@ -80,13 +80,12 @@ export default function Leaderboard({ socket, player, onClose }) {
         </div>
 
         {/* Content */}
-        <div style={{
-          flex: 1,
-          overflow: 'auto',
-          padding: '24px'
-        }}>
+        <div className="flex-1 overflow-auto p-6">
           {loading && (
-            <div style={{ textAlign: 'center', color: '#94a3b8', padding: '40px' }}>
+            <div className="text-center text-amber-200 py-10" style={{
+              textShadow: '1px 1px 2px rgba(0,0,0,0.8)',
+              fontFamily: 'Georgia, serif'
+            }}>
               Loading...
             </div>
           )}
@@ -94,181 +93,152 @@ export default function Leaderboard({ socket, player, onClose }) {
           {/* Players Tab */}
           {activeTab === 'players' && !loading && (
             <div>
-              <div style={{ marginBottom: '16px', display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span style={{ color: '#94a3b8', fontSize: '14px' }}>Sort by:</span>
+              <div className="mb-4 flex gap-2 items-center flex-wrap">
+                <span className="text-amber-200 text-sm" style={{
+                  textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+                }}>Sort by:</span>
                 {['wins', 'winRate', 'matches', 'damage', 'kills'].map(sort => (
-                  <button
+                  <FantasyButton
                     key={sort}
                     onClick={() => handleSortChange(sort)}
-                    style={{
-                      padding: '6px 12px',
-                      background: sortBy === sort ? '#3b82f6' : '#1e293b',
-                      border: '1px solid #334155',
-                      borderRadius: '6px',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontSize: '12px'
-                    }}
+                    variant={sortBy === sort ? 'primary' : 'secondary'}
+                    size="sm"
+                    className="text-xs"
                   >
                     {sort === 'wins' && 'Wins'}
                     {sort === 'winRate' && 'Win Rate'}
                     {sort === 'matches' && 'Matches'}
                     {sort === 'damage' && 'Damage'}
                     {sort === 'kills' && 'Kills'}
-                  </button>
+                  </FantasyButton>
                 ))}
               </div>
 
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid #334155' }}>
-                    <th style={tableHeaderStyle}>Rank</th>
-                    <th style={tableHeaderStyle}>Player</th>
-                    <th style={tableHeaderStyle}>Level</th>
-                    <th style={tableHeaderStyle}>Wins</th>
-                    <th style={tableHeaderStyle}>Losses</th>
-                    <th style={tableHeaderStyle}>Win Rate</th>
-                    <th style={tableHeaderStyle}>Matches</th>
-                    <th style={tableHeaderStyle}>Damage</th>
-                    <th style={tableHeaderStyle}>Kills</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {leaderboardData.map((entry) => (
-                    <tr 
-                      key={entry.playerId}
-                      style={{
-                        borderBottom: '1px solid #334155',
-                        background: entry.playerId === player?.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
-                      }}
-                    >
-                      <td style={tableCellStyle}>
-                        <span style={{
-                          ...getRankStyle(entry.rank),
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontWeight: 'bold'
-                        }}>
-                          #{entry.rank}
-                        </span>
-                      </td>
-                      <td style={tableCellStyle}>
-                        <div style={{ fontWeight: 'bold', color: '#e2e8f0' }}>
-                          {entry.playerName}
-                          {entry.playerId === player?.id && (
-                            <span style={{ color: '#3b82f6', marginLeft: '8px' }}>(You)</span>
-                          )}
-                        </div>
-                      </td>
-                      <td style={tableCellStyle}>{entry.playerLevel}</td>
-                      <td style={{...tableCellStyle, color: '#10b981'}}>{entry.wins}</td>
-                      <td style={{...tableCellStyle, color: '#ef4444'}}>{entry.losses}</td>
-                      <td style={tableCellStyle}>
-                        <span style={{
-                          color: entry.winRate >= 50 ? '#10b981' : '#f59e0b',
-                          fontWeight: 'bold'
-                        }}>
-                          {entry.winRate.toFixed(1)}%
-                        </span>
-                      </td>
-                      <td style={tableCellStyle}>{entry.totalMatches}</td>
-                      <td style={tableCellStyle}>{entry.totalDamage?.toLocaleString() || 0}</td>
-                      <td style={tableCellStyle}>{entry.totalKills}</td>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-amber-700/60">
+                      <th className={tableHeaderStyle}>Rank</th>
+                      <th className={tableHeaderStyle}>Player</th>
+                      <th className={tableHeaderStyle}>Level</th>
+                      <th className={tableHeaderStyle}>Wins</th>
+                      <th className={tableHeaderStyle}>Losses</th>
+                      <th className={tableHeaderStyle}>Win Rate</th>
+                      <th className={tableHeaderStyle}>Matches</th>
+                      <th className={tableHeaderStyle}>Damage</th>
+                      <th className={tableHeaderStyle}>Kills</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {leaderboardData.map((entry) => (
+                      <tr 
+                        key={entry.playerId}
+                        className={`border-b border-amber-800/50 ${entry.playerId === player?.id ? 'bg-amber-700/20' : ''}`}
+                      >
+                        <td className={tableCellStyle}>
+                          <span className="px-2 py-1 rounded font-bold text-xs" style={{
+                            ...getRankStyle(entry.rank)
+                          }}>
+                            #{entry.rank}
+                          </span>
+                        </td>
+                        <td className={tableCellStyle}>
+                          <div className="font-bold text-amber-100">
+                            {entry.playerName}
+                            {entry.playerId === player?.id && (
+                              <span className="text-amber-300 ml-2">(You)</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className={tableCellStyle}>{entry.playerLevel}</td>
+                        <td className={`${tableCellStyle} text-green-400`}>{entry.wins}</td>
+                        <td className={`${tableCellStyle} text-red-400`}>{entry.losses}</td>
+                        <td className={tableCellStyle}>
+                          <span className={`font-bold ${entry.winRate >= 50 ? 'text-green-400' : 'text-amber-400'}`}>
+                            {entry.winRate.toFixed(1)}%
+                          </span>
+                        </td>
+                        <td className={tableCellStyle}>{entry.totalMatches}</td>
+                        <td className={tableCellStyle}>{entry.totalDamage?.toLocaleString() || 0}</td>
+                        <td className={tableCellStyle}>{entry.totalKills}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {/* Heroes Tab */}
           {activeTab === 'heroes' && !loading && (
-            <div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #334155' }}>
-                    <th style={tableHeaderStyle}>Rank</th>
-                    <th style={tableHeaderStyle}>Owner</th>
-                    <th style={tableHeaderStyle}>Hero</th>
-                    <th style={tableHeaderStyle}>Level</th>
-                    <th style={tableHeaderStyle}>HP</th>
-                    <th style={tableHeaderStyle}>Wins</th>
-                    <th style={tableHeaderStyle}>Losses</th>
-                    <th style={tableHeaderStyle}>Win Rate</th>
-                    <th style={tableHeaderStyle}>Matches</th>
-                    <th style={tableHeaderStyle}>Damage</th>
+                  <tr className="border-b-2 border-amber-700/60">
+                    <th className={tableHeaderStyle}>Rank</th>
+                    <th className={tableHeaderStyle}>Owner</th>
+                    <th className={tableHeaderStyle}>Hero</th>
+                    <th className={tableHeaderStyle}>Level</th>
+                    <th className={tableHeaderStyle}>HP</th>
+                    <th className={tableHeaderStyle}>Wins</th>
+                    <th className={tableHeaderStyle}>Losses</th>
+                    <th className={tableHeaderStyle}>Win Rate</th>
+                    <th className={tableHeaderStyle}>Matches</th>
+                    <th className={tableHeaderStyle}>Damage</th>
                   </tr>
                 </thead>
                 <tbody>
                   {heroLeaderboardData.map((entry) => (
                     <tr 
-                      key={entry.playerHeroId} 
-                      style={{ 
-                        borderBottom: '1px solid #334155',
-                        background: entry.playerId === player?.id ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
-                      }}
+                      key={entry.playerHeroId}
+                      className={`border-b border-amber-800/50 ${entry.playerId === player?.id ? 'bg-amber-700/20' : ''}`}
                     >
-                      <td style={tableCellStyle}>
-                        <span style={{
-                          ...getRankStyle(entry.rank),
-                          padding: '4px 8px',
-                          borderRadius: '6px',
-                          fontWeight: 'bold',
-                          fontSize: '12px'
+                      <td className={tableCellStyle}>
+                        <span className="px-2 py-1 rounded font-bold text-xs" style={{
+                          ...getRankStyle(entry.rank)
                         }}>
                           #{entry.rank}
                         </span>
                       </td>
-                      <td style={tableCellStyle}>
-                        <div style={{ color: '#94a3b8', fontSize: '13px' }}>
+                      <td className={tableCellStyle}>
+                        <div className="text-amber-300 text-xs">
                           {entry.playerName}
                           {entry.playerId === player?.id && (
-                            <span style={{ color: '#3b82f6', marginLeft: '4px' }}>(You)</span>
+                            <span className="text-amber-200 ml-1">(You)</span>
                           )}
                         </div>
                       </td>
-                      <td style={{...tableCellStyle, fontWeight: 'bold', color: '#e2e8f0'}}>
+                      <td className={`${tableCellStyle} font-bold text-amber-100`}>
                         {entry.displayName !== entry.heroName ? (
                           <div>
                             <div>{entry.displayName}</div>
-                            <div style={{ fontSize: '11px', color: '#64748b' }}>({entry.heroName})</div>
+                            <div className="text-xs text-amber-400">({entry.heroName})</div>
                           </div>
                         ) : (
                           entry.heroName
                         )}
                       </td>
-                      <td style={tableCellStyle}>
-                        <span style={{
-                          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                          padding: '3px 8px',
-                          borderRadius: '4px',
-                          color: '#000',
-                          fontWeight: 'bold',
-                          fontSize: '12px'
+                      <td className={tableCellStyle}>
+                        <span className="px-2 py-1 rounded font-bold text-xs text-black" style={{
+                          background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
                         }}>
                           {entry.heroLevel}
                         </span>
                       </td>
-                      <td style={tableCellStyle}>
-                        <span style={{ 
-                          color: entry.currentHealth <= 0 ? '#ef4444' : '#10b981',
-                          fontSize: '13px'
-                        }}>
+                      <td className={tableCellStyle}>
+                        <span className={`text-xs ${entry.currentHealth <= 0 ? 'text-red-400' : 'text-green-400'}`}>
                           {entry.currentHealth}/{entry.maxHealth}
                         </span>
                       </td>
-                      <td style={{...tableCellStyle, color: '#10b981', fontWeight: 'bold'}}>{entry.wins}</td>
-                      <td style={{...tableCellStyle, color: '#ef4444'}}>{entry.losses}</td>
-                      <td style={tableCellStyle}>
-                        <span style={{
-                          color: entry.winRate >= 50 ? '#10b981' : '#f59e0b',
-                          fontWeight: 'bold'
-                        }}>
+                      <td className={`${tableCellStyle} text-green-400 font-bold`}>{entry.wins}</td>
+                      <td className={`${tableCellStyle} text-red-400`}>{entry.losses}</td>
+                      <td className={tableCellStyle}>
+                        <span className={`font-bold ${entry.winRate >= 50 ? 'text-green-400' : 'text-amber-400'}`}>
                           {entry.winRate.toFixed(1)}%
                         </span>
                       </td>
-                      <td style={tableCellStyle}>{entry.totalMatches}</td>
-                      <td style={tableCellStyle}>{entry.totalDamage?.toLocaleString() || 0}</td>
+                      <td className={tableCellStyle}>{entry.totalMatches}</td>
+                      <td className={tableCellStyle}>{entry.totalDamage?.toLocaleString() || 0}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -278,16 +248,14 @@ export default function Leaderboard({ socket, player, onClose }) {
 
           {/* My Stats Tab */}
           {activeTab === 'myStats' && !loading && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div className="flex flex-col gap-6">
               {playerStats && (
                 <div>
-                  <h3 style={{ color: '#e2e8f0', marginBottom: '16px' }}>Your Statistics</h3>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '16px',
-                    marginBottom: '24px'
-                  }}>
+                  <h3 className="text-amber-200 mb-4 text-xl font-bold" style={{
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                    fontFamily: 'Georgia, serif'
+                  }}>Your Statistics</h3>
+                  <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
                     <StatCard label="Global Rank" value={`#${playerStats.rank}`} color="#fbbf24" />
                     <StatCard label="Total Wins" value={playerStats.wins} color="#10b981" />
                     <StatCard label="Total Losses" value={playerStats.losses} color="#ef4444" />
@@ -302,42 +270,38 @@ export default function Leaderboard({ socket, player, onClose }) {
 
               {recentMatches.length > 0 && (
                 <div>
-                  <h3 style={{ color: '#e2e8f0', marginBottom: '16px' }}>Recent Matches</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <h3 className="text-amber-200 mb-4 text-xl font-bold" style={{
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.8)',
+                    fontFamily: 'Georgia, serif'
+                  }}>Recent Matches</h3>
+                  <div className="flex flex-col gap-2">
                     {recentMatches.map((match, idx) => (
-                      <div
+                      <FantasyCard
                         key={match.matchId}
+                        className={`border-2 ${match.playerResult === 'won' ? 'border-green-500/60' : 'border-red-500/60'}`}
                         style={{
                           background: match.playerResult === 'won' 
-                            ? 'rgba(16, 185, 129, 0.1)' 
-                            : 'rgba(239, 68, 68, 0.1)',
-                          border: `2px solid ${match.playerResult === 'won' ? '#10b981' : '#ef4444'}`,
-                          borderRadius: '8px',
-                          padding: '12px 16px',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
+                            ? 'linear-gradient(to bottom, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1))' 
+                            : 'linear-gradient(to bottom, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1))'
                         }}
                       >
-                        <div>
-                          <span style={{
-                            fontWeight: 'bold',
-                            color: match.playerResult === 'won' ? '#10b981' : '#ef4444',
-                            marginRight: '12px'
-                          }}>
-                            {match.playerResult === 'won' ? '✅ VICTORY' : '❌ DEFEAT'}
-                          </span>
-                          <span style={{ color: '#94a3b8', fontSize: '14px' }}>
-                            {match.heroName} • {match.queueType || match.matchType}
-                          </span>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className={`font-bold mr-3 ${match.playerResult === 'won' ? 'text-green-400' : 'text-red-400'}`}>
+                              {match.playerResult === 'won' ? '✅ VICTORY' : '❌ DEFEAT'}
+                            </span>
+                            <span className="text-amber-300 text-sm">
+                              {match.heroName} • {match.queueType || match.matchType}
+                            </span>
+                          </div>
+                          <div className="flex gap-4 text-sm text-amber-200">
+                            <span>DMG: {match.damageDealt}</span>
+                            <span>Kills: {match.kills}</span>
+                            <span>Deaths: {match.deaths}</span>
+                            <span>{match.durationSeconds}s</span>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#cbd5e1' }}>
-                          <span>DMG: {match.damageDealt}</span>
-                          <span>Kills: {match.kills}</span>
-                          <span>Deaths: {match.deaths}</span>
-                          <span>{match.durationSeconds}s</span>
-                        </div>
-                      </div>
+                      </FantasyCard>
                     ))}
                   </div>
                 </div>
@@ -345,27 +309,22 @@ export default function Leaderboard({ socket, player, onClose }) {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </FantasyModal>
   );
 }
 
 function StatCard({ label, value, color }) {
   return (
-    <div style={{
-      background: '#1e293b',
-      border: `2px solid ${color}`,
-      borderRadius: '12px',
-      padding: '16px',
-      textAlign: 'center'
-    }}>
-      <div style={{ color: '#94a3b8', fontSize: '12px', marginBottom: '8px' }}>
+    <FantasyCard className="text-center">
+      <div className="text-amber-300 text-xs mb-2 uppercase tracking-wider" style={{
+        textShadow: '1px 1px 2px rgba(0,0,0,0.8)'
+      }}>
         {label}
       </div>
-      <div style={{ color, fontSize: '24px', fontWeight: 'bold' }}>
+      <div className="text-2xl font-bold" style={{ color, textShadow: '2px 2px 4px rgba(0,0,0,0.8)' }}>
         {value || 0}
       </div>
-    </div>
+    </FantasyCard>
   );
 }
 
@@ -376,17 +335,6 @@ function getRankStyle(rank) {
   return { background: '#1e293b', color: '#94a3b8' };
 }
 
-const tableHeaderStyle = {
-  padding: '12px',
-  textAlign: 'left',
-  color: '#94a3b8',
-  fontSize: '14px',
-  fontWeight: 'bold'
-};
-
-const tableCellStyle = {
-  padding: '12px',
-  color: '#cbd5e1',
-  fontSize: '14px'
-};
+const tableHeaderStyle = 'px-3 py-3 text-left text-amber-300 text-sm font-bold';
+const tableCellStyle = 'px-3 py-3 text-amber-100 text-sm';
 
