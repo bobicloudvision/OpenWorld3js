@@ -10,7 +10,7 @@ import { Html } from '@react-three/drei'
  */
 export default function PlayerNameBadge({ playerName, height, modelScale = 1 }) {
   // Calculate badge height above model
-  const badgeHeight = (height || 2.2) * modelScale - 0.4;
+  const badgeHeight = (height || 2.2) * modelScale - 0.2;
   
   return (
     <Html
