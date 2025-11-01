@@ -51,11 +51,8 @@ export default function GameHeader({
 
   return (
     <header 
-      className="fixed top-0 left-0 right-0 z-[100] border-b-4 border-amber-700/60"
-      style={{
-        background: 'linear-gradient(to bottom, rgba(139, 69, 19, 0.95), rgba(101, 67, 33, 0.95))',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(217, 119, 6, 0.3)'
-      }}
+      className="fixed top-0 left-0 right-0 z-[100]"
+    
     >
       <div className="container mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
