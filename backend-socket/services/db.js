@@ -16,6 +16,7 @@ const DEFAULT_DB_PATH = path.resolve(
 
 const DB_PATH = process.env.DB_PATH ? path.resolve(process.env.DB_PATH) : DEFAULT_DB_PATH;
 
+
 let dbInstance = null;
 
 export function getDb() {
