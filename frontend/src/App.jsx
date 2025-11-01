@@ -108,21 +108,17 @@ export default function App() {
           <Route 
             path="login" 
             element={
-              <div className="relative" style={{ minHeight: 'calc(100vh - 200px)' }}>
-                <AuthPage 
-                  onAuthenticated={setPlayer}
-                />
-              </div>
+              <AuthPage 
+                onAuthenticated={setPlayer}
+              />
             } 
           />
           <Route 
             path="register" 
             element={
-              <div className="relative" style={{ minHeight: 'calc(100vh - 200px)' }}>
-                <AuthPage 
-                  onAuthenticated={setPlayer}
-                />
-              </div>
+              <AuthPage 
+                onAuthenticated={setPlayer}
+              />
             } 
           />
         </Route>

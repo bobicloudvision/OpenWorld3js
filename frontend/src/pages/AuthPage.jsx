@@ -25,18 +25,21 @@ export default function AuthPage({ onAuthenticated }) {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4"
+      className="relative flex items-center justify-center p-4 py-12 min-h-[calc(100vh-200px)] w-full"
       style={{
         backgroundImage: 'url(/images/bg-login.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat'
+        backgroundRepeat: 'no-repeat',
+        backgroundAttachment: 'fixed'
       }}
     >
       {/* Overlay for better readability */}
-      <div className="absolute inset-0 bg-black/70"></div>
+      <div 
+        className="absolute inset-0 bg-black/70 -z-10"
+      ></div>
       
-      <div className="relative z-10 max-w-md w-full">
+      <div className="relative max-w-md w-full" style={{ zIndex: 10 }}>
         <div 
           className="relative bg-gradient-to-b from-amber-950/95 via-yellow-950/95 to-amber-900/95 rounded-lg border-4 border-amber-600 w-full shadow-2xl overflow-hidden"
           style={{
