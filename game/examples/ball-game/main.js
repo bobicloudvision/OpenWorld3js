@@ -192,45 +192,51 @@ class BallGameScene extends Scene {
   }
 
   updateBallPhysics(deltaTime) {
+
     const input = this.engine.inputManager;
     const body = this.ball.physicsBody;
 
     if (!body) return;
 
-    // Get camera direction
+    // ✅ Using Actor's internal velocity (already a THREE.Vector3)
+    const moveDirection = this.ball.velocity;
+    moveDirection.set(0, 0, 0);
+
+    // Get camera relative directions
     const forward = this.camera.getForwardDirection();
     const right = this.camera.getRightDirection();
 
-    // Calculate push direction
-    const dir = { x: 0, y: 0, z: 0 };
-
+    // Calculate movement direction
     if (input.isActionDown('forward')) {
-      dir.x += forward.x;
-      dir.z += forward.z;
+      moveDirection.add(forward);
     }
     if (input.isActionDown('backward')) {
-      dir.x -= forward.x;
-      dir.z -= forward.z;
+      moveDirection.sub(forward);
     }
     if (input.isActionDown('left')) {
-      dir.x -= right.x;
-      dir.z -= right.z;
+      moveDirection.sub(right);
     }
     if (input.isActionDown('right')) {
-      dir.x += right.x;
-      dir.z += right.z;
+      moveDirection.add(right);
     }
 
-    // Apply velocity to ball (better control than impulse)
-    if (dir.x !== 0 || dir.z !== 0) {
-      // Normalize direction
-      const length = Math.sqrt(dir.x * dir.x + dir.z * dir.z);
-      dir.x /= length;
-      dir.z /= length;
+    // Apply force to physics body
+    if (moveDirection.lengthSq() > 0) {
+      // Normalize and apply force over time
+      moveDirection.normalize();
       
-      // Set target velocity
-      body.velocity.x = dir.x * this.maxSpeed;
-      body.velocity.z = dir.z * this.maxSpeed;
+      // Apply acceleration using deltaTime (force-based movement)
+      const force = 5000; // Force strength
+      body.velocity.x += moveDirection.x * force * deltaTime;
+      body.velocity.z += moveDirection.z * force * deltaTime;
+      
+      // Clamp to max speed
+      const currentSpeed = Math.sqrt(body.velocity.x ** 2 + body.velocity.z ** 2);
+      if (currentSpeed > this.maxSpeed) {
+        const scale = this.maxSpeed / currentSpeed;
+        body.velocity.x *= scale;
+        body.velocity.z *= scale;
+      }
     } else {
       // Apply damping when no input
       body.velocity.x *= 0.9;
