@@ -51,3 +51,7 @@ export {
   isEmpty
 } from './utils/EngineUtils.js';
 
+// Graphics (Three.js abstraction)
+export { MeshBuilder, Color } from './graphics/Mesh.js';
+export { Vector3 } from './graphics/Vector3.js';
+

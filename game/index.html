@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three.js Game Engine - Examples</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      color: white;
+      text-align: center;
+      font-size: 48px;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+      font-size: 20px;
+      margin-bottom: 40px;
+    }
+
+    .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+      margin-top: 40px;
+    }
+
+    .example-card {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+      cursor: pointer;
+    }
+
+    .example-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    .example-card h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 24px;
+    }
+
+    .example-card p {
+      color: #666;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .badge {
+      display: inline-block;
+      background: #00ff00;
+      color: black;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 15px;
+    }
+
+    .badge.new {
+      background: #ff6b6b;
+      color: white;
+    }
+
+    .badge.recommended {
+      background: #4ecdc4;
+      color: white;
+    }
+
+    .example-card a {
+      display: inline-block;
+      background: #667eea;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+
+    .example-card a:hover {
+      background: #764ba2;
+    }
+
+    .features {
+      list-style: none;
+      margin: 15px 0;
+      padding: 0;
+    }
+
+    .features li {
+      color: #666;
+      padding: 5px 0;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .features li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #00ff00;
+      font-weight: bold;
+    }
+
+    .docs-section {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      margin-top: 40px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    .docs-section h2 {
+      color: #667eea;
+      margin-bottom: 20px;
+    }
+
+    .docs-section a {
+      display: inline-block;
+      color: #667eea;
+      text-decoration: none;
+      padding: 8px 0;
+      margin-right: 20px;
+      font-weight: 500;
+    }
+
+    .docs-section a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 Three.js Game Engine</h1>
+    <p class="subtitle">Independent, Modular, Multiplayer-Ready</p>
+
+    <div class="examples-grid">
+      <!-- Basic Example -->
+      <div class="example-card">
+        <span class="badge recommended">RECOMMENDED</span>
+        <span class="badge">NO THREE.JS</span>
+        <h2>Basic Game</h2>
+        <p>Simple single-player game using ONLY engine classes. Perfect for beginners!</p>
+        <ul class="features">
+          <li>Pure engine API</li>
+          <li>Player movement</li>
+          <li>Third-person camera</li>
+          <li>No Three.js knowledge needed</li>
+        </ul>
+        <a href="/examples/basic/">Launch Example →</a>
+      </div>
+
+      <!-- Engine Only Example -->
+      <div class="example-card">
+        <span class="badge">NO THREE.JS</span>
+        <h2>Engine-Only</h2>
+        <p>Demonstrates building games with ZERO Three.js imports.</p>
+        <ul class="features">
+          <li>MeshBuilder usage</li>
+          <li>Color constants</li>
+          <li>Multiple shapes</li>
+          <li>Pure abstraction</li>
+        </ul>
+        <a href="/examples/engine-only/">Launch Example →</a>
+      </div>
+
+      <!-- RPG with Components -->
+      <div class="example-card">
+        <span class="badge new">COMPONENT SYSTEM</span>
+        <h2>RPG with Components</h2>
+        <p>Shows how to add health, combat, and game features via components.</p>
+        <ul class="features">
+          <li>HealthComponent</li>
+          <li>CombatComponent</li>
+          <li>Event-driven</li>
+          <li>Independent Actor</li>
+        </ul>
+        <a href="/examples/rpg-with-components/">Launch Example →</a>
+      </div>
+
+      <!-- Multiplayer Example -->
+      <div class="example-card">
+        <span class="badge new">MULTIPLAYER</span>
+        <h2>Multiplayer</h2>
+        <p>Real-time multiplayer with rooms and player synchronization.</p>
+        <ul class="features">
+          <li>Socket.io integration</li>
+          <li>Room management</li>
+          <li>Player sync</li>
+          <li>Network events</li>
+        </ul>
+        <a href="/examples/multiplayer/">Launch Example →</a>
+      </div>
+    </div>
+
+    <div class="docs-section">
+      <h2>📚 Documentation</h2>
+      <a href="/README.md" target="_blank">API Reference</a>
+      <a href="/GETTING_STARTED.md" target="_blank">Getting Started</a>
+      <a href="/ARCHITECTURE.md" target="_blank">Architecture</a>
+      <a href="/ENGINE_INDEPENDENCE.md" target="_blank">Independence Guide</a>
+      <a href="/ENGINE_ABSTRACTION.md" target="_blank">Abstraction Layers</a>
+    </div>
+
+    <div class="docs-section">
+      <h2>🚀 Quick Start</h2>
+      <pre style="background: #f5f5f5; padding: 20px; border-radius: 8px; overflow-x: auto;">
+<code>// Install dependencies
+npm install
+
+// Start dev server
+npm run dev
+
+// Open browser to http://localhost:5173/</code></pre>
+    </div>
+  </div>
+
+  <script>
+    console.log('✅ Three.js Game Engine Examples');
+    console.log('✅ Click any example to launch');
+    console.log('✅ Engine is 100% independent and reusable');
+  </script>
+</body>
+</html>
+

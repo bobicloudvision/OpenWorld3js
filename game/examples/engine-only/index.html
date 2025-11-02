@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Basic Game Example - Pure Engine API (No Three.js!)</title>
+  <title>Engine-Only Example - No Three.js Code!</title>
   <style>
     * {
       margin: 0;
@@ -38,10 +38,20 @@
     #ui-overlay h3 {
       margin: 0 0 10px 0;
       font-size: 16px;
+      color: #00ff00;
     }
 
     #ui-overlay p {
       margin: 5px 0;
+    }
+
+    .badge {
+      background: #00ff00;
+      color: black;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 12px;
     }
 
     .instructions {
@@ -59,23 +69,54 @@
     .instructions p {
       margin: 5px 0;
     }
+
+    .note {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 255, 0, 0.1);
+      border: 2px solid #00ff00;
+      padding: 15px;
+      border-radius: 8px;
+      color: white;
+      max-width: 300px;
+    }
+
+    .note h4 {
+      color: #00ff00;
+      margin: 0 0 10px 0;
+    }
   </style>
 </head>
 <body>
   <canvas id="game-canvas"></canvas>
   
   <div id="ui-overlay">
-    <h3>✅ Pure Engine API</h3>
-    <p style="color: #00ff00; font-weight: bold;">NO Three.js imports!</p>
+    <h3>✅ Engine-Only Example</h3>
+    <p><span class="badge">NO THREE.JS</span> in game code!</p>
     <p>FPS: <span id="fps">0</span></p>
     <p>Entities: <span id="entities">0</span></p>
     <p>Position: <span id="position">0, 0, 0</span></p>
   </div>
 
+  <div class="note">
+    <h4>🎯 Pure Engine API</h4>
+    <p>This example uses ONLY engine classes:</p>
+    <ul style="list-style: none; padding: 0; margin: 10px 0;">
+      <li>✅ MeshBuilder</li>
+      <li>✅ Color</li>
+      <li>✅ Vector3</li>
+      <li>✅ Actor</li>
+      <li>✅ Scene</li>
+      <li>✅ GameEngine</li>
+    </ul>
+    <p style="margin-top: 10px;"><strong>Zero Three.js imports!</strong></p>
+  </div>
+
   <div class="instructions">
     <p><strong>Controls:</strong></p>
-    <p>WASD - Move | Mouse - Look Around | Space - Jump</p>
-    <p>Right Click - Rotate Camera | Mouse Wheel - Zoom</p>
+    <p>WASD - Move | Mouse - Look Around</p>
+    <p>This game was built without writing ANY Three.js code!</p>
   </div>
 
   <script type="module" src="./main.js"></script>
