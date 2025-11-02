@@ -482,6 +482,10 @@ export class PhysicsManager extends EventEmitter {
       case 'cylinder':
         body = this.createCylinder({ ...bodyOptions, position });
         break;
+      case 'plane':
+        // ✅ NEW: Support for plane physics shape
+        body = this.createPlane({ ...bodyOptions, position, rotation });
+        break;
       default:
         body = this.createBox({ ...bodyOptions, position, rotation });
     }

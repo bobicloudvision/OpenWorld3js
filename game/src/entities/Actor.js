@@ -195,13 +195,24 @@ export class Actor extends Entity {
       radius = 1,
       restitution = 0.3,
       friction = 0.5,
-      fixedRotation = true,
+      fixedRotation = false,  // ✅ Changed default: Allow rotation (set true for character controllers)
       linearDamping = 0.1,
       angularDamping = 0.1
     } = options;
 
     // Create physics body based on shape
-    let bodyOptions = { mass, position: this.position };
+    // Pass through ALL options to PhysicsManager (it now handles all Cannon.js params)
+    let bodyOptions = { 
+      ...options,           // ✅ Pass all options (collision filters, isTrigger, etc.)
+      mass, 
+      position: this.position,
+      rotation: this.rotation,  // ✅ Include rotation for planes
+      restitution,
+      friction,
+      linearDamping,
+      angularDamping,
+      fixedRotation
+    };
 
     if (shape === 'sphere') {
       bodyOptions.type = 'sphere';
@@ -211,6 +222,10 @@ export class Actor extends Entity {
       bodyOptions.radiusTop = radius;
       bodyOptions.radiusBottom = radius;
       bodyOptions.height = height;
+    } else if (shape === 'plane') {
+      // ✅ NEW: Support for plane physics shape
+      bodyOptions.type = 'plane';
+      // Planes are infinite in Cannon.js, no size needed
     } else {
       bodyOptions.type = 'box';
       bodyOptions.width = width;
@@ -218,23 +233,8 @@ export class Actor extends Entity {
       bodyOptions.depth = depth;
     }
 
-    // Add physics body
+    // Add physics body (PhysicsManager handles all properties now)
     const body = physics.addToEntity(this, bodyOptions);
-
-    // Apply properties
-    if (fixedRotation && shape !== 'sphere') {
-      body.fixedRotation = true;
-      body.updateMassProperties();
-    }
-    
-    body.linearDamping = linearDamping;
-    body.angularDamping = angularDamping;
-
-    // Create material if specified
-    if (restitution || friction) {
-      const material = physics.createMaterial({ friction, restitution });
-      body.material = material;
-    }
 
     this.physicsEnabled = true;
     this.emit('physicsEnabled', { body });

@@ -40,20 +40,27 @@ export class PhysicsBallScene extends GameScene {
   }
 
   createGround() {
-    const ground = MeshBuilder.createPlane({
+    // ✅ Create GameObject (proper way!)
+    const ground = GameObjectFactory.createPlane({
+      name: 'Ground',
       width: 100,
       height: 100,
-      color: Color.GRASS
+      color: Color.GRASS,
+      position: { x: 0, y: 0, z: 0 }
     });
+
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
-    this.threeScene.add(ground);
+    ground.addTag('ground');
 
-    // Ground physics - needs restitution for ball to bounce!
-    this.engine.physicsManager.createPlane({
-      position: { x: 0, y: 0, z: 0 },
-      mass: 0,
-      restitution: 0.6,  // ✅ Bouncy ground
+    // Add to scene first
+    this.addEntity(ground);
+
+    // ✅ Then enable physics (proper way!)
+    ground.enablePhysics({
+      shape: 'plane',
+      mass: 0,           // Static ground
+      restitution: 0.6,  // Bouncy ground for ball to bounce!
       friction: 0.5
     });
   }
@@ -63,34 +70,39 @@ export class PhysicsBallScene extends GameScene {
     const height = 5;
     const thickness = 1;
 
-    const walls = [
+    const wallConfigs = [
       { x: 0, z: size, width: size * 2, depth: thickness },
       { x: 0, z: -size, width: size * 2, depth: thickness },
       { x: size, z: 0, width: thickness, depth: size * 2 },
       { x: -size, z: 0, width: thickness, depth: size * 2 }
     ];
 
-    walls.forEach(wall => {
-      // Visual
-      const mesh = MeshBuilder.createBox({
-        width: wall.width,
+    wallConfigs.forEach((config, index) => {
+      // ✅ Create GameObject (proper way!)
+      const wall = GameObjectFactory.createCube({
+        name: `Wall_${index}`,
+        width: config.width,
         height: height,
-        depth: wall.depth,
-        color: 0x666666
+        depth: config.depth,
+        color: 0x666666,
+        position: { x: config.x, y: height / 2, z: config.z }
       });
-      mesh.position.set(wall.x, height / 2, wall.z);
-      mesh.receiveShadow = true;
-      mesh.castShadow = true;
-      this.threeScene.add(mesh);
 
-      // Physics - walls need restitution too!
-      this.engine.physicsManager.createBox({
-        width: wall.width,
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      wall.addTag('wall');
+
+      // Add to scene first
+      this.addEntity(wall);
+
+      // ✅ Then enable physics (proper way!)
+      wall.enablePhysics({
+        shape: 'box',
+        width: config.width,
         height: height,
-        depth: wall.depth,
-        position: { x: wall.x, y: height / 2, z: wall.z },
-        mass: 0,
-        restitution: 0.5,  // ✅ Bouncy walls
+        depth: config.depth,
+        mass: 0,           // Static wall
+        restitution: 0.5,  // Bouncy
         friction: 0.3
       });
     });
@@ -117,7 +129,8 @@ export class PhysicsBallScene extends GameScene {
       restitution: 0.7,  // Higher value = more bouncy! (0.0 = no bounce, 1.0 = perfect bounce)
       friction: 0.7,
       linearDamping: 0.2,  // Reduced for better bouncing
-      angularDamping: 0.2
+      angularDamping: 0.2,
+      fixedRotation: false  // ✅ Allow ball to roll!
     });
 
     // Add controller
