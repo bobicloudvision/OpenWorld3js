@@ -178,8 +178,22 @@ export class Actor extends Entity {
   enablePhysics(options = {}) {
     // Get physics manager from scene
     const scene = this.scene || this._findScene();
-    if (!scene || !scene.engine || !scene.engine.physicsManager) {
-      console.warn('PhysicsManager not available');
+    
+    if (!scene) {
+      console.error(
+        `❌ Cannot enable physics on "${this.name || this.id}": Entity must be added to scene first!\n` +
+        `   Correct order:\n` +
+        `   1. scene.addEntity(entity)  // Add to scene first\n` +
+        `   2. entity.enablePhysics()   // Then enable physics`
+      );
+      return this;
+    }
+    
+    if (!scene.engine || !scene.engine.physicsManager) {
+      console.warn(
+        `⚠️ PhysicsManager not available for "${this.name || this.id}". ` +
+        `Make sure the scene has a physics-enabled engine.`
+      );
       return this;
     }
 
