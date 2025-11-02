@@ -21,7 +21,7 @@ export default function HomePage() {
       ></div>
       
       <div className="relative max-w-4xl w-full" style={{ zIndex: 10 }}>
-        <FantasyCard className="text-center p-12">
+        <FantasyCard className="text-center p-12 bg-black/80">
           <h1 
             className="text-amber-300 text-5xl font-bold mb-6"
             style={{

@@ -20,8 +20,12 @@ export async function register({ name, email, password }) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ name, email, password })
   });
-  if (!res.ok) throw new Error('Register failed');
   const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data.message || 'Register failed');
+    error.errors = data.errors;
+    throw error;
+  }
   setToken(data.token);
   return data;
 }
@@ -32,8 +36,12 @@ export async function login({ email, password }) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password })
   });
-  if (!res.ok) throw new Error('Login failed');
   const data = await res.json();
+  if (!res.ok) {
+    const error = new Error(data.message || 'Login failed');
+    error.errors = data.errors;
+    throw error;
+  }
   setToken(data.token);
   return data;
 }

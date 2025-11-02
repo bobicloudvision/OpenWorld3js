@@ -14,9 +14,11 @@ export default function AuthForm({ mode, onModeChange, onAuthenticated, onClose 
   const [password, setPassword] = React.useState('')
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState('')
+  const [fieldErrors, setFieldErrors] = React.useState({})
 
   React.useEffect(() => {
     setError('')
+    setFieldErrors({})
     setPassword('')
     setName('')
   }, [mode])
@@ -25,6 +27,7 @@ export default function AuthForm({ mode, onModeChange, onAuthenticated, onClose 
     e.preventDefault()
     setLoading(true)
     setError('')
+    setFieldErrors({})
     try {
       if (mode === 'signup') {
         const res = await registerPlayer({ name, email, password })
@@ -35,7 +38,12 @@ export default function AuthForm({ mode, onModeChange, onAuthenticated, onClose 
       }
       onClose?.()
     } catch (err) {
-      setError(err?.message || 'Authentication failed')
+      if (err.errors) {
+        setFieldErrors(err.errors)
+        setError(err.message || 'Please fix the errors below')
+      } else {
+        setError(err?.message || 'Authentication failed')
+      }
     } finally {
       setLoading(false)
     }
@@ -80,35 +88,50 @@ export default function AuthForm({ mode, onModeChange, onAuthenticated, onClose 
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === 'signup' && (
-          <FantasyInput
-            label="Name"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            required
-          />
+          <div>
+            <FantasyInput
+              label="Name"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              required
+            />
+            {fieldErrors.name && (
+              <p className="mt-1 text-xs text-red-400">{fieldErrors.name[0]}</p>
+            )}
+          </div>
         )}
 
-        <FantasyInput
-          label="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
-          required
-          autoComplete="email"
-        />
+        <div>
+          <FantasyInput
+            label="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            required
+            autoComplete="email"
+          />
+          {fieldErrors.email && (
+            <p className="mt-1 text-xs text-red-400">{fieldErrors.email[0]}</p>
+          )}
+        </div>
 
-        <FantasyInput
-          label="Password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="••••••••"
-          required
-          autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-        />
+        <div>
+          <FantasyInput
+            label="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+            autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+          />
+          {fieldErrors.password && (
+            <p className="mt-1 text-xs text-red-400">{fieldErrors.password[0]}</p>
+          )}
+        </div>
 
         {error && (
           <div className="p-3 bg-red-900/30 border-2 border-red-600/50 rounded-lg text-red-300 text-sm flex items-center gap-2">

@@ -7,23 +7,34 @@ use App\Http\Resources\PlayerResource;
 use App\Models\Player;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class PlayerAuthController extends Controller
 {
     public function register(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('players', 'email')],
             'password' => ['required', 'string', 'min:8'],
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
         $player = Player::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
-            'currency'=>100000000
+            'currency' => 100000000
         ]);
 
         $token = $player->createToken('player-api')->plainTextToken;
@@ -36,15 +47,29 @@ class PlayerAuthController extends Controller
 
     public function login(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
         $player = Player::where('email', $validated['email'])->first();
 
         if (! $player || ! Hash::check($validated['password'], $player->password)) {
-            return response()->json(['message' => 'Invalid credentials'], 422);
+            return response()->json([
+                'message' => 'Invalid credentials',
+                'errors' => [
+                    'email' => ['The provided credentials are incorrect.']
+                ]
+            ], 422);
         }
 
         $token = $player->createToken('player-api')->plainTextToken;
