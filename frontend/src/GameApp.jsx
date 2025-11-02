@@ -321,6 +321,12 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
               updateHeroes(updatedPlayerHeroes, updatedAvailableHeroes);
             }}
           />
+        ) : !activeHero ? (
+          <div className="fixed inset-0 flex items-center justify-center bg-black/35 z-50">
+            <div className="px-4 py-3 bg-gray-900 text-gray-200 border border-gray-700 rounded-lg text-[13px]">
+              Loading hero data...
+            </div>
+          </div>
         ) : (
           <>
             {inCombatMatch ? (

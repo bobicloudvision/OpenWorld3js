@@ -60,6 +60,21 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
     }
   }, [player, onPlayerChange])
 
+  // Fetch heroes when socket becomes ready and player is already authenticated
+  useEffect(() => {
+    const socket = socketRef?.current
+    if (!socket || !socketReady || !player) return
+
+    console.log('[usePlayerHeroManager] Socket ready and player authenticated, fetching heroes')
+    
+    // Fetch heroes if we don't have them yet
+    if (playerHeroes.length === 0) {
+      setLoadingHeroes(true)
+      socket.emit('get:player:heroes')
+      socket.emit('get:heroes:available')
+    }
+  }, [socketReady, player, socketRef, playerHeroes.length])
+
   // Set up socket event listeners for player and hero updates
   useEffect(() => {
     const socket = socketRef?.current
