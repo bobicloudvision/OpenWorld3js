@@ -4,7 +4,7 @@ A **well-architected** 3D physics-based ball game built with the OpenWorld3D eng
 
 ## 🎯 Objective
 
-Roll your ball around the arena, collect all **yellow spheres**, and push obstacles out of your way!
+Roll your **bouncy ball** around the arena, collect all **yellow spheres**, and push obstacles out of your way!
 
 ## 🎮 Controls
 
@@ -46,6 +46,7 @@ ball-game-physics/
 ### Gameplay
 - ✅ Physics-based ball movement with forces
 - ✅ **Jumping mechanic** with ground detection
+- ✅ **Bouncing physics** - Ball bounces realistically
 - ✅ Collectible items with visual feedback
 - ✅ Pushable obstacles with varying masses
 - ✅ Score tracking and timer

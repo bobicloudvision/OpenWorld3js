@@ -11,7 +11,7 @@ export class BallController extends Component {
     this.maxSpeed = config.maxSpeed || 15;
     this.jumpForce = config.jumpForce || 35; // Impulse force (not regular force!)
     this.isGrounded = false;
-    this.groundCheckDistance = 1.2; // Distance to check for ground
+    this.groundCheckDistance = 1.3; // Slightly higher for bouncing ball
   }
 
   start() {

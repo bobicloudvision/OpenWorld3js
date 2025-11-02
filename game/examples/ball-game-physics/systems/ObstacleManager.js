@@ -58,7 +58,7 @@ export class ObstacleManager extends Component {
         height: size,
         depth: size,
         mass: mass,
-        restitution: 0.1,
+        restitution: 0.3,  // ✅ Increased for bouncing when hit
         friction: 0.8,
         linearDamping: 0.6
       });

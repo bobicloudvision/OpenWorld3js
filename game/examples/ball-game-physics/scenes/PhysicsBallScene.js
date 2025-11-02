@@ -105,14 +105,14 @@ export class PhysicsBallScene extends GameScene {
     // Add to scene first
     this.addEntity(player);
 
-    // Then enable physics
+    // Then enable physics with bouncing
     player.enablePhysics({
       shape: 'sphere',
       radius: 1,
       mass: 1,
-      restitution: 0.3,
+      restitution: 0.7,  // Higher value = more bouncy! (0.0 = no bounce, 1.0 = perfect bounce)
       friction: 0.7,
-      linearDamping: 0.3,
+      linearDamping: 0.2,  // Reduced for better bouncing
       angularDamping: 0.2
     });
 
