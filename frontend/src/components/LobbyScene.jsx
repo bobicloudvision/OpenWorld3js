@@ -165,10 +165,10 @@ export default function LobbyScene({
             disableCombat={!inCombat}
             mapFile={mapFilePath}
           />
-          <HiddenElementPlaceholders 
+          {/* <HiddenElementPlaceholders 
             key={`placeholders-${currentZone?.id || 'default'}`}
             mapFile={mapFilePath}
-          />
+          /> */}
           <GameManager playerPositionRef={playerPositionRef} />
           
         </Physics>
