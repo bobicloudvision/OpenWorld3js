@@ -109,6 +109,7 @@ export function registerMultiplayerHandlers(socket, io) {
         if (currentZoneId) {
           socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
             socketId: socket.id,
+            playerId: playerId, // Include playerId for stable identification
             position,
             rotation,
           });
@@ -129,6 +130,7 @@ export function registerMultiplayerHandlers(socket, io) {
         if (currentZoneId) {
           socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
             socketId: socket.id,
+            playerId: playerId, // Include playerId for stable identification
             position,
             rotation,
           });
@@ -163,6 +165,7 @@ export function registerMultiplayerHandlers(socket, io) {
         if (currentZoneId) {
           socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
             socketId: socket.id,
+            playerId: playerId, // Include playerId for stable identification
             position: lastPosData.position,
             rotation,
           });
@@ -192,6 +195,7 @@ export function registerMultiplayerHandlers(socket, io) {
     if (currentZoneId) {
       socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
         socketId: socket.id,
+        playerId: playerId, // Include playerId for stable identification
         position,
         rotation,
       });
@@ -225,6 +229,7 @@ export function registerMultiplayerHandlers(socket, io) {
     if (currentZoneId) {
       socket.to(`zone-${currentZoneId}`).emit('player:hero:changed', {
         socketId: socket.id,
+        playerId: playerId, // Include playerId for stable identification
         ...data,
       });
     }
@@ -243,6 +248,7 @@ export function registerMultiplayerHandlers(socket, io) {
     if (currentZoneId) {
       socket.to(`zone-${currentZoneId}`).emit('player:left', {
         socketId: socket.id,
+        playerId: playerId, // Include playerId for stable identification
       });
     }
   });

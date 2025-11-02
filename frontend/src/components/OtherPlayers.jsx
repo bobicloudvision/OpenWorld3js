@@ -148,8 +148,8 @@ function OtherPlayer({ otherPlayer }) {
  * @param {number} currentPlayerId - The current player's ID to exclude from rendering
  */
 export default function OtherPlayers({ socket, currentPlayerId }) {
-  const [otherPlayers, setOtherPlayers] = useState(new Map()) // socketId -> playerData
-  const playerLastUpdateRef = useRef(new Map()) // Track last update time for each player
+  const [otherPlayers, setOtherPlayers] = useState(new Map()) // playerId -> playerData (includes socketId)
+  const playerLastUpdateRef = useRef(new Map()) // Track last update time for each player (by playerId)
   
   useEffect(() => {
     if (!socket) return
@@ -159,55 +159,87 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
 
     // Handle initial list of players when joining
     const handlePlayersJoined = (players) => {
+      console.log('[OtherPlayers] Received players list:', players.length, 'players')
       const playersMap = new Map()
       const now = Date.now()
-      const seenSocketIds = new Set()
+      const seenPlayerIds = new Set()
       
       players.forEach(player => {
-        // Skip current player and prevent duplicates
-        if (player.playerId !== currentPlayerId && player.socketId && !seenSocketIds.has(player.socketId)) {
-          seenSocketIds.add(player.socketId)
-          playersMap.set(player.socketId, player)
-          playerLastUpdateRef.current.set(player.socketId, now)
+        // Skip current player and prevent duplicates (use playerId as unique key)
+        if (player.playerId !== currentPlayerId && player.playerId && !seenPlayerIds.has(player.playerId)) {
+          seenPlayerIds.add(player.playerId)
+          playersMap.set(player.playerId, player) // Use playerId as Map key
+          playerLastUpdateRef.current.set(player.playerId, now)
+          console.log(`[OtherPlayers] Added player ${player.playerId} (${player.name || 'Unknown'})`)
         }
       })
+      console.log(`[OtherPlayers] Total other players in map: ${playersMap.size}`)
       setOtherPlayers(playersMap)
     }
     
     // Handle new player joining
     const handlePlayerJoined = (playerData) => {
-      if (playerData.playerId === currentPlayerId || !playerData.socketId) return
+      if (playerData.playerId === currentPlayerId || !playerData.playerId) return
+      console.log(`[OtherPlayers] Player joined: ${playerData.playerId} (${playerData.name || 'Unknown'})`)
       setOtherPlayers(prev => {
-        // If player already exists, merge data (in case hero data arrived before full join)
+        // If player already exists, merge data and update socketId (for reconnections)
         // If not, add as new player
         const updated = new Map(prev)
-        if (prev.has(playerData.socketId)) {
-          // Merge with existing data to preserve position updates
-          const existing = prev.get(playerData.socketId)
-          updated.set(playerData.socketId, {
+        if (prev.has(playerData.playerId)) {
+          // Player reconnected! Update their socketId and merge data
+          console.log(`[OtherPlayers] Player ${playerData.playerId} reconnected (updating socketId)`)
+          const existing = prev.get(playerData.playerId)
+          updated.set(playerData.playerId, {
             ...existing,
             ...playerData,
+            socketId: playerData.socketId, // Update socketId for reconnection
             // Preserve position/rotation if not in new data
             position: playerData.position || existing.position,
             rotation: playerData.rotation || existing.rotation,
           })
         } else {
-          updated.set(playerData.socketId, playerData)
+          // New player joining
+          console.log(`[OtherPlayers] Added new player ${playerData.playerId}`)
+          updated.set(playerData.playerId, playerData)
         }
-        playerLastUpdateRef.current.set(playerData.socketId, Date.now())
+        playerLastUpdateRef.current.set(playerData.playerId, Date.now())
         return updated
       })
     }
     
     // Handle player position updates
-    const handlePositionChanged = ({ socketId, position, rotation }) => {
+    const handlePositionChanged = ({ socketId, playerId: incomingPlayerId, position, rotation }) => {
+      // Log first position update for debugging (throttled)
+      if (!handlePositionChanged._lastLog || Date.now() - handlePositionChanged._lastLog > 5000) {
+        console.log(`[OtherPlayers] Position update - playerId: ${incomingPlayerId}, socketId: ${socketId?.substring(0, 6)}`)
+        handlePositionChanged._lastLog = Date.now()
+      }
+      
       const now = Date.now()
       setOtherPlayers(prev => {
         const updated = new Map(prev)
-        const player = updated.get(socketId)
-        if (player) {
-          // Always create new array references to ensure React detects changes
-          // Even if values are the same, create new arrays to trigger React re-render
+        
+        // Find player by playerId (preferred) or by socketId (fallback for older events)
+        let player = null
+        let playerIdKey = null
+        
+        if (incomingPlayerId) {
+          // Use playerId from event (best case)
+          player = updated.get(incomingPlayerId)
+          playerIdKey = incomingPlayerId
+        } else {
+          // Fallback: find player by socketId (for backward compatibility)
+          for (const [pid, p] of updated.entries()) {
+            if (p.socketId === socketId) {
+              player = p
+              playerIdKey = pid
+              break
+            }
+          }
+        }
+        
+        if (player && playerIdKey) {
+          // Player found - update their position
           const newPosition = position && Array.isArray(position) && position.length === 3 
             ? [...position] 
             : player.position ? [...player.position] : [0, 0, 0]
@@ -215,62 +247,105 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
             ? [...rotation] 
             : player.rotation ? [...player.rotation] : [0, 0, 0]
           
-          updated.set(socketId, {
+          updated.set(playerIdKey, {
             ...player,
+            socketId, // Update socketId in case it changed (reconnection)
             position: newPosition,
             rotation: newRotation,
           })
-          playerLastUpdateRef.current.set(socketId, now)
-        } else {
-          // Player not in map yet - might have missed join event
-          // Create a minimal player entry to prevent data loss
-          // The full player data will come in a hero change or join event
-          updated.set(socketId, {
+          playerLastUpdateRef.current.set(playerIdKey, now)
+        } else if (incomingPlayerId) {
+          // Player not found but we have playerId - create minimal entry
+          // This handles case where position update arrives before join event
+          updated.set(incomingPlayerId, {
             socketId,
-            playerId: null, // Will be set when full data arrives
+            playerId: incomingPlayerId,
             position: position && Array.isArray(position) && position.length === 3 ? [...position] : [0, 0, 0],
             rotation: rotation && Array.isArray(rotation) && rotation.length === 3 ? [...rotation] : [0, 0, 0],
-            name: `Player ${socketId.substring(0, 6)}`,
+            name: `Player ${incomingPlayerId}`,
+            heroModel: null, // Will be set when full data arrives
           })
-          playerLastUpdateRef.current.set(socketId, now)
+          playerLastUpdateRef.current.set(incomingPlayerId, now)
+          console.log(`[OtherPlayers] Created minimal entry for player ${incomingPlayerId} from position update`)
         }
+        // If no playerId available, ignore the update (can't create stable entry)
+        
         return updated
       })
     }
     
     // Handle player hero updates
-    const handleHeroChanged = ({ socketId, ...heroData }) => {
+    const handleHeroChanged = ({ socketId, playerId: incomingPlayerId, ...heroData }) => {
       const now = Date.now()
       setOtherPlayers(prev => {
         const updated = new Map(prev)
-        const player = updated.get(socketId)
-        if (player) {
-          updated.set(socketId, {
+        
+        // Find player by playerId (preferred) or by socketId (fallback)
+        let player = null
+        let playerIdKey = null
+        
+        if (incomingPlayerId) {
+          // Use playerId from event (best case)
+          player = updated.get(incomingPlayerId)
+          playerIdKey = incomingPlayerId
+        } else {
+          // Fallback: find player by socketId
+          for (const [pid, p] of updated.entries()) {
+            if (p.socketId === socketId) {
+              player = p
+              playerIdKey = pid
+              break
+            }
+          }
+        }
+        
+        if (player && playerIdKey) {
+          // Player found - update their hero data
+          updated.set(playerIdKey, {
             ...player,
             ...heroData,
+            socketId, // Update socketId in case it changed (reconnection)
           })
-          playerLastUpdateRef.current.set(socketId, now)
-        } else {
-          // Player not in map yet - create entry with hero data
-          // Position will be set when it arrives
-          updated.set(socketId, {
+          playerLastUpdateRef.current.set(playerIdKey, now)
+        } else if (incomingPlayerId) {
+          // Player not found but we have playerId - create minimal entry
+          // This handles case where hero change arrives before join event
+          updated.set(incomingPlayerId, {
             socketId,
+            playerId: incomingPlayerId,
             ...heroData,
             position: heroData.position || [0, 0, 0],
             rotation: heroData.rotation || [0, 0, 0],
           })
-          playerLastUpdateRef.current.set(socketId, now)
+          playerLastUpdateRef.current.set(incomingPlayerId, now)
+          console.log(`[OtherPlayers] Created minimal entry for player ${incomingPlayerId} from hero update`)
         }
+        // If no playerId available, ignore the update (can't create stable entry)
+        
         return updated
       })
     }
     
     // Handle player leaving
-    const handlePlayerLeft = ({ socketId }) => {
+    const handlePlayerLeft = ({ socketId, playerId: incomingPlayerId }) => {
       setOtherPlayers(prev => {
         const updated = new Map(prev)
-        updated.delete(socketId)
-        playerLastUpdateRef.current.delete(socketId)
+        
+        // Find and remove player by playerId (preferred) or socketId (fallback)
+        if (incomingPlayerId) {
+          updated.delete(incomingPlayerId)
+          playerLastUpdateRef.current.delete(incomingPlayerId)
+        } else {
+          // Fallback: find player by socketId and remove
+          for (const [pid, p] of updated.entries()) {
+            if (p.socketId === socketId) {
+              updated.delete(pid)
+              playerLastUpdateRef.current.delete(pid)
+              break
+            }
+          }
+        }
+        
         return updated
       })
     }
@@ -305,13 +380,13 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
         const updated = new Map(prev)
         let hasChanges = false
         
-        // Remove stale players
-        for (const [socketId, lastUpdate] of playerLastUpdateRef.current.entries()) {
+        // Remove stale players (by playerId)
+        for (const [playerId, lastUpdate] of playerLastUpdateRef.current.entries()) {
           if (now - lastUpdate > STALE_THRESHOLD) {
-            updated.delete(socketId)
-            playerLastUpdateRef.current.delete(socketId)
+            updated.delete(playerId)
+            playerLastUpdateRef.current.delete(playerId)
             hasChanges = true
-            console.log(`Removed stale player: ${socketId}`)
+            console.log(`Removed stale player: ${playerId}`)
           }
         }
         
@@ -330,15 +405,24 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
     }
   }, [socket])
   
-  // Ensure unique players by socketId (defensive check)
-  const uniquePlayers = Array.from(otherPlayers.values()).filter((player, index, self) => 
-    player.socketId && index === self.findIndex(p => p.socketId === player.socketId)
+  // Convert Map to array (already unique by playerId since Map uses playerId as key)
+  // Still filter to ensure player has required data
+  const players = Array.from(otherPlayers.values()).filter((player) => 
+    player.playerId && player.socketId
   )
+  
+  // Log player count changes (throttled)
+  useEffect(() => {
+    console.log(`[OtherPlayers] Rendering ${players.length} other players`)
+    players.forEach(p => {
+      console.log(`  - Player ${p.playerId} (${p.name}): model=${p.heroModel || 'none'}, pos=${JSON.stringify(p.position)}`)
+    })
+  }, [players.length])
   
   return (
     <>
-      {uniquePlayers.map(player => (
-        <OtherPlayer key={player.socketId} otherPlayer={player} />
+      {players.map(player => (
+        <OtherPlayer key={player.playerId} otherPlayer={player} />
       ))}
     </>
   )

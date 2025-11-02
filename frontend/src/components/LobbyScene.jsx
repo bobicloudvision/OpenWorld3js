@@ -153,7 +153,7 @@ export default function LobbyScene({
               />
             </Ecctrl>
             
-            {/* Render other players */}
+            {/* Render other players */} 
             <OtherPlayers socket={socket} currentPlayerId={player?.id} /> 
             
             {/* <Shapes />

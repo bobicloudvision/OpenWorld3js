@@ -142,16 +142,24 @@ export function registerZoneHandlers(socket, io) {
         })
         .filter(p => p.socketId !== null); // Only include players with active connections
       
-      // Notify others in new zone
+      // Get hero data from multiplayer service (has current active hero info)
+      const playerInSession = getPlayerInGameSession(socket.id);
+      
+      // Send list of existing players in zone to the joining player
+      // This is critical for refresh/reconnection - player needs to see who's already here
+      socket.emit('players:joined', playersInZone);
+      console.log(`[zone] Sent ${playersInZone.length} existing players to joining player ${playerId}`);
+      
+      // Notify others in new zone that this player joined
       socket.to(`zone-${zoneId}`).emit('player:joined', {
         socketId: socket.id,
         playerId: player.id,
         name: player.name,
         position: spawnPosition,
         rotation: [0, 0, 0],
-        heroModel: player.heroModel || null,
-        heroModelScale: player.heroModelScale || null,
-        heroModelRotation: player.heroModelRotation || null
+        heroModel: playerInSession?.heroModel || null,
+        heroModelScale: playerInSession?.heroModelScale || 1,
+        heroModelRotation: playerInSession?.heroModelRotation || [0, 0, 0]
       });
       
       console.log(`[zone] Player ${playerId} joined zone ${zoneId} (${zone.name})`);
@@ -269,16 +277,39 @@ export function registerZoneHandlers(socket, io) {
       // Get portals for destination zone
       const destinationPortals = await zoneService.getZonePortals(portal.to_zone_id);
       
-      // Notify players in new zone
+      // Get other players in destination zone
+      const destinationPlayers = zoneService.getPlayersInZone(portal.to_zone_id)
+        .filter(p => p.playerId !== playerId)
+        .map(p => {
+          const playerSocketId = getSocketIdByPlayerId(p.playerId);
+          const playerData = playerSocketId ? getPlayerInGameSession(playerSocketId) : null;
+          return playerData || {
+            socketId: null,
+            playerId: p.playerId,
+            position: p.position,
+            rotation: [0, 0, 0],
+            name: `Player ${p.playerId}`,
+          };
+        })
+        .filter(p => p.socketId !== null);
+      
+      // Get hero data from multiplayer service (has current active hero info)
+      const playerInSession = getPlayerInGameSession(socket.id);
+      
+      // Send list of existing players in destination zone to the traveling player
+      socket.emit('players:joined', destinationPlayers);
+      console.log(`[zone] Sent ${destinationPlayers.length} existing players to player ${playerId} arriving via portal`);
+      
+      // Notify players in new zone that this player arrived
       socket.to(`zone-${portal.to_zone_id}`).emit('player:joined', {
         socketId: socket.id,
         playerId: player.id,
         name: player.name,
         position: result.position,
         rotation: [0, 0, 0],
-        heroModel: player.heroModel || null,
-        heroModelScale: player.heroModelScale || null,
-        heroModelRotation: player.heroModelRotation || null
+        heroModel: playerInSession?.heroModel || null,
+        heroModelScale: playerInSession?.heroModelScale || 1,
+        heroModelRotation: playerInSession?.heroModelRotation || [0, 0, 0]
       });
       
       console.log(`[zone] Player ${playerId} used portal ${portalId} to zone ${portal.to_zone_id}`);
