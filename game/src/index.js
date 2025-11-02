@@ -4,6 +4,7 @@ export { Time } from './core/Time.js';
 
 // Scenes
 export { Scene } from './scenes/Scene.js';
+export { GameScene } from './scenes/GameScene.js';
 export { SceneManager } from './scenes/SceneManager.js';
 export { LoadingScene } from './scenes/LoadingScene.js';
 
@@ -11,6 +12,11 @@ export { LoadingScene } from './scenes/LoadingScene.js';
 export { Entity } from './entities/Entity.js';
 export { Actor } from './entities/Actor.js';
 export { Component } from './entities/Component.js';
+
+// GameObject System (Unity-like)
+export { GameObject } from './entities/GameObject.js';
+export { GameObjectFactory } from './entities/GameObjectFactory.js';
+export { Prefab, PrefabManager, prefab, createPrefabFromInstance } from './entities/Prefab.js';
 
 // Network
 export { NetworkManager } from './network/NetworkManager.js';

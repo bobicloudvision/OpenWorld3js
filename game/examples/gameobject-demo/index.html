@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GameObject Architecture Demo</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #1a1a2e;
+    }
+
+    #game-canvas {
+      display: block;
+    }
+
+    #ui {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      max-width: 350px;
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin: 0 0 15px 0;
+      font-size: 20px;
+      color: #00d9ff;
+    }
+
+    .section {
+      margin: 10px 0;
+      padding: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 5px;
+    }
+
+    .section h2 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #ff6b6b;
+    }
+
+    .info {
+      line-height: 1.8;
+    }
+
+    .key {
+      display: inline-block;
+      background: #00d9ff;
+      color: black;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: bold;
+      margin-right: 5px;
+    }
+
+    button {
+      background: #00d9ff;
+      color: black;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 5px 5px 5px 0;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: #00b8d4;
+      transform: scale(1.05);
+    }
+
+    #stats {
+      margin-top: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  
+  <div id="ui">
+    <h1>🎮 GameObject Demo</h1>
+    
+    <div class="section">
+      <h2>Unity-Like Architecture</h2>
+      <div class="info">
+        This demo showcases:<br>
+        • GameObject system<br>
+        • Component lifecycle<br>
+        • Prefab instantiation<br>
+        • Scene queries<br>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Controls</h2>
+      <div class="info">
+        <span class="key">WASD</span> Move Player<br>
+        <span class="key">SPACE</span> Jump<br>
+        <span class="key">E</span> Spawn Enemy<br>
+        <span class="key">C</span> Spawn Collectible<br>
+        <span class="key">Q</span> Attack Nearest<br>
+      </div>
+    </div>
+
+    <div class="section">
+      <button id="spawnEnemy">Spawn Enemy</button>
+      <button id="spawnCollectible">Spawn Item</button>
+      <button id="clearAll">Clear All</button>
+    </div>
+
+    <div id="stats">
+      <div>Enemies: <span id="enemyCount">0</span></div>
+      <div>Collectibles: <span id="collectibleCount">0</span></div>
+      <div>Player Health: <span id="playerHealth">100</span></div>
+      <div>Score: <span id="score">0</span></div>
+    </div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
+
