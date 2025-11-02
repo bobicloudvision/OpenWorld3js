@@ -574,28 +574,39 @@ const player = this.entity.scene.findWithTag('player');
 const playerHealth = player.getComponent(HealthComponent);
 ```
 
-### Real-World Example: Endless Runner
+### Real-World Example: Ball Game
 
-See `examples/endless-runner/` for a complete modular game:
+See `examples/ball-game/` for a complete modular game:
 
 ```
-endless-runner/
+ball-game/
 ├── components/
-│   ├── PlayerController.js       (85 lines)
-│   ├── CameraFollowComponent.js  (42 lines)
-│   ├── CollisionDetector.js      (44 lines)
-│   └── RotateComponent.js        (17 lines)
+│   ├── BallController.js           (182 lines) - With collision detection
+│   ├── CameraFollowComponent.js    (48 lines)
+│   ├── CollectibleComponent.js     (83 lines)
+│   ├── PushableComponent.js        (84 lines)
+│   └── RotateComponent.js          (35 lines)
 ├── systems/
-│   ├── GameManager.js            (70 lines)
-│   └── TrackGenerator.js         (157 lines)
+│   ├── GameManager.js              (149 lines)
+│   └── PlatformManager.js          (130 lines)
 ├── scenes/
-│   └── EndlessRunnerScene.js     (50 lines)
-└── main.js                       (35 lines)
+│   └── RollingBallScene.js         (109 lines)
+├── main.js                         (39 lines) - Custom physics
+├── main-with-physics.js            (323 lines) - Real physics
+├── index.html                      (272 lines)
+└── index-physics.html              (226 lines) - With debug toggle
 ```
+
+**Features demonstrated:**
+- ✅ Custom collision detection (main.js)
+- ✅ Real physics engine (main-with-physics.js)
+- ✅ Physics debug visualization (Press P)
+- ✅ Pushable objects with mass
+- ✅ Component-based architecture
 
 **Compare to monolithic:**
-- ❌ Single file: 473 lines - hard to maintain
-- ✅ Modular: 8 files averaging 62 lines each - easy to understand
+- ❌ Single file: 820+ lines - hard to maintain
+- ✅ Modular: 11 files - easy to understand and modify
 
 ### Prefab Organization
 
@@ -724,7 +735,14 @@ registerEnemyPrefabs();
 
 **You can now use physics safely:**
 ```javascript
-const engine = new GameEngine({ physics: true }); // ✅ Works now!
+const engine = new GameEngine({ 
+  physics: true,  // ✅ Works now!
+  physicsConfig: {
+    gravity: -9.82,
+    iterations: 10,
+    debug: false  // Enable debug visualization
+  }
+});
 
 // ⚠️ IMPORTANT: Add to scene BEFORE enabling physics
 const player = GameObjectFactory.createSphere({ radius: 1 });
@@ -742,6 +760,57 @@ const player = GameObjectFactory.createSphere({ radius: 1 });
 player.enablePhysics({ shape: 'sphere' }); // ❌ Physics manager not available yet!
 this.addEntity(player);
 ```
+
+### 🔍 Physics Debug Visualization
+
+**See collision shapes in real-time!**
+
+```javascript
+// Toggle debug visualization with key press
+if (input.isKeyPressed('KeyP')) {
+  engine.physicsManager.toggleDebug();
+}
+
+// Or enable via API
+engine.physicsManager.enableDebug();   // Show wireframes
+engine.physicsManager.disableDebug();  // Hide wireframes
+```
+
+**What you see:**
+- 🟢 **Green wireframes** = Static bodies (mass = 0) - walls, ground
+- 🟣 **Magenta wireframes** = Dynamic bodies (mass > 0) - player, objects
+- Wireframes update in real-time with physics simulation
+
+**Use debug when:**
+- ✅ Debugging collision issues
+- ✅ Tuning collision shapes
+- ✅ Verifying body positions
+- ✅ Understanding physics behavior
+
+**Example:**
+```javascript
+class MyGame extends GameScene {
+  async load() {
+    // Create physics objects
+    const player = GameObjectFactory.createSphere({ radius: 1 });
+    this.addEntity(player);
+    player.enablePhysics({ shape: 'sphere', mass: 1 });
+    
+    await super.load();
+  }
+  
+  update(deltaTime) {
+    super.update(deltaTime);
+    
+    // Press D to toggle debug
+    if (this.engine.inputManager.isKeyPressed('KeyD')) {
+      this.engine.physicsManager.toggleDebug();
+    }
+  }
+}
+```
+
+See `PHYSICS_DEBUG.md` for complete documentation.
 
 ### ⚠️ ThirdPersonCamera - DISABLED
 **Issue**: Mouse handling causes NaN camera positions
@@ -880,7 +949,16 @@ console.log('Game Started!');
 - **Prefabs**: `src/entities/Prefab.js`
 - **GameScene**: `src/scenes/GameScene.js`
 - **Input**: `src/input/InputManager.js`
-- **Examples**: `examples/gameobject-demo/`
+- **Physics**: `src/physics/PhysicsManager.js`
+- **Examples**: `examples/gameobject-demo/`, `examples/ball-game/`
+
+## Documentation Files
+
+- **AI_ASSISTANT_GUIDE.md** - This file (main guide)
+- **PHYSICS_FIX.md** - NaN bug fix details
+- **PHYSICS_DEBUG.md** - Debug visualization guide
+- **GETTING_STARTED.md** - Quick start tutorial
+- **ARCHITECTURE.md** - System architecture
 
 ---
 
