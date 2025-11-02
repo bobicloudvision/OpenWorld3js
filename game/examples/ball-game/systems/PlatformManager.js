@@ -1,6 +1,7 @@
 import { Component, GameObjectFactory, MeshBuilder, Color } from '../../../src/index.js';
 import { CollectibleComponent } from '../components/CollectibleComponent.js';
 import { RotateComponent } from '../components/RotateComponent.js';
+import { PushableComponent } from '../components/PushableComponent.js';
 
 /**
  * PlatformManager - Spawns obstacles and collectibles
@@ -31,6 +32,19 @@ export class PlatformManager extends Component {
       const types = ['cube', 'cylinder', 'cone'];
       const type = types[Math.floor(Math.random() * types.length)];
 
+      // Random mass (affects how easy to push)
+      const mass = 0.5 + Math.random() * 2.5; // 0.5 to 3.0
+      
+      // Color based on mass (lighter color = easier to push)
+      let color;
+      if (mass < 1.5) {
+        color = 0x88cc88; // Light green = easy to push
+      } else if (mass < 2.5) {
+        color = 0xccaa66; // Orange = medium
+      } else {
+        color = 0xcc6666; // Red = heavy
+      }
+
       let obstacle;
       if (type === 'cube') {
         obstacle = GameObjectFactory.createCube({
@@ -38,7 +52,7 @@ export class PlatformManager extends Component {
           width: 2 + Math.random() * 2,
           height: 2 + Math.random() * 3,
           depth: 2 + Math.random() * 2,
-          color: 0x666666
+          color: color
         });
       } else if (type === 'cylinder') {
         obstacle = GameObjectFactory.createCylinder({
@@ -46,7 +60,7 @@ export class PlatformManager extends Component {
           radiusTop: 1 + Math.random(),
           radiusBottom: 1 + Math.random(),
           height: 2 + Math.random() * 3,
-          color: 0x888888
+          color: color
         });
       } else {
         // Cone
@@ -55,12 +69,20 @@ export class PlatformManager extends Component {
           radiusTop: 0,
           radiusBottom: 1 + Math.random(),
           height: 2 + Math.random() * 3,
-          color: 0x999999
+          color: color
         });
       }
 
       obstacle.setPosition(x, obstacle.mesh.geometry.parameters.height / 2 || 1, z);
       obstacle.addTag('obstacle');
+      
+      // Add pushable component
+      obstacle.addComponent(PushableComponent, {
+        mass: mass,
+        friction: 0.9,
+        isPushable: true
+      });
+      
       scene.addEntity(obstacle);
     }
   }

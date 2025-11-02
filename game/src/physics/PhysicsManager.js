@@ -179,21 +179,48 @@ export class PhysicsManager extends EventEmitter {
       return null;
     }
 
-    // Create body based on options
-    let body;
-    const type = bodyOptions.type || 'box';
-
+    // ✅ FIX: Validate entity position before creating physics body
     const position = {
       x: entity.position.x,
       y: entity.position.y,
       z: entity.position.z
     };
 
+    // Check for NaN in initial position
+    if (isNaN(position.x) || isNaN(position.y) || isNaN(position.z)) {
+      console.error('❌ Cannot create physics body: Entity has NaN position', entity.name);
+      console.error('Position:', position);
+      console.error('Defaulting to origin (0, 0, 0)');
+      position.x = 0;
+      position.y = 0;
+      position.z = 0;
+    }
+
     const rotation = {
       x: entity.rotation.x,
       y: entity.rotation.y,
       z: entity.rotation.z
     };
+
+    // Check for NaN in initial rotation
+    if (isNaN(rotation.x) || isNaN(rotation.y) || isNaN(rotation.z)) {
+      console.error('❌ Cannot create physics body: Entity has NaN rotation', entity.name);
+      console.error('Rotation:', rotation);
+      console.error('Defaulting to zero rotation');
+      rotation.x = 0;
+      rotation.y = 0;
+      rotation.z = 0;
+    }
+
+    // Validate body options
+    if (bodyOptions.mass && (isNaN(bodyOptions.mass) || bodyOptions.mass < 0)) {
+      console.error('❌ Invalid mass:', bodyOptions.mass, '- using default: 1');
+      bodyOptions.mass = 1;
+    }
+
+    // Create body based on options
+    let body;
+    const type = bodyOptions.type || 'box';
 
     switch (type) {
       case 'box':
@@ -244,11 +271,23 @@ export class PhysicsManager extends EventEmitter {
   update(deltaTime) {
     if (!this.isEnabled) return;
 
+    // ✅ FIX: Validate deltaTime to prevent NaN
+    if (isNaN(deltaTime) || deltaTime <= 0 || deltaTime > 1) {
+      // Skip warning on first frame (deltaTime is often 0)
+      if (deltaTime !== 0) {
+        console.warn('⚠️ Invalid deltaTime for physics:', deltaTime, '- using 1/60');
+      }
+      deltaTime = 1 / 60;
+    }
+
     // Step the physics world
     const fixedTimeStep = 1 / 60;
     const maxSubSteps = 3;
     
     this.world.step(fixedTimeStep, deltaTime, maxSubSteps);
+
+    // ✅ FIX: Validate physics bodies after step
+    this.validateBodies();
 
     // Sync entity positions with physics bodies
     this.syncEntities();
@@ -264,6 +303,65 @@ export class PhysicsManager extends EventEmitter {
       // Find entity (you'd need to get this from scene)
       // For now, we'll let the entity handle sync in its update
       this.emit('bodyUpdated', { entityId, body });
+    }
+  }
+
+  /**
+   * Validate all physics bodies for NaN values
+   * ✅ FIX: Prevents NaN from propagating to visual representation
+   */
+  validateBodies() {
+    for (const body of this.bodies.values()) {
+      // Check position
+      if (isNaN(body.position.x) || isNaN(body.position.y) || isNaN(body.position.z)) {
+        console.error('❌ NaN detected in physics body position:', body.id);
+        console.error('Resetting to origin');
+        body.position.set(0, 0, 0);
+        body.velocity.set(0, 0, 0);
+        body.angularVelocity.set(0, 0, 0);
+      }
+
+      // Check velocity
+      if (isNaN(body.velocity.x) || isNaN(body.velocity.y) || isNaN(body.velocity.z)) {
+        console.error('❌ NaN detected in physics body velocity:', body.id);
+        body.velocity.set(0, 0, 0);
+      }
+
+      // Check quaternion
+      const q = body.quaternion;
+      if (isNaN(q.x) || isNaN(q.y) || isNaN(q.z) || isNaN(q.w)) {
+        console.error('❌ NaN detected in physics body quaternion:', body.id);
+        body.quaternion.set(0, 0, 0, 1); // Identity quaternion
+      }
+
+      // Check for extreme values (often precursor to NaN)
+      const positionMag = Math.sqrt(
+        body.position.x ** 2 + 
+        body.position.y ** 2 + 
+        body.position.z ** 2
+      );
+      
+      if (positionMag > 10000) {
+        console.warn('⚠️ Physics body extremely far from origin:', body.id, 'magnitude:', positionMag);
+        console.warn('Resetting to prevent NaN');
+        body.position.set(0, 0, 0);
+        body.velocity.set(0, 0, 0);
+      }
+
+      const velocityMag = Math.sqrt(
+        body.velocity.x ** 2 + 
+        body.velocity.y ** 2 + 
+        body.velocity.z ** 2
+      );
+      
+      if (velocityMag > 1000) {
+        console.warn('⚠️ Physics body velocity extremely high:', body.id, 'magnitude:', velocityMag);
+        console.warn('Clamping to prevent NaN');
+        const scale = 1000 / velocityMag;
+        body.velocity.x *= scale;
+        body.velocity.y *= scale;
+        body.velocity.z *= scale;
+      }
     }
   }
 

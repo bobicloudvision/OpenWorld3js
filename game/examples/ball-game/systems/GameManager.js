@@ -10,6 +10,7 @@ export class GameManager extends Component {
     this.collectedCount = 0;
     this.totalCollectibles = 0;
     this.gameTime = 0;
+    this.collisionCount = 0;
   }
 
   start() {
@@ -27,13 +28,16 @@ export class GameManager extends Component {
       }
     });
 
-    // Listen for ball reset events
+    // Listen for ball events
     const player = this.entity.scene.findWithTag('player');
     if (player) {
       const ballController = player.getComponent('BallController');
       if (ballController) {
         ballController.on('reset', () => {
           this.onBallReset();
+        });
+        ballController.on('collision', () => {
+          this.onBallCollision();
         });
       }
     }
@@ -67,6 +71,11 @@ export class GameManager extends Component {
   onBallReset() {
     console.log('🔄 Ball reset - Out of bounds!');
     this.showMessage('🔄 Out of bounds!', 1000);
+  }
+
+  onBallCollision() {
+    this.collisionCount++;
+    // Visual feedback could be added here (screen shake, etc.)
   }
 
   onLevelComplete() {
@@ -113,6 +122,12 @@ export class GameManager extends Component {
     const collectedEl = document.getElementById('collected');
     if (collectedEl) {
       collectedEl.textContent = `${this.collectedCount}/${this.totalCollectibles}`;
+    }
+
+    // Update collisions
+    const collisionsEl = document.getElementById('collisions');
+    if (collisionsEl) {
+      collisionsEl.textContent = this.collisionCount;
     }
 
     // Update FPS

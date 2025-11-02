@@ -702,8 +702,7 @@ registerEnemyPrefabs();
 1. **Don't create monolithic single-file games** - Split into components/systems/scenes
 2. **Don't use Actor/Entity directly** - Use GameObject instead
 3. **Don't use Scene directly** - Use GameScene instead
-4. **Don't enable physics** - It's currently broken (causes NaN positions)
-5. **Don't use ThirdPersonCamera.update()** - It's broken (causes NaN camera positions)
+4. **Don't use ThirdPersonCamera.update()** - It's broken (causes NaN camera positions)
 6. **Don't create GameObjects without adding to scene**
    ```javascript
    const obj = GameObjectFactory.createCube();
@@ -715,11 +714,33 @@ registerEnemyPrefabs();
 
 ## Current Known Issues
 
-### ⚠️ Physics System - DISABLED
-**Issue**: Causes NaN positions
-**Workaround**: Set `physics: false` in GameEngine config
+### ✅ Physics System - FIXED!
+**Status**: NaN validation added - physics now works reliably!
+**What was fixed**: 
+- Added NaN validation in `Actor.syncPhysicsToVisual()`
+- Added physics body validation in `PhysicsManager.update()`
+- Added validation when creating physics bodies
+- Added extreme value detection to prevent NaN
+
+**You can now use physics safely:**
 ```javascript
-const engine = new GameEngine({ physics: false });
+const engine = new GameEngine({ physics: true }); // ✅ Works now!
+
+// ⚠️ IMPORTANT: Add to scene BEFORE enabling physics
+const player = GameObjectFactory.createSphere({ radius: 1 });
+this.addEntity(player);  // ✅ Add first
+player.enablePhysics({   // ✅ Then enable physics
+  shape: 'sphere',
+  mass: 1
+});
+```
+
+**Common mistake:**
+```javascript
+// ❌ DON'T do this
+const player = GameObjectFactory.createSphere({ radius: 1 });
+player.enablePhysics({ shape: 'sphere' }); // ❌ Physics manager not available yet!
+this.addEntity(player);
 ```
 
 ### ⚠️ ThirdPersonCamera - DISABLED

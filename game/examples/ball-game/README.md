@@ -20,6 +20,7 @@ This game demonstrates proper modular organization:
 - **CameraFollowComponent.js** - Smooth camera following system
 - **CollectibleComponent.js** - Makes objects collectible with points
 - **RotateComponent.js** - Rotates and bobs objects
+- **PushableComponent.js** - Makes objects pushable with mass-based physics
 
 ### Systems (`systems/`)
 - **GameManager.js** - Manages score, game state, and UI updates
@@ -38,7 +39,8 @@ This game demonstrates proper modular organization:
 - ✅ Collectible items with visual feedback
 - ✅ Score tracking and UI updates
 - ✅ Boundary walls prevent falling off
-- ✅ Obstacles to navigate around
+- ✅ **Pushable obstacles** with different masses
+- ✅ Color-coded difficulty (green=easy, orange=medium, red=heavy)
 - ✅ Win condition when all items collected
 - ✅ Modern, clean UI
 

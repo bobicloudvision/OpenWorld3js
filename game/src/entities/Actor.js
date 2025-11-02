@@ -264,6 +264,39 @@ export class Actor extends Entity {
    */
   syncPhysicsToVisual() {
     if (this.physicsBody && this.mesh) {
+      // ✅ FIX: Validate physics body position for NaN
+      const bodyPos = this.physicsBody.position;
+      const bodyQuat = this.physicsBody.quaternion;
+      
+      // Check for NaN in position
+      if (isNaN(bodyPos.x) || isNaN(bodyPos.y) || isNaN(bodyPos.z)) {
+        console.error('❌ Physics NaN detected in position:', bodyPos);
+        console.error('Actor:', this.name, 'ID:', this.id);
+        
+        // Reset to last known good position or origin
+        this.physicsBody.position.set(
+          this.position.x || 0,
+          this.position.y || 0,
+          this.position.z || 0
+        );
+        this.physicsBody.velocity.set(0, 0, 0);
+        this.physicsBody.angularVelocity.set(0, 0, 0);
+        
+        return this;
+      }
+      
+      // Check for NaN in quaternion
+      if (isNaN(bodyQuat.x) || isNaN(bodyQuat.y) || isNaN(bodyQuat.z) || isNaN(bodyQuat.w)) {
+        console.error('❌ Physics NaN detected in quaternion:', bodyQuat);
+        console.error('Actor:', this.name, 'ID:', this.id);
+        
+        // Reset quaternion to identity
+        this.physicsBody.quaternion.set(0, 0, 0, 1);
+        
+        return this;
+      }
+      
+      // All values valid, safe to copy
       this.mesh.position.copy(this.physicsBody.position);
       this.mesh.quaternion.copy(this.physicsBody.quaternion);
       this.position.copy(this.physicsBody.position);
