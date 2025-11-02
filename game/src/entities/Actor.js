@@ -32,6 +32,10 @@ export class Actor extends Entity {
 
     // Movement state
     this.isMoving = false;
+
+    // Physics state
+    this.physicsEnabled = false;
+    this.scene = null;  // Will be set when added to scene
   }
 
   /**
@@ -158,6 +162,132 @@ export class Actor extends Entity {
   }
 
   /**
+   * Enable physics for this actor
+   * @param {object} options - Physics options
+   */
+  enablePhysics(options = {}) {
+    // Get physics manager from scene
+    const scene = this.scene || this._findScene();
+    if (!scene || !scene.engine || !scene.engine.physicsManager) {
+      console.warn('PhysicsManager not available');
+      return this;
+    }
+
+    const physics = scene.engine.physicsManager;
+    
+    // Default options
+    const {
+      shape = 'box',
+      mass = 5,
+      width = 1,
+      height = 2,
+      depth = 1,
+      radius = 1,
+      restitution = 0.3,
+      friction = 0.5,
+      fixedRotation = true,
+      linearDamping = 0.1,
+      angularDamping = 0.1
+    } = options;
+
+    // Create physics body based on shape
+    let bodyOptions = { mass, position: this.position };
+
+    if (shape === 'sphere') {
+      bodyOptions.type = 'sphere';
+      bodyOptions.radius = radius;
+    } else if (shape === 'cylinder') {
+      bodyOptions.type = 'cylinder';
+      bodyOptions.radiusTop = radius;
+      bodyOptions.radiusBottom = radius;
+      bodyOptions.height = height;
+    } else {
+      bodyOptions.type = 'box';
+      bodyOptions.width = width;
+      bodyOptions.height = height;
+      bodyOptions.depth = depth;
+    }
+
+    // Add physics body
+    const body = physics.addToEntity(this, bodyOptions);
+
+    // Apply properties
+    if (fixedRotation && shape !== 'sphere') {
+      body.fixedRotation = true;
+      body.updateMassProperties();
+    }
+    
+    body.linearDamping = linearDamping;
+    body.angularDamping = angularDamping;
+
+    // Create material if specified
+    if (restitution || friction) {
+      const material = physics.createMaterial({ friction, restitution });
+      body.material = material;
+    }
+
+    this.physicsEnabled = true;
+    this.emit('physicsEnabled', { body });
+
+    return this;
+  }
+
+  /**
+   * Disable physics for this actor
+   */
+  disablePhysics() {
+    if (!this.physicsBody) return this;
+
+    const scene = this.scene || this._findScene();
+    if (scene && scene.engine && scene.engine.physicsManager) {
+      scene.engine.physicsManager.removeFromEntity(this);
+    }
+
+    this.physicsEnabled = false;
+    this.emit('physicsDisabled');
+
+    return this;
+  }
+
+  /**
+   * Update physics body position from actor position
+   */
+  syncPhysicsToVisual() {
+    if (this.physicsBody && this.mesh) {
+      this.mesh.position.copy(this.physicsBody.position);
+      this.mesh.quaternion.copy(this.physicsBody.quaternion);
+      this.position.copy(this.physicsBody.position);
+    }
+    return this;
+  }
+
+  /**
+   * Update actor position from visual position
+   */
+  syncVisualToPhysics() {
+    if (this.physicsBody) {
+      this.physicsBody.position.copy(this.position);
+      if (this.mesh) {
+        this.physicsBody.quaternion.copy(this.mesh.quaternion);
+      }
+    }
+    return this;
+  }
+
+  /**
+   * Helper to find scene (walk up the tree)
+   */
+  _findScene() {
+    // Try to find scene in parent chain
+    let current = this.parent;
+    while (current) {
+      if (current.isScene) return current;
+      current = current.parent;
+    }
+    return null;
+  }
+
+  /**
    * Serialize actor for networking
    */
   serialize() {
@@ -167,7 +297,8 @@ export class Actor extends Entity {
       speed: this.speed,
       isMoving: this.isMoving,
       isGrounded: this.isGrounded,
-      currentAnimation: this.currentAnimation
+      currentAnimation: this.currentAnimation,
+      physicsEnabled: this.physicsEnabled || false
     };
   }
 

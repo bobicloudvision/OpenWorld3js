@@ -91,6 +91,9 @@ export class Scene extends EventEmitter {
 
     this.entities.set(entity.id, entity);
 
+    // Set scene reference (for physics and other features)
+    entity.scene = this;
+
     // Add to Three.js scene if it has a mesh
     if (entity.mesh) {
       this.threeScene.add(entity.mesh);

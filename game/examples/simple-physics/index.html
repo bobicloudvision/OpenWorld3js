@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Simple Physics - One-Line API</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui; overflow: hidden; background: #1a1a1a; }
+    #game-canvas { display: block; width: 100vw; height: 100vh; }
+    
+    .ui {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      font-size: 14px;
+    }
+    
+    .ui h2 {
+      color: #00ff88;
+      margin-bottom: 10px;
+    }
+    
+    .code {
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+      margin: 10px 0;
+    }
+    
+    .badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #00ff88 0%, #00aaff 100%);
+      color: white;
+      padding: 15px 25px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  
+  <div class="badge">⚡ ONE-LINE PHYSICS</div>
+  
+  <div class="ui">
+    <h2>⚡ Super Simple Physics API</h2>
+    <div class="code">actor.enablePhysics();</div>
+    <p style="margin: 10px 0;">
+      <strong>T</strong> - Toggle physics<br>
+      <strong>WASD</strong> - Move<br>
+      <strong>Space</strong> - Jump<br>
+      <strong>E</strong> - Spawn box
+    </p>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
+

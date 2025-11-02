@@ -1,133 +1,62 @@
 /**
- * ⚽ Simple Ball Game
+ * ⚽ Simple Ball Game - Using Simplified API
  * Roll a ball and collect goals!
  */
 import { 
   GameEngine, 
-  Scene, 
-  Actor, 
-  ThirdPersonCamera,
+  PhysicsScene,  // ← Using PhysicsScene instead of Scene!
   MeshBuilder,
   Color
 } from '../../src/index.js';
 
-class BallGameScene extends Scene {
+class BallGameScene extends PhysicsScene {  // ← Simplified!
   constructor(engine) {
     super(engine);
     this.name = 'BallGameScene';
     this.backgroundColor = Color.SKY_BLUE;
 
     this.ball = null;
-    this.cameraController = null;
+    this.camera = null;
     this.score = 0;
     this.goals = [];
     this.pushForce = 15;
   }
 
-  async initialize() {
-    await super.initialize();
-
-    // Setup lighting
-    this.ambientLight.intensity = 0.6;
-    this.directionalLight.intensity = 0.8;
-    this.directionalLight.position.set(10, 20, 10);
-
-    // Add fog
-    this.setFog(Color.SKY_BLUE, 50, 200);
-  }
-
   async load() {
-    const physics = this.engine.physicsManager;
+    // ⚡ ONE LINE - Ground with physics + grid!
+    this.addGround({ size: 100, showGrid: true });
 
-    if (!physics) {
-      console.error('Physics not enabled!');
-      return;
-    }
+    // ⚡ SIMPLIFIED - Ball with sphere physics!
+    this.ball = this.addPlayer({
+      position: { x: 0, y: 1, z: 0 },
+      shape: 'sphere',
+      color: 0xff4444,
+      size: { width: 1 },  // radius
+      mass: 1,
+      speed: 0
+    });
 
-    // Create ground
-    this.createGround(physics);
+    // Custom damping for rolling ball
+    this.ball.physicsBody.linearDamping = 0.3;
+    this.ball.physicsBody.angularDamping = 0.1;
 
-    // Create ball
-    this.createBall(physics);
+    // ⚡ ONE LINE - Walls around arena!
+    this.addWalls({ size: 50, height: 3 });
 
-    // Create goals
-    this.createGoals(physics);
+    // Create goals (game-specific, keep custom)
+    this.createGoals();
 
-    // Create walls
-    this.createWalls(physics);
+    // ⚡ ONE LINE - Camera setup!
+    this.camera = this.setupCamera(this.ball, { distance: 15, height: 8 });
 
-    // Setup camera
-    this.setupCamera();
-
-    // Setup input
+    // ⚡ ONE LINE - Input setup!
     this.setupInput();
 
     await super.load();
   }
 
-  createGround(physics) {
-    // Visual mesh
-    const ground = MeshBuilder.createPlane({
-      width: 100,
-      height: 100,
-      color: Color.GRASS,
-      receiveShadow: true
-    });
-    ground.rotation.x = -Math.PI / 2;
-    this.add(ground);
-
-    // Add grid pattern
-    const gridHelper = MeshBuilder.createGrid({
-      size: 100,
-      divisions: 50,
-      color: 0x444444
-    });
-    gridHelper.position.y = 0.01;
-    this.add(gridHelper);
-
-    // Physics ground
-    physics.createPlane({
-      mass: 0,
-      position: { x: 0, y: 0, z: 0 },
-      rotation: { x: -Math.PI / 2, y: 0, z: 0 }
-    });
-  }
-
-  createBall(physics) {
-    // Visual mesh - beautiful sphere
-    const mesh = MeshBuilder.createSphere({
-      radius: 1,
-      widthSegments: 32,
-      heightSegments: 32,
-      color: 0xff4444,
-      castShadow: true
-    });
-
-    // Create ball as Actor
-    this.ball = new Actor({
-      name: 'Ball',
-      speed: 0
-    });
-
-    this.ball.mesh = mesh;
-    this.ball.setPosition(0, 1, 0);
-
-    // Add physics - sphere
-    const ballBody = physics.addToEntity(this.ball, {
-      type: 'sphere',
-      radius: 1,
-      mass: 1
-    });
-
-    // Ball physics properties
-    ballBody.linearDamping = 0.3;  // Rolling friction
-    ballBody.angularDamping = 0.1; // Spin friction
-
-    this.addEntity(this.ball);
-  }
-
-  createGoals(physics) {
-    // Create 5 goals around the arena
+  createGoals() {
+    // Create 5 goals around the arena using helper!
     const positions = [
       { x: 20, z: 0 },
       { x: -20, z: 0 },
@@ -136,111 +65,28 @@ class BallGameScene extends Scene {
       { x: 15, z: 15 }
     ];
 
-    positions.forEach((pos, index) => {
-      // Visual - glowing cylinder
-      const mesh = MeshBuilder.createCylinder({
-        radiusTop: 2,
-        radiusBottom: 2,
-        height: 5,
-        radialSegments: 16,
+    positions.forEach(pos => {
+      // ⚡ Use addCollectible helper!
+      const goal = this.addCollectible({
+        position: { x: pos.x, y: 2.5, z: pos.z },
+        shape: 'cylinder',
         color: 0xffff00,
-        emissive: 0xffff00,
-        emissiveIntensity: 0.5
-      });
-      mesh.position.set(pos.x, 2.5, pos.z);
-      this.add(mesh);
-
-      // Physics sensor (trigger)
-      const goalBody = physics.createCylinder({
-        radiusTop: 2,
-        radiusBottom: 2,
-        height: 5,
-        numSegments: 16,
-        mass: 0,
-        position: { x: pos.x, y: 2.5, z: pos.z }
+        glow: true,
+        isTrigger: true,
+        size: { radius: 2, height: 5 }
       });
 
-      // Make it a sensor (no collision, just detection)
-      goalBody.collisionResponse = false;
-
-      this.goals.push({
-        mesh,
-        body: goalBody,
-        collected: false,
-        position: pos
-      });
+      this.goals.push(goal);
     });
-  }
-
-  createWalls(physics) {
-    // Create walls around the arena
-    const wallHeight = 3;
-    const wallThickness = 1;
-    const arenaSize = 50;
-
-    const walls = [
-      { x: 0, z: arenaSize / 2, width: arenaSize, depth: wallThickness },  // North
-      { x: 0, z: -arenaSize / 2, width: arenaSize, depth: wallThickness }, // South
-      { x: arenaSize / 2, z: 0, width: wallThickness, depth: arenaSize },  // East
-      { x: -arenaSize / 2, z: 0, width: wallThickness, depth: arenaSize }  // West
-    ];
-
-    walls.forEach(wall => {
-      // Visual
-      const mesh = MeshBuilder.createBox({
-        width: wall.width,
-        height: wallHeight,
-        depth: wall.depth,
-        color: 0x888888,
-        receiveShadow: true,
-        castShadow: true
-      });
-      mesh.position.set(wall.x, wallHeight / 2, wall.z);
-      this.add(mesh);
-
-      // Physics
-      physics.createBox({
-        width: wall.width,
-        height: wallHeight,
-        depth: wall.depth,
-        mass: 0,
-        position: { x: wall.x, y: wallHeight / 2, z: wall.z }
-      });
-    });
-  }
-
-  setupCamera() {
-    const camera = this.engine.cameraManager.getActiveCamera();
-    
-    this.cameraController = new ThirdPersonCamera(camera, this.ball, {
-      distance: 15,
-      height: 8,
-      smoothness: 0.15,
-      minDistance: 5,
-      maxDistance: 30
-    });
-
-    this.cameraController.setInputManager(this.engine.inputManager);
-  }
-
-  setupInput() {
-    const input = this.engine.inputManager;
-
-    // Bind actions
-    input.bindAction('forward', ['KeyW', 'ArrowUp']);
-    input.bindAction('backward', ['KeyS', 'ArrowDown']);
-    input.bindAction('left', ['KeyA', 'ArrowLeft']);
-    input.bindAction('right', ['KeyD', 'ArrowRight']);
-    input.bindAction('reset', ['KeyR']);
   }
 
   update(deltaTime, elapsedTime) {
     super.update(deltaTime, elapsedTime);
 
-    if (this.ball && this.cameraController) {
+    if (this.ball && this.camera) {
       this.updateBallPhysics(deltaTime);
       this.checkGoalCollisions();
-      this.cameraController.update(deltaTime);
+      this.camera.update(deltaTime);
     }
 
     // Reset ball
@@ -254,38 +100,37 @@ class BallGameScene extends Scene {
 
   updateBallPhysics(deltaTime) {
     const input = this.engine.inputManager;
-    const physics = this.engine.physicsManager;
     const body = this.ball.physicsBody;
 
     if (!body) return;
 
     // Get camera direction
-    const forward = this.cameraController.getForwardDirection();
-    const right = this.cameraController.getRightDirection();
+    const forward = this.camera.getForwardDirection();
+    const right = this.camera.getRightDirection();
 
-    // Apply forces based on input
-    const force = { x: 0, y: 0, z: 0 };
+    // Calculate push direction
+    const dir = { x: 0, y: 0, z: 0 };
 
     if (input.isActionDown('forward')) {
-      force.x += forward.x * this.pushForce;
-      force.z += forward.z * this.pushForce;
+      dir.x += forward.x;
+      dir.z += forward.z;
     }
     if (input.isActionDown('backward')) {
-      force.x -= forward.x * this.pushForce;
-      force.z -= forward.z * this.pushForce;
+      dir.x -= forward.x;
+      dir.z -= forward.z;
     }
     if (input.isActionDown('left')) {
-      force.x -= right.x * this.pushForce;
-      force.z -= right.z * this.pushForce;
+      dir.x -= right.x;
+      dir.z -= right.z;
     }
     if (input.isActionDown('right')) {
-      force.x += right.x * this.pushForce;
-      force.z += right.z * this.pushForce;
+      dir.x += right.x;
+      dir.z += right.z;
     }
 
-    // Apply force to ball
-    if (force.x !== 0 || force.z !== 0) {
-      physics.applyForce(body, force);
+    // ⚡ Use helper to push ball!
+    if (dir.x !== 0 || dir.z !== 0) {
+      this.pushActor(this.ball, dir, this.pushForce);
     }
 
     // Sync visual with physics
@@ -300,17 +145,11 @@ class BallGameScene extends Scene {
   }
 
   checkGoalCollisions() {
-    const ballPos = this.ball.position;
-
     this.goals.forEach(goal => {
       if (goal.collected) return;
 
-      // Simple distance check
-      const dx = ballPos.x - goal.position.x;
-      const dz = ballPos.z - goal.position.z;
-      const distance = Math.sqrt(dx * dx + dz * dz);
-
-      if (distance < 3 && ballPos.y < 5) { // Within goal radius
+      // ⚡ Use helper for distance check!
+      if (this.isNear(this.ball, goal, 3) && this.ball.position.y < 5) {
         this.collectGoal(goal);
       }
     });
@@ -354,7 +193,7 @@ class BallGameScene extends Scene {
     this.goals = [];
 
     // Create new goals
-    this.createGoals(this.engine.physicsManager);
+    this.createGoals();
     console.log('✨ New goals spawned!');
   }
 
