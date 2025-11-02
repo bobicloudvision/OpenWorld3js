@@ -1,0 +1,28 @@
+{
+  "name": "threejs-multiplayer-game-engine",
+  "version": "1.0.0",
+  "description": "A comprehensive Three.js game engine for multiplayer games with scene management, actor system, and networking",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "threejs",
+    "game-engine",
+    "multiplayer",
+    "webgl",
+    "socket.io"
+  ],
+  "dependencies": {
+    "three": "^0.160.0",
+    "socket.io-client": "^4.7.5",
+    "eventemitter3": "^5.0.1"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
+

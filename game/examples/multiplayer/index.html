@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiplayer Game Example - Three.js Game Engine</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      font-family: 'Arial', sans-serif;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #ui-overlay {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 8px;
+      z-index: 1000;
+      font-family: 'Courier New', monospace;
+    }
+
+    #ui-overlay h3 {
+      margin: 0 0 10px 0;
+      font-size: 16px;
+    }
+
+    #ui-overlay p {
+      margin: 5px 0;
+    }
+
+    .network-status {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      color: white;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 15px;
+      border-radius: 8px;
+      z-index: 1000;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+
+    .status-connected {
+      background: #2ecc71;
+    }
+
+    .status-disconnected {
+      background: #e74c3c;
+    }
+
+    #room-list {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      padding: 30px;
+      border-radius: 12px;
+      color: white;
+      min-width: 400px;
+      z-index: 2000;
+    }
+
+    #room-list.hidden {
+      display: none;
+    }
+
+    .room-item {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .room-item:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    button {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+
+    button:hover {
+      background: #2980b9;
+    }
+
+    .players-list {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .player-item {
+      padding: 5px 0;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  
+  <div id="ui-overlay">
+    <h3>Game Stats</h3>
+    <p>FPS: <span id="fps">0</span></p>
+    <p>Entities: <span id="entities">0</span></p>
+    <p>Latency: <span id="latency">0</span>ms</p>
+  </div>
+
+  <div class="network-status">
+    <h3>Network Status</h3>
+    <p>
+      <span class="status-dot status-disconnected" id="status-dot"></span>
+      <span id="status-text">Disconnected</span>
+    </p>
+    <p>Room: <span id="room-name">None</span></p>
+    <div class="players-list">
+      <h4>Players (<span id="player-count">0</span>)</h4>
+      <div id="players-container"></div>
+    </div>
+  </div>
+
+  <div id="room-list">
+    <h2>Join or Create Room</h2>
+    <button id="create-room-btn">Create New Room</button>
+    <button id="quick-match-btn">Quick Match</button>
+    <div id="rooms-container"></div>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
+
