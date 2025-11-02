@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ball Game - Simple Physics Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      overflow: hidden;
+      background: #1a1a1a;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    .overlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      pointer-events: none;
+      backdrop-filter: blur(10px);
+      border: 2px solid #4a90e2;
+    }
+
+    .overlay h2 {
+      margin: 0 0 15px 0;
+      font-size: 24px;
+      color: #4a90e2;
+    }
+
+    .overlay .score {
+      font-size: 36px;
+      font-weight: bold;
+      color: #00ff00;
+      text-align: center;
+      margin: 10px 0;
+    }
+
+    .overlay div {
+      margin: 8px 0;
+    }
+
+    .overlay strong {
+      color: #4a90e2;
+      min-width: 80px;
+      display: inline-block;
+    }
+
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: white;
+      font-size: 14px;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      border: 2px solid #4a90e2;
+    }
+
+    .controls h3 {
+      margin: 0 0 12px 0;
+      font-size: 18px;
+      color: #4a90e2;
+    }
+
+    .controls div {
+      margin: 6px 0;
+    }
+
+    .badge {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 25px;
+      border-radius: 10px;
+      font-weight: bold;
+      font-size: 18px;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      padding: 30px 50px;
+      border-radius: 15px;
+      font-size: 24px;
+      text-align: center;
+      display: none;
+      border: 3px solid #00ff00;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); }
+      50% { transform: translate(-50%, -50%) scale(1.05); }
+    }
+
+    .message.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  
+  <div class="badge">⚽ BALL GAME</div>
+  
+  <div class="overlay">
+    <h2>🎮 Ball Game</h2>
+    <div class="score">Score: <span id="score">0</span></div>
+    <div><strong>Speed:</strong> <span id="speed">0</span></div>
+    <div><strong>FPS:</strong> <span id="fps">0</span></div>
+  </div>
+
+  <div class="controls">
+    <h3>🎮 Controls</h3>
+    <div><strong>WASD</strong> - Push ball</div>
+    <div><strong>Mouse</strong> - Rotate camera</div>
+    <div><strong>Scroll</strong> - Zoom</div>
+    <div><strong>R</strong> - Reset ball</div>
+  </div>
+
+  <div class="message" id="goal-message">
+    🎉 GOAL! 🎉
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
+

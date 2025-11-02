@@ -71,7 +71,9 @@ export class MeshBuilder {
       color = 0xffffff,
       wireframe = false,
       castShadow = true,
-      receiveShadow = false
+      receiveShadow = false,
+      emissive = 0x000000,
+      emissiveIntensity = 1
     } = options;
 
     const geometry = new THREE.CylinderGeometry(
@@ -82,7 +84,9 @@ export class MeshBuilder {
     );
     const material = new THREE.MeshStandardMaterial({ 
       color, 
-      wireframe 
+      wireframe,
+      emissive,
+      emissiveIntensity
     });
 
     const mesh = new THREE.Mesh(geometry, material);
@@ -214,6 +218,21 @@ export class MeshBuilder {
     mesh.receiveShadow = receiveShadow;
 
     return mesh;
+  }
+
+  /**
+   * Create a grid helper
+   */
+  static createGrid(options = {}) {
+    const {
+      size = 100,
+      divisions = 10,
+      color = 0x444444,
+      centerLineColor = 0x888888
+    } = options;
+
+    const grid = new THREE.GridHelper(size, divisions, centerLineColor, color);
+    return grid;
   }
 
   /**
