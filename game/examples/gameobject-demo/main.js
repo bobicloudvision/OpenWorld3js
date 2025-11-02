@@ -61,8 +61,10 @@ class HealthComponent extends Component {
 }
 
 class CollectibleComponent extends Component {
-  constructor(value = 10) {
+  constructor(config = {}) {
     super();
+    // Handle both number and object config
+    const value = typeof config === 'number' ? config : (config.value || 10);
     this.value = value;
     this.collected = false;
   }
@@ -90,13 +92,13 @@ class CollectibleComponent extends Component {
 }
 
 class EnemyAIComponent extends Component {
-  constructor() {
+  constructor(config = {}) {
     super();
-    this.moveSpeed = 3;
-    this.detectionRange = 15;
-    this.attackRange = 2;
-    this.attackDamage = 10;
-    this.attackCooldown = 2;
+    this.moveSpeed = config.moveSpeed || 3;
+    this.detectionRange = config.detectionRange || 15;
+    this.attackRange = config.attackRange || 2;
+    this.attackDamage = config.attackDamage || 10;
+    this.attackCooldown = config.attackCooldown || 2;
     this.lastAttackTime = 0;
   }
 
@@ -146,11 +148,11 @@ class EnemyAIComponent extends Component {
 }
 
 class PlayerController extends Component {
-  constructor() {
+  constructor(config = {}) {
     super();
-    this.moveSpeed = 8;
-    this.jumpForce = 10;
-    this.isGrounded = true;
+    this.moveSpeed = config.moveSpeed || 8;
+    this.jumpForce = config.jumpForce || 10;
+    this.isGrounded = config.isGrounded !== undefined ? config.isGrounded : true;
     this.score = 0;
   }
 
