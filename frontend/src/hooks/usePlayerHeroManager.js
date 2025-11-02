@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { me as fetchMe } from '../services/authService'
 
 /**
@@ -53,6 +53,18 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Store player and callback in refs for use in event handlers without causing re-renders
+  const playerRef = useRef(player)
+  const onPlayerChangeRef = useRef(onPlayerChange)
+  
+  useEffect(() => {
+    playerRef.current = player
+    onPlayerChangeRef.current = onPlayerChange
+  }, [player, onPlayerChange])
+
+  // Track if we've fetched heroes to prevent duplicate requests
+  const hasFetchedHeroesRef = useRef(false)
+
   // Update parent when player changes
   useEffect(() => {
     if (onPlayerChange && player) {
@@ -61,19 +73,29 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
   }, [player, onPlayerChange])
 
   // Fetch heroes when socket becomes ready and player is already authenticated
+  // Use player?.id so effect only runs when player first loads, not on every player update
   useEffect(() => {
     const socket = socketRef?.current
-    if (!socket || !socketReady || !player) return
+    const playerId = player?.id
+    
+    if (!socket || !socketReady || !playerId) {
+      // Reset fetch flag when socket is not ready (disconnected)
+      if (!socketReady) {
+        hasFetchedHeroesRef.current = false
+      }
+      return
+    }
+
+    // Only fetch once per socket connection
+    if (hasFetchedHeroesRef.current) return
 
     console.log('[usePlayerHeroManager] Socket ready and player authenticated, fetching heroes')
+    hasFetchedHeroesRef.current = true
     
-    // Fetch heroes if we don't have them yet
-    if (playerHeroes.length === 0) {
-      setLoadingHeroes(true)
-      socket.emit('get:player:heroes')
-      socket.emit('get:heroes:available')
-    }
-  }, [socketReady, player, socketRef, playerHeroes.length])
+    setLoadingHeroes(true)
+    socket.emit('get:player:heroes')
+    socket.emit('get:heroes:available')
+  }, [socketReady, player?.id, socketRef])
 
   // Set up socket event listeners for player and hero updates
   useEffect(() => {
@@ -87,8 +109,8 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
       if (socketPlayer) {
         console.log('[usePlayerHeroManager] Player updated:', socketPlayer)
         setPlayer(socketPlayer)
-        if (onPlayerChange) {
-          onPlayerChange(socketPlayer)
+        if (onPlayerChangeRef.current) {
+          onPlayerChangeRef.current(socketPlayer)
         }
       }
     }
@@ -97,8 +119,8 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
     const handleAuthOk = ({ player: socketPlayer }) => {
       console.log('[usePlayerHeroManager] Auth successful, syncing player:', socketPlayer)
       setPlayer(socketPlayer)
-      if (onPlayerChange) {
-        onPlayerChange(socketPlayer)
+      if (onPlayerChangeRef.current) {
+        onPlayerChangeRef.current(socketPlayer)
       }
       // Fetch player data and heroes
       socket.emit('get:player')
@@ -123,8 +145,8 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
       setPlayerHeroes(heroes || [])
       setLoadingHeroes(false)
 
-      // Notify other players about hero change if we have an active hero
-      const currentPlayer = player
+      // Notify other players about hero change if we have an active hero - use ref
+      const currentPlayer = playerRef.current
       if (currentPlayer?.active_hero_id && heroes) {
         const activeHeroData = heroes.find(h => h.playerHeroId === currentPlayer.active_hero_id)
         if (activeHeroData && socket) {
@@ -143,8 +165,8 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
     const handleHeroSetActiveOk = ({ player: updatedPlayer }) => {
       console.log('[usePlayerHeroManager] Hero activated:', updatedPlayer)
       setPlayer(updatedPlayer)
-      if (onPlayerChange) {
-        onPlayerChange(updatedPlayer)
+      if (onPlayerChangeRef.current) {
+        onPlayerChangeRef.current(updatedPlayer)
       }
       // Refresh heroes list - the handler above will notify about hero change
       socket.emit('get:player:heroes')
@@ -156,8 +178,8 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
 
       setPlayerHeroes(prevHeroes =>
         (prevHeroes || []).map(hero => {
-          // Update only the active hero
-          if (hero.playerHeroId === player?.active_hero_id) {
+          // Update only the active hero - use ref to avoid dependency
+          if (hero.playerHeroId === playerRef.current?.active_hero_id) {
             return {
               ...hero,
               health: newHealth,
@@ -177,7 +199,8 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
 
       setPlayerHeroes(prevHeroes =>
         (prevHeroes || []).map(hero => {
-          if (hero.playerHeroId === player?.active_hero_id) {
+          // Use ref to avoid dependency
+          if (hero.playerHeroId === playerRef.current?.active_hero_id) {
             return {
               ...hero,
               health: newHealth,
@@ -195,7 +218,8 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
 
       setPlayerHeroes(prevHeroes =>
         (prevHeroes || []).map(hero => {
-          if (hero.playerHeroId === player?.active_hero_id) {
+          // Use ref to avoid dependency
+          if (hero.playerHeroId === playerRef.current?.active_hero_id) {
             return {
               ...hero,
               health: newHealth,
@@ -246,7 +270,9 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
       socket.off('hero:level-up', handleHeroLevelUp)
       socket.off('player:level-up', handlePlayerLevelUp)
     }
-  }, [socketRef, socketReady, player, onPlayerChange])
+    // Don't depend on player - use playerRef inside handlers to avoid re-registering
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socketRef, socketReady])
 
   // Helper function to update hero stats (for external updates during combat)
   const updateHeroStats = useCallback((heroId, stats) => {

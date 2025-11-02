@@ -250,7 +250,9 @@ export function useGameSocketManager(player, onAuthSuccess, onAuthError) {
         playerIdRef.current = null
       }
     }
-  }, [player])
+    // Only depend on player.id to avoid re-running when player fields change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player?.id])
 
   // Manual disconnect function
   const disconnect = useCallback(() => {

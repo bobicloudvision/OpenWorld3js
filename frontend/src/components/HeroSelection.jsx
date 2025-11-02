@@ -9,6 +9,16 @@ import FantasyBadge from './ui/FantasyBadge'
 export default function HeroSelection({ player, playerHeroes, availableHeroes, socket, onHeroSelected, onHeroesUpdate, onClose }) {
   const [purchasingHeroId, setPurchasingHeroId] = React.useState(null)
   
+  // Store callbacks in refs to prevent effect re-runs
+  const onHeroSelectedRef = React.useRef(onHeroSelected)
+  const onHeroesUpdateRef = React.useRef(onHeroesUpdate)
+  
+  // Keep refs updated
+  React.useEffect(() => {
+    onHeroSelectedRef.current = onHeroSelected
+    onHeroesUpdateRef.current = onHeroesUpdate
+  }, [onHeroSelected, onHeroesUpdate])
+  
   // Use hero switcher hook for switching logic
   const { 
     loading, 
@@ -24,11 +34,11 @@ export default function HeroSelection({ player, playerHeroes, availableHeroes, s
     const handleHeroPurchaseOk = ({ player: updatedPlayer, playerHeroes: updatedHeroes, availableHeroes: updatedAvailable }) => {
       setPurchasingHeroId(null)
       setError('')
-      if (onHeroSelected) {
-        onHeroSelected(updatedPlayer)
+      if (onHeroSelectedRef.current) {
+        onHeroSelectedRef.current(updatedPlayer)
       }
-      if (onHeroesUpdate) {
-        onHeroesUpdate(updatedHeroes, updatedAvailable)
+      if (onHeroesUpdateRef.current) {
+        onHeroesUpdateRef.current(updatedHeroes, updatedAvailable)
       }
     }
 
@@ -44,7 +54,9 @@ export default function HeroSelection({ player, playerHeroes, availableHeroes, s
       socket.off('hero:purchase:ok', handleHeroPurchaseOk)
       socket.off('hero:purchase:error', handleHeroPurchaseError)
     }
-  }, [socket, onHeroSelected, onHeroesUpdate])
+    // Only depend on socket - callbacks are accessed via refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket])
 
   const handleSelectHero = (playerHeroId) => {
     switchHero(playerHeroId)

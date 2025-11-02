@@ -67,6 +67,16 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     updateHeroes
   } = usePlayerHeroManager(socketRef, socketReady, handlePlayerChange, handleAuthCheckFailed)
 
+  // Memoize hero selection callback (after setPlayer is defined)
+  const handleHeroSelected = React.useCallback((updatedPlayer) => {
+    setPlayer(updatedPlayer)
+  }, [setPlayer])
+
+  // Memoize heroes update callback (after updateHeroes is defined)
+  const handleHeroesUpdate = React.useCallback((updatedPlayerHeroes, updatedAvailableHeroes) => {
+    updateHeroes(updatedPlayerHeroes, updatedAvailableHeroes)
+  }, [updateHeroes])
+
   // Handle player initialization - wait for player to be fully loaded
   React.useEffect(() => {
     if (!player) {
@@ -314,12 +324,8 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
             playerHeroes={playerHeroes}
             availableHeroes={availableHeroes}
             socket={socketRef.current}
-            onHeroSelected={(updatedPlayer) => {
-              setPlayer(updatedPlayer);
-            }}
-            onHeroesUpdate={(updatedPlayerHeroes, updatedAvailableHeroes) => {
-              updateHeroes(updatedPlayerHeroes, updatedAvailableHeroes);
-            }}
+            onHeroSelected={handleHeroSelected}
+            onHeroesUpdate={handleHeroesUpdate}
           />
         ) : !activeHero ? (
           <div className="fixed inset-0 flex items-center justify-center bg-black/35 z-50">
@@ -357,12 +363,8 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
                 onShowLeaderboardChange={setShowLeaderboard}
                 showHeroSwitcher={showHeroSwitcher}
                 onShowHeroSwitcherChange={setShowHeroSwitcher}
-                onHeroSelected={(updatedPlayer) => {
-                  setPlayer(updatedPlayer);
-                }}
-                onHeroesUpdate={(updatedHeroes) => {
-                  setPlayerHeroes(updatedHeroes);
-                }}
+                onHeroSelected={handleHeroSelected}
+                onHeroesUpdate={setPlayerHeroes}
               />
             )}
             {showHeroSelection && (
@@ -375,9 +377,7 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
                   setPlayer(updatedPlayer);
                   setShowHeroSelection(false);
                 }}
-                onHeroesUpdate={(updatedPlayerHeroes, updatedAvailableHeroes) => {
-                  updateHeroes(updatedPlayerHeroes, updatedAvailableHeroes);
-                }}
+                onHeroesUpdate={handleHeroesUpdate}
                 onClose={() => setShowHeroSelection(false)}
               />
             )}

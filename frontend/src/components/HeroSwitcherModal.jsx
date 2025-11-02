@@ -22,9 +22,8 @@ export default function HeroSwitcherModal({
     return initialPlayerHeroes !== undefined ? undefined : onHeroesUpdate
   }, [initialPlayerHeroes, onHeroesUpdate])
   
-  // Hook for switching logic only - don't use it for fetching/managing heroes when prop is provided
+  // Hook for switching logic only - heroes are always passed as props
   const { 
-    playerHeroes: hookPlayerHeroes, 
     loading, 
     error,
     fetchHeroes, 
@@ -35,11 +34,8 @@ export default function HeroSwitcherModal({
     effectiveOnHeroesUpdate
   )
   
-  // Always use prop heroes if provided (even if empty initially - parent will update it)
-  // Otherwise fall back to hook heroes for backward compatibility
-  const playerHeroes = initialPlayerHeroes !== undefined 
-    ? initialPlayerHeroes 
-    : hookPlayerHeroes
+  // Use prop heroes (always provided by parent component)
+  const playerHeroes = initialPlayerHeroes || []
   
   const switchInitiatedRef = useRef(false)
   const hasRequestedHeroesRef = useRef(false)

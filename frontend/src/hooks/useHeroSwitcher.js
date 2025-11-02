@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 /**
  * Custom hook for managing hero switching logic
+ * NOTE: This hook does NOT manage hero list state - that's handled by usePlayerHeroManager
+ * It only handles the switching action and loading/error states
  * @param {Object} socket - Socket.io instance
  * @param {Function} onHeroSelected - Callback when hero is selected
- * @param {Function} onHeroesUpdate - Callback when heroes list updates
+ * @param {Function} onHeroesUpdate - Callback when heroes list updates (optional, for backward compatibility)
  * @returns {Object} - Hook state and handlers
  */
 export function useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate) {
-  const [playerHeroes, setPlayerHeroes] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -22,29 +23,12 @@ export function useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate) {
     onHeroesUpdateRef.current = onHeroesUpdate
   }, [onHeroSelected, onHeroesUpdate])
   
-  // Listen to player:heroes only if onHeroesUpdate is provided (for backward compatibility)
-  // When heroes are passed as props, this listener should not trigger updates
-  useEffect(() => {
-    if (!socket || !onHeroesUpdate) return
-
-    const handlePlayerHeroes = (heroes) => {
-      console.log('[useHeroSwitcher] Received player heroes:', heroes)
-      setPlayerHeroes(heroes)
-      // Only call onHeroesUpdate if it's actually being used
-      // In HeroSwitcherModal, we pass heroes as props, so this won't cause duplicate updates
-      if (onHeroesUpdateRef.current) {
-        onHeroesUpdateRef.current(heroes)
-      }
-    }
-
-    socket.on('player:heroes', handlePlayerHeroes)
-
-    return () => {
-      socket.off('player:heroes', handlePlayerHeroes)
-    }
-    // Only depend on socket - callbacks are accessed via refs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket, onHeroesUpdate])
+  // REMOVED: player:heroes listener
+  // This hook should NOT listen to player:heroes because:
+  // 1. It causes duplicate listeners when usePlayerHeroManager is also active
+  // 2. Parent components (GameApp) pass heroes as props via usePlayerHeroManager
+  // 3. This creates infinite loops and duplicate state updates
+  // The hook now only handles hero switching events (hero:set:active:ok/error)
 
   // Listen for socket events (only hero switching events, not player:heroes)
   // player:heroes is handled by usePlayerHeroManager to avoid duplicate updates
@@ -95,7 +79,6 @@ export function useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate) {
   }
 
   return {
-    playerHeroes,
     loading,
     error,
     setError,
