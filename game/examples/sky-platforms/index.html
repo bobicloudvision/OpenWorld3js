@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sky Platforms - Jump & Collect Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      overflow: hidden;
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(to bottom, #1a1a2e, #0f0f1e);
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #ui-overlay {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      color: white;
+      font-size: 16px;
+      z-index: 1000;
+      font-family: 'Courier New', monospace;
+    }
+
+    .stat-box {
+      background: rgba(0, 0, 0, 0.8);
+      padding: 15px 20px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      border: 2px solid #4a90e2;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .stat-box h3 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+      color: #4a90e2;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-box p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+
+    .stat-label {
+      color: #888;
+    }
+
+    .stat-value {
+      color: #00ff88;
+      font-weight: bold;
+      font-size: 16px;
+    }
+
+    #score {
+      color: #ffd700;
+      font-size: 24px;
+    }
+
+    #gems {
+      color: #ff69b4;
+    }
+
+    #time {
+      color: #ff6b6b;
+    }
+
+    .instructions {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      background: rgba(0, 0, 0, 0.8);
+      padding: 20px 30px;
+      border-radius: 12px;
+      text-align: center;
+      border: 2px solid #4a90e2;
+      max-width: 600px;
+    }
+
+    .instructions h4 {
+      margin: 0 0 10px 0;
+      color: #4a90e2;
+      font-size: 18px;
+    }
+
+    .instructions p {
+      margin: 8px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .key {
+      background: #4a90e2;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      display: inline-block;
+      margin: 0 2px;
+    }
+
+    #game-over {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.95);
+      padding: 40px 60px;
+      border-radius: 20px;
+      text-align: center;
+      z-index: 2000;
+      border: 3px solid #4a90e2;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    #game-over.show {
+      display: block;
+    }
+
+    #game-over h2 {
+      color: #ffd700;
+      font-size: 48px;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    #game-over .final-score {
+      color: #00ff88;
+      font-size: 36px;
+      margin: 20px 0;
+    }
+
+    #game-over button {
+      background: #4a90e2;
+      color: white;
+      border: none;
+      padding: 15px 40px;
+      font-size: 18px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 20px;
+      transition: all 0.3s;
+    }
+
+    #game-over button:hover {
+      background: #357abd;
+      transform: scale(1.05);
+    }
+
+    .warning {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
+      padding: 20px 40px;
+      border-radius: 10px;
+      font-size: 24px;
+      font-weight: bold;
+      display: none;
+      z-index: 1500;
+      animation: pulse 0.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .warning.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+  
+  <div id="ui-overlay">
+    <div class="stat-box">
+      <h3>🏆 Sky Platforms</h3>
+      <p><span class="stat-label">Score:</span> <span id="score" class="stat-value">0</span></p>
+      <p><span class="stat-label">Gems:</span> <span id="gems" class="stat-value">0 / 0</span></p>
+      <p><span class="stat-label">Time:</span> <span id="time" class="stat-value">60s</span></p>
+    </div>
+    <div class="stat-box">
+      <p><span class="stat-label">FPS:</span> <span id="fps" class="stat-value">0</span></p>
+      <p><span class="stat-label">Height:</span> <span id="height" class="stat-value">0.0m</span></p>
+    </div>
+  </div>
+
+  <div class="instructions">
+    <h4>🎮 HOW TO PLAY</h4>
+    <p><span class="key">WASD</span> Move | <span class="key">SPACE</span> Jump | <span class="key">Mouse</span> Camera</p>
+    <p>🌟 Collect all gems before time runs out!</p>
+    <p>⚠️ Don't fall below the platforms!</p>
+  </div>
+
+  <div id="warning" class="warning">
+    ⚠️ YOU'RE FALLING! ⚠️
+  </div>
+
+  <div id="game-over">
+    <h2>GAME OVER!</h2>
+    <div class="final-score">Score: <span id="final-score">0</span></div>
+    <p style="color: #ccc; font-size: 18px;">Gems Collected: <span id="final-gems">0</span></p>
+    <button onclick="location.reload()">Play Again</button>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
+
