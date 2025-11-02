@@ -15,7 +15,7 @@ import MatchmakingQueue from './components/MatchmakingQueue'
 import CombatRejoinModal from './components/CombatRejoinModal'
 import GameHeader from './components/GameHeader'
 
-export default function GameApp({ onPlayerChange, socketRef: externalSocketRef, socketReady: externalSocketReady }) {
+export default function GameApp({ onPlayerChange, socketRef, socketReady, disconnect }) {
   const playerPositionRef = React.useRef([0, 0, 0]);
   const [authOpen, setAuthOpen] = React.useState(false)
   const [showHeroSelection, setShowHeroSelection] = React.useState(false)
@@ -26,7 +26,7 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef, 
 
   // Create a ref to store the loadZoneData function so we can use it in the auth callback
   const loadZoneDataRef = React.useRef(null)
-  const returnToLobbyRef = React.useRef(null)
+  const lastZoneLoadSocketIdRef = React.useRef(null)
 
   // Zone manager hook with callback to handle position updates
   const onZoneChangeCallback = React.useCallback((zone, position) => {
@@ -41,18 +41,6 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef, 
     // Update window global for other scripts that might need it
     window.__inCombat = inCombat;
   }, []);
-
-  // Use socket from centralized manager (passed from App.jsx)
-  // If not provided, create a fallback (shouldn't happen in normal flow)
-  const socketRef = externalSocketRef || React.useRef(null)
-  const [socketReady, setSocketReady] = React.useState(externalSocketReady || false)
-  
-  // Sync socketReady with external value
-  React.useEffect(() => {
-    if (externalSocketReady !== undefined) {
-      setSocketReady(externalSocketReady)
-    }
-  }, [externalSocketReady])
 
   // Memoize callbacks to prevent unnecessary re-renders
   const handlePlayerChange = React.useCallback((updatedPlayer) => {
@@ -79,23 +67,22 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef, 
   } = usePlayerHeroManager(socketRef, socketReady, handlePlayerChange, handleAuthCheckFailed)
 
   // Handle auth success - load zone data after socket is authenticated
-  // This is called by the centralized socket manager when auth succeeds
+  // This effect triggers when socket becomes ready and authenticated
   React.useEffect(() => {
     if (socketReady && socketRef?.current?.connected && loadZoneDataRef.current) {
       const socket = socketRef.current
       const socketId = socket.id
       
       // Check if we've already attempted to load zone for this socket ID
-      const isReconnection = socket._lastZoneLoadSocketId && socket._lastZoneLoadSocketId !== socketId
+      const isReconnection = lastZoneLoadSocketIdRef.current && lastZoneLoadSocketIdRef.current !== socketId
       
-      if (isReconnection || !socket._zoneLoadAttempted) {
+      if (isReconnection || !lastZoneLoadSocketIdRef.current) {
         console.log('[GameApp] Socket authenticated, loading zone data...', {
           socketId,
           isReconnection,
-          previousSocketId: socket._lastZoneLoadSocketId
+          previousSocketId: lastZoneLoadSocketIdRef.current
         })
-        socket._zoneLoadAttempted = true
-        socket._lastZoneLoadSocketId = socketId
+        lastZoneLoadSocketIdRef.current = socketId
         
         // Delay to ensure server has fully processed authentication binding
         setTimeout(() => {
@@ -143,11 +130,10 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef, 
     }
   }, [currentZone, setCombatState]);
 
-  // Store refs for use in zone loading
+  // Store loadZoneData ref for use in auth success callback
   React.useEffect(() => {
     loadZoneDataRef.current = loadZoneData
-    returnToLobbyRef.current = returnToLobby
-  }, [loadZoneData, returnToLobby])
+  }, [loadZoneData])
 
   // Use enemy manager hook to handle all enemy-related logic
   useEnemyManager(socketRef, socketReady, currentZone);
@@ -200,10 +186,8 @@ export default function GameApp({ onPlayerChange, socketRef: externalSocketRef, 
         onShowHeroSwitcher={() => setShowHeroSwitcher(true)}
         onLogout={() => {
           setPlayer(null);
-          setSocketReady(false);
-          if (socketRef.current) {
-            socketRef.current.disconnect();
-            socketRef.current = null;
+          if (disconnect) {
+            disconnect();
           }
         }}
       />

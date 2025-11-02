@@ -36,15 +36,11 @@ export function useGameSocketManager(player, onAuthSuccess, onAuthError) {
       return
     }
 
-    // Prevent duplicate connections for the same player
-    if (socketRef.current && playerIdRef.current === player.id) {
-      // Socket already exists for this player
-      if (socketRef.current.connected && socketReady) {
-        console.log('[GameSocketManager] Socket already connected for player', player.id)
-        return
-      }
-      // Socket exists but not connected - will reconnect automatically
-      console.log('[GameSocketManager] Socket exists but not connected, waiting for reconnect...')
+    const token = localStorage.getItem('playerToken')
+    if (!token) {
+      console.error('[GameSocketManager] No token found in localStorage, cannot authenticate')
+      setConnectionStatus('disconnected')
+      setSocketReady(false)
       return
     }
 
@@ -56,30 +52,66 @@ export function useGameSocketManager(player, onAuthSuccess, onAuthError) {
       playerIdRef.current = null
     }
 
-    // Create new socket connection
-    const token = localStorage.getItem('playerToken')
-    const socketUrl = import.meta.env.SOCKET_URL || 'http://localhost:6060'
+    // If socket already exists for this player, ensure handlers are set up and check auth
+    if (socketRef.current && playerIdRef.current === player.id) {
+      // Socket already exists - just ensure it's authenticated
+      if (socketRef.current.connected) {
+        console.log('[GameSocketManager] Socket exists and is connected, checking authentication status...', {
+          socketId: socketRef.current.id,
+          connected: socketRef.current.connected
+        })
+        // Always try to authenticate if connected but not ready
+        // This handles cases where auth was missed or failed
+        socketRef.current.emit('auth', { token })
+      } else {
+        console.log('[GameSocketManager] Socket exists but not connected, will auto-reconnect...', {
+          socketId: socketRef.current.id
+        })
+      }
+      // Don't return - we still need to set up handlers in case they were cleaned up
+    }
 
-    console.log('[GameSocketManager] Creating new socket connection for player', player.id)
-    const socket = io(socketUrl, {
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: Infinity,
-      timeout: 20000,
-      autoConnect: true
-    })
+    // Get existing socket or create new one
+    let socket = socketRef.current
+    if (!socket) {
+      const socketUrl = import.meta.env.SOCKET_URL || 'http://localhost:6060'
+      
+      console.log('[GameSocketManager] Creating new socket connection for player', player.id, {
+        hasToken: !!token,
+        socketUrl,
+        currentPlayerId: player.id
+      })
+      
+      socket = io(socketUrl, {
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        reconnectionAttempts: Infinity,
+        timeout: 20000,
+        autoConnect: true
+      })
 
-    socketRef.current = socket
-    playerIdRef.current = player.id
-    setConnectionStatus('connecting')
+      socketRef.current = socket
+      playerIdRef.current = player.id
+      setConnectionStatus('connecting')
+    }
 
     // Connection handlers
     const handleConnect = () => {
-      console.log('[GameSocketManager] Socket connected, authenticating...')
+      console.log('[GameSocketManager] Socket connected, authenticating...', {
+        socketId: socket.id,
+        hasToken: !!token
+      })
       setConnectionStatus('connected')
-      socket.emit('auth', { token })
+      
+      // Get fresh token in case it changed
+      const currentToken = localStorage.getItem('playerToken')
+      if (currentToken) {
+        socket.emit('auth', { token: currentToken })
+      } else {
+        console.error('[GameSocketManager] No token available when connecting')
+      }
     }
 
     const handleConnectError = (error) => {
@@ -114,7 +146,11 @@ export function useGameSocketManager(player, onAuthSuccess, onAuthError) {
 
     // Authentication handlers
     const handleAuthOk = ({ player: socketPlayer }) => {
-      console.log('[GameSocketManager] ✅ Authentication successful, socket ID:', socket.id)
+      console.log('[GameSocketManager] ✅ Authentication successful!', {
+        socketId: socket.id,
+        playerId: socketPlayer?.id,
+        socketConnected: socket.connected
+      })
       setSocketReady(true)
       setConnectionStatus('connected')
       
@@ -156,6 +192,17 @@ export function useGameSocketManager(player, onAuthSuccess, onAuthError) {
       }
     }
 
+    // Remove any existing listeners first to prevent duplicates
+    socket.off('connect', handleConnect)
+    socket.off('connect_error', handleConnectError)
+    socket.off('reconnect', handleReconnect)
+    socket.off('reconnect_attempt', handleReconnectAttempt)
+    socket.off('reconnect_error', handleReconnectError)
+    socket.off('reconnect_failed', handleReconnectFailed)
+    socket.off('auth:ok', handleAuthOk)
+    socket.off('auth:error', handleAuthError)
+    socket.off('disconnect', handleDisconnect)
+
     // Register all event listeners
     socket.on('connect', handleConnect)
     socket.on('connect_error', handleConnectError)
@@ -166,6 +213,20 @@ export function useGameSocketManager(player, onAuthSuccess, onAuthError) {
     socket.on('auth:ok', handleAuthOk)
     socket.on('auth:error', handleAuthError)
     socket.on('disconnect', handleDisconnect)
+
+    // If socket is already connected, authenticate immediately
+    // (Don't check socketReady here as it's stale in closure - just authenticate if connected)
+    if (socket.connected) {
+      console.log('[GameSocketManager] Socket already connected when handlers registered, authenticating immediately...', {
+        socketId: socket.id
+      })
+      const currentToken = localStorage.getItem('playerToken')
+      if (currentToken) {
+        socket.emit('auth', { token: currentToken })
+      } else {
+        console.error('[GameSocketManager] Socket connected but no token available')
+      }
+    }
 
     // Cleanup function
     return () => {

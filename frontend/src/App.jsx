@@ -12,17 +12,30 @@ export default function App() {
   const [player, setPlayer] = React.useState(null)
   
   // Centralized socket manager - single source of truth for all socket connections
-  const { socketRef, socketReady, disconnect } = useGameSocketManager(
+  const { socketRef, socketReady, connectionStatus, disconnect } = useGameSocketManager(
     player,
     // onAuthSuccess - called when socket authenticates (can be used for initial setup)
     (socket) => {
-      console.log('[App] Socket authenticated, ID:', socket.id)
+      console.log('[App] Socket authenticated, ID:', socket.id, 'socketReady:', true)
     },
     // onAuthError - called when authentication fails
     (error) => {
       console.error('[App] Socket authentication failed:', error)
+      console.error('[App] Check if token is valid and player is authenticated')
     }
   )
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('[App] Socket state:', {
+      hasPlayer: !!player,
+      playerId: player?.id,
+      socketReady,
+      connectionStatus,
+      socketConnected: socketRef.current?.connected,
+      socketId: socketRef.current?.id
+    })
+  }, [player, socketReady, connectionStatus, socketRef])
 
   // Check authentication on mount
   React.useEffect(() => {
@@ -51,6 +64,7 @@ export default function App() {
               onPlayerChange={setPlayer}
               socketRef={socketRef}
               socketReady={socketReady}
+              disconnect={disconnect}
             />
           } 
         />
