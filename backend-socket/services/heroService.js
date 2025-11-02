@@ -112,6 +112,13 @@ export function getPlayerHeroes(playerId) {
   
   const heroes = stmt.all(playerId);
   
+  console.log(`[heroService] Raw hero data for player ${playerId}:`, heroes.length > 0 ? {
+    player_hero_id: heroes[0].player_hero_id,
+    hero_name: heroes[0].hero_name,
+    model: heroes[0].model,
+    model_scale: heroes[0].model_scale
+  } : 'No heroes');
+  
   return heroes.map(row => {
     const heroLevel = row.level || 1;
     const baseSpells = getHeroSpells(row.hero_id);

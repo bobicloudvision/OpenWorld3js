@@ -66,6 +66,19 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     updateHeroes
   } = usePlayerHeroManager(socketRef, socketReady, handlePlayerChange, handleAuthCheckFailed)
 
+  // Debug: Log active hero data
+  React.useEffect(() => {
+    if (player && playerHeroes.length > 0) {
+      const activeHero = playerHeroes.find(h => h.playerHeroId === player.active_hero_id)
+      console.log('[GameApp] Active hero check:', {
+        activeHeroId: player.active_hero_id,
+        activeHero,
+        activeHeroModel: activeHero?.model,
+        allPlayerHeroes: playerHeroes
+      })
+    }
+  }, [player, playerHeroes])
+
   // Handle auth success - load zone data after socket is authenticated
   // This effect triggers when socket becomes ready and authenticated
   React.useEffect(() => {

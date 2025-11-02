@@ -9,7 +9,7 @@ import PlayerNameBadge from './PlayerNameBadge'
 
 export default function Player({ onPositionChange, heroModel, heroModelScale, heroModelRotation, socket, playerName }) {
   const group = useRef()
-  
+
   // Use shared avatar animations hook with dynamic model path
   // Default to NightshadeJFriedrich if no hero model is provided
   const defaultModel = '/models/avatars/NightshadeJFriedrich.glb'

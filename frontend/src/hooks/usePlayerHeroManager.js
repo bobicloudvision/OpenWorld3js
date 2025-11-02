@@ -96,6 +96,11 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
     // Handle player heroes update
     const handlePlayerHeroes = (heroes) => {
       console.log('[usePlayerHeroManager] Player heroes updated:', heroes)
+      // Debug: Check if model field exists
+      if (heroes && heroes.length > 0) {
+        console.log('[usePlayerHeroManager] First hero model:', heroes[0].model)
+        console.log('[usePlayerHeroManager] First hero full data:', heroes[0])
+      }
       setPlayerHeroes(heroes || [])
       setLoadingHeroes(false)
 
