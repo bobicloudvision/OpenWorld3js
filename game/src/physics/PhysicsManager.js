@@ -6,6 +6,52 @@ import EventEmitter from 'eventemitter3';
  * Physics Manager
  * Wraps Cannon.js physics engine
  * Keeps physics logic separate from game scenes
+ * 
+ * ✅ Supported Cannon.js Parameters:
+ * 
+ * MATERIAL PROPERTIES:
+ * - restitution: Bounciness (0 = no bounce, 1 = perfect bounce)
+ * - friction: Surface friction (0 = ice, 1 = rubber)
+ * 
+ * DAMPING:
+ * - linearDamping: Velocity reduction over time (default: 0.01)
+ * - angularDamping: Rotation reduction over time (default: 0.01)
+ * 
+ * MOVEMENT RESTRICTIONS:
+ * - fixedRotation: Prevent all rotation (useful for character controllers)
+ * - linearFactor: Restrict movement on axes {x, y, z} (0 = locked, 1 = free)
+ * - angularFactor: Restrict rotation on axes {x, y, z} (0 = locked, 1 = free)
+ * 
+ * PERFORMANCE:
+ * - allowSleep: Enable sleep optimization (default: true)
+ * - sleepSpeedLimit: Speed below which body can sleep (default: 0.1)
+ * - sleepTimeLimit: Time before body sleeps (default: 1)
+ * 
+ * COLLISION FILTERING:
+ * - collisionFilterGroup: Collision layer (bitmask, default: 1)
+ * - collisionFilterMask: What layers this body collides with (bitmask, default: -1)
+ * - collisionResponse: Whether body physically responds to collisions
+ * - isTrigger: Trigger volume (fires events but no collision response)
+ * 
+ * EXAMPLES:
+ * 
+ * // Character controller (no rotation, only horizontal movement)
+ * createBox({ 
+ *   fixedRotation: true,
+ *   linearFactor: { x: 1, y: 1, z: 1 }
+ * })
+ * 
+ * // Collectible item (trigger only)
+ * createSphere({ 
+ *   isTrigger: true,
+ *   collisionResponse: false
+ * })
+ * 
+ * // Player (group 1) only collides with enemies (group 2)
+ * createBox({ 
+ *   collisionFilterGroup: 1,  // Player group
+ *   collisionFilterMask: 2    // Only collide with group 2
+ * })
  */
 export class PhysicsManager extends EventEmitter {
   constructor(config = {}) {
@@ -71,8 +117,20 @@ export class PhysicsManager extends EventEmitter {
       position = { x: 0, y: 0, z: 0 },
       rotation = { x: 0, y: 0, z: 0 },
       material = null,
-      restitution = 0.3,  // ✅ Bounciness
-      friction = 0.3      // ✅ Friction
+      restitution = 0.3,  // Bounciness
+      friction = 0.3,     // Friction
+      linearDamping = 0.01,  // Linear velocity damping
+      angularDamping = 0.01, // Angular velocity damping
+      fixedRotation = false, // Prevent rotation
+      allowSleep = true,     // Performance optimization
+      sleepSpeedLimit = 0.1, // Speed below which body can sleep
+      sleepTimeLimit = 1,    // Time before body sleeps
+      collisionFilterGroup = 1, // Collision group
+      collisionFilterMask = -1, // What groups this body collides with
+      collisionResponse = true,  // Whether body responds to collisions
+      isTrigger = false,    // Trigger volume (no collision response)
+      linearFactor = null,  // Restrict movement on axes {x,y,z}
+      angularFactor = null  // Restrict rotation on axes {x,y,z}
     } = options;
 
     // Create material if not provided but restitution/friction specified
@@ -84,11 +142,41 @@ export class PhysicsManager extends EventEmitter {
     }
 
     const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
-    const body = new CANNON.Body({ mass, material: bodyMaterial });
+    const body = new CANNON.Body({ 
+      mass, 
+      material: bodyMaterial,
+      linearDamping,
+      angularDamping,
+      fixedRotation,
+      allowSleep,
+      sleepSpeedLimit,
+      sleepTimeLimit,
+      collisionFilterGroup,
+      collisionFilterMask,
+      collisionResponse,
+      isTrigger
+    });
     
     // Explicitly set body type based on mass
     if (mass > 0) {
       body.type = CANNON.Body.DYNAMIC;
+    }
+    
+    // Set movement/rotation restrictions if provided
+    if (linearFactor) {
+      body.linearFactor.set(
+        linearFactor.x !== undefined ? linearFactor.x : 1,
+        linearFactor.y !== undefined ? linearFactor.y : 1,
+        linearFactor.z !== undefined ? linearFactor.z : 1
+      );
+    }
+    
+    if (angularFactor) {
+      body.angularFactor.set(
+        angularFactor.x !== undefined ? angularFactor.x : 1,
+        angularFactor.y !== undefined ? angularFactor.y : 1,
+        angularFactor.z !== undefined ? angularFactor.z : 1
+      );
     }
     
     body.addShape(shape);
@@ -118,8 +206,20 @@ export class PhysicsManager extends EventEmitter {
       mass = 1,
       position = { x: 0, y: 0, z: 0 },
       material = null,
-      restitution = 0.3,  // ✅ Bounciness
-      friction = 0.3      // ✅ Friction
+      restitution = 0.3,  // Bounciness
+      friction = 0.3,     // Friction
+      linearDamping = 0.01,  // Linear velocity damping
+      angularDamping = 0.01, // Angular velocity damping
+      fixedRotation = false, // Prevent rotation
+      allowSleep = true,     // Performance optimization
+      sleepSpeedLimit = 0.1, // Speed below which body can sleep
+      sleepTimeLimit = 1,    // Time before body sleeps
+      collisionFilterGroup = 1, // Collision group
+      collisionFilterMask = -1, // What groups this body collides with
+      collisionResponse = true,  // Whether body responds to collisions
+      isTrigger = false,    // Trigger volume (no collision response)
+      linearFactor = null,  // Restrict movement on axes {x,y,z}
+      angularFactor = null  // Restrict rotation on axes {x,y,z}
     } = options;
 
     // Create material if not provided but restitution/friction specified
@@ -131,11 +231,41 @@ export class PhysicsManager extends EventEmitter {
     }
 
     const shape = new CANNON.Sphere(radius);
-    const body = new CANNON.Body({ mass, material: bodyMaterial });
+    const body = new CANNON.Body({ 
+      mass, 
+      material: bodyMaterial,
+      linearDamping,
+      angularDamping,
+      fixedRotation,
+      allowSleep,
+      sleepSpeedLimit,
+      sleepTimeLimit,
+      collisionFilterGroup,
+      collisionFilterMask,
+      collisionResponse,
+      isTrigger
+    });
     
     // Explicitly set body type based on mass
     if (mass > 0) {
       body.type = CANNON.Body.DYNAMIC;
+    }
+    
+    // Set movement/rotation restrictions if provided
+    if (linearFactor) {
+      body.linearFactor.set(
+        linearFactor.x !== undefined ? linearFactor.x : 1,
+        linearFactor.y !== undefined ? linearFactor.y : 1,
+        linearFactor.z !== undefined ? linearFactor.z : 1
+      );
+    }
+    
+    if (angularFactor) {
+      body.angularFactor.set(
+        angularFactor.x !== undefined ? angularFactor.x : 1,
+        angularFactor.y !== undefined ? angularFactor.y : 1,
+        angularFactor.z !== undefined ? angularFactor.z : 1
+      );
     }
     
     body.addShape(shape);
@@ -164,8 +294,20 @@ export class PhysicsManager extends EventEmitter {
       mass = 1,
       position = { x: 0, y: 0, z: 0 },
       material = null,
-      restitution = 0.3,  // ✅ Bounciness
-      friction = 0.3      // ✅ Friction
+      restitution = 0.3,  // Bounciness
+      friction = 0.3,     // Friction
+      linearDamping = 0.01,  // Linear velocity damping
+      angularDamping = 0.01, // Angular velocity damping
+      fixedRotation = false, // Prevent rotation
+      allowSleep = true,     // Performance optimization
+      sleepSpeedLimit = 0.1, // Speed below which body can sleep
+      sleepTimeLimit = 1,    // Time before body sleeps
+      collisionFilterGroup = 1, // Collision group
+      collisionFilterMask = -1, // What groups this body collides with
+      collisionResponse = true,  // Whether body responds to collisions
+      isTrigger = false,    // Trigger volume (no collision response)
+      linearFactor = null,  // Restrict movement on axes {x,y,z}
+      angularFactor = null  // Restrict rotation on axes {x,y,z}
     } = options;
 
     // Create material if not provided but restitution/friction specified
@@ -177,11 +319,41 @@ export class PhysicsManager extends EventEmitter {
     }
 
     const shape = new CANNON.Cylinder(radiusTop, radiusBottom, height, numSegments);
-    const body = new CANNON.Body({ mass, material: bodyMaterial });
+    const body = new CANNON.Body({ 
+      mass, 
+      material: bodyMaterial,
+      linearDamping,
+      angularDamping,
+      fixedRotation,
+      allowSleep,
+      sleepSpeedLimit,
+      sleepTimeLimit,
+      collisionFilterGroup,
+      collisionFilterMask,
+      collisionResponse,
+      isTrigger
+    });
     
     // Explicitly set body type based on mass
     if (mass > 0) {
       body.type = CANNON.Body.DYNAMIC;
+    }
+    
+    // Set movement/rotation restrictions if provided
+    if (linearFactor) {
+      body.linearFactor.set(
+        linearFactor.x !== undefined ? linearFactor.x : 1,
+        linearFactor.y !== undefined ? linearFactor.y : 1,
+        linearFactor.z !== undefined ? linearFactor.z : 1
+      );
+    }
+    
+    if (angularFactor) {
+      body.angularFactor.set(
+        angularFactor.x !== undefined ? angularFactor.x : 1,
+        angularFactor.y !== undefined ? angularFactor.y : 1,
+        angularFactor.z !== undefined ? angularFactor.z : 1
+      );
     }
     
     body.addShape(shape);
@@ -207,8 +379,12 @@ export class PhysicsManager extends EventEmitter {
       position = { x: 0, y: 0, z: 0 },
       rotation = { x: -Math.PI / 2, y: 0, z: 0 },
       material = null,
-      restitution = 0.3,  // ✅ Bounciness
-      friction = 0.3      // ✅ Friction
+      restitution = 0.3,  // Bounciness
+      friction = 0.3,     // Friction
+      collisionFilterGroup = 1, // Collision group
+      collisionFilterMask = -1, // What groups this body collides with
+      collisionResponse = true,  // Whether body responds to collisions
+      isTrigger = false    // Trigger volume (no collision response)
     } = options;
 
     // Create material if not provided but restitution/friction specified
@@ -220,7 +396,14 @@ export class PhysicsManager extends EventEmitter {
     }
 
     const shape = new CANNON.Plane();
-    const body = new CANNON.Body({ mass, material: bodyMaterial });
+    const body = new CANNON.Body({ 
+      mass, 
+      material: bodyMaterial,
+      collisionFilterGroup,
+      collisionFilterMask,
+      collisionResponse,
+      isTrigger
+    });
     
     body.addShape(shape);
     body.position.set(position.x, position.y, position.z);
