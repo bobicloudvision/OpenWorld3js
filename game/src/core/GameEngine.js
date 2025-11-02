@@ -217,6 +217,11 @@ export class GameEngine extends EventEmitter {
     // Update camera
     this.cameraManager.update(deltaTime);
 
+    // Late update input (clear pressed/released states after scene update)
+    if (this.inputManager.lateUpdate) {
+      this.inputManager.lateUpdate();
+    }
+
     // Emit update event
     this.emit('update', { deltaTime, elapsedTime });
   }

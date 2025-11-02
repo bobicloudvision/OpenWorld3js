@@ -97,7 +97,7 @@ class PhysicsDemoScene extends Scene {
     });
 
     this.player.mesh = mesh;
-    this.player.setPosition(0, 5, 0);
+    this.player.setPosition(0, 2, 0); // Start closer to ground
 
     // ✅ Add physics to player using PhysicsManager
     const playerBody = physics.addToEntity(this.player, {
@@ -111,6 +111,9 @@ class PhysicsDemoScene extends Scene {
     // Lock rotation so player doesn't tip over
     playerBody.fixedRotation = true;
     playerBody.updateMassProperties();
+    
+    // Damping to prevent sliding
+    playerBody.linearDamping = 0.9;
 
     this.addEntity(this.player);
   }
@@ -247,8 +250,15 @@ class PhysicsDemoScene extends Scene {
     }
 
     // ✅ Jump with physics
-    if (input.isActionPressed('jump') && this.isPlayerGrounded(body)) {
-      physics.applyImpulse(body, { x: 0, y: 50, z: 0 });
+    if (input.isActionPressed('jump')) {
+      const isGrounded = this.isPlayerGrounded(body);
+      
+      if (isGrounded) {
+        physics.applyImpulse(body, { x: 0, y: 50, z: 0 });
+        console.log('🚀 Jump! Position:', body.position.y.toFixed(2), 'Velocity:', body.velocity.y.toFixed(2));
+      } else {
+        console.log('❌ Cannot jump - not grounded. Y:', body.position.y.toFixed(2), 'Vel:', body.velocity.y.toFixed(2));
+      }
     }
 
     // Sync entity position with physics body
@@ -258,8 +268,12 @@ class PhysicsDemoScene extends Scene {
   }
 
   isPlayerGrounded(body) {
-    // Simple ground check: if vertical velocity is small and y position is low
-    return Math.abs(body.velocity.y) < 0.5 && body.position.y < 3;
+    // Check if player is on or near the ground
+    // Player box is 2 units tall, so center is at y=1 when on ground (y=0)
+    const isNearGround = body.position.y < 2; // Center is at y=1, add some tolerance
+    const hasLowVelocity = Math.abs(body.velocity.y) < 1; // Less strict
+    
+    return isNearGround && hasLowVelocity;
   }
 
   syncPhysicsObjects() {
@@ -316,10 +330,13 @@ class PhysicsDemoScene extends Scene {
     document.getElementById('entities').textContent = this.entities.size;
     document.getElementById('physics-objects').textContent = this.physicsObjects.length;
     
-    if (this.player) {
+    if (this.player && this.player.physicsBody) {
       const pos = this.player.position;
+      const body = this.player.physicsBody;
+      const grounded = this.isPlayerGrounded(body) ? '✅' : '❌';
+      
       document.getElementById('position').textContent = 
-        `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+        `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)} ${grounded}`;
     }
   }
 }

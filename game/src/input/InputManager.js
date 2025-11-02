@@ -283,6 +283,15 @@ export class InputManager extends EventEmitter {
    * Update (called every frame)
    */
   update(deltaTime) {
+    // Don't clear pressed/released here - do it in lateUpdate
+    // This ensures scenes can check isActionPressed() in their update
+  }
+
+  /**
+   * Late update - called after scene updates
+   * Clear one-frame states here
+   */
+  lateUpdate() {
     // Clear pressed/released states
     this.keysPressed.clear();
     this.keysReleased.clear();
