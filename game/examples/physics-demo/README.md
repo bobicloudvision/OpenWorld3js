@@ -171,7 +171,7 @@ physics.createContactMaterial(playerMaterial, groundMaterial, {
 - **WASD** - Move player
 - **Space** - Jump
 - **E** - Spawn dynamic physics box
-- **Right-click + Mouse** - Rotate camera
+- **Mouse Movement** - Rotate camera
 - **Scroll** - Zoom camera
 
 ## Differences from Basic Example

@@ -50,9 +50,8 @@ export class ThirdPersonCamera {
 
     // Setup input listeners
     inputManager.on('mouseMove', ({ deltaX, deltaY }) => {
-      if (inputManager.isMouseButtonDown(2) || inputManager.mouse.isLocked) {
-        this.rotate(deltaX, deltaY);
-      }
+      // Always rotate camera on mouse movement (no click required)
+      this.rotate(deltaX, deltaY);
     });
 
     inputManager.on('mouseWheel', ({ delta }) => {

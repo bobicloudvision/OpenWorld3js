@@ -65,10 +65,9 @@ python3 -m http.server 3000
 ## Controls
 
 - **WASD** or **Arrow Keys** - Move player
-- **Mouse Movement** - Look around (when right-clicking)
-- **Right Mouse Button** - Rotate camera
+- **Mouse Movement** - Rotate camera
 - **Mouse Wheel** - Zoom in/out
-- **Space** - Jump (placeholder)
+- **Space** - Jump
 
 ## What This Example Shows
 
