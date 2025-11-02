@@ -179,6 +179,10 @@
       <span class="stat-label">FPS:</span>
       <span class="stat-value" id="fps">0</span>
     </div>
+    <div class="stat-row">
+      <span class="stat-label">Debug:</span>
+      <span class="stat-value" id="debug-status" style="color: #ff6b6b;">OFF</span>
+    </div>
     <div class="physics-badge">
       ✅ Real Physics Engine<br>
       <small>NaN Bug Fixed!</small>
@@ -190,6 +194,10 @@
     <div class="control-item">
       <span class="key">W A S D</span>
       <span>Apply Force to Ball</span>
+    </div>
+    <div class="control-item">
+      <span class="key">P</span>
+      <span>Toggle Physics Debug</span>
     </div>
     <div class="control-item">
       <span class="key">R</span>
@@ -204,7 +212,11 @@
     <p>• Pushable objects with mass</p>
     <p>• Collision detection</p>
     <p>• <strong>No NaN errors!</strong></p>
-    <p style="margin-top: 10px; font-size: 12px;">Compare with main.js which uses custom collision.</p>
+    <p style="margin-top: 10px;">
+      <strong>Press P</strong> to see collision shapes:
+    </p>
+    <p>• <span style="color: #00ff00;">Green</span> = Static bodies</p>
+    <p>• <span style="color: #ff00ff;">Magenta</span> = Dynamic bodies</p>
   </div>
 
   <script type="module" src="./main-with-physics.js"></script>

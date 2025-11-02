@@ -1,4 +1,5 @@
 import * as CANNON from 'cannon-es';
+import * as THREE from 'three';
 import EventEmitter from 'eventemitter3';
 
 /**
@@ -14,6 +15,7 @@ export class PhysicsManager extends EventEmitter {
       gravity: config.gravity !== undefined ? config.gravity : -9.82,
       iterations: config.iterations || 10,
       tolerance: config.tolerance || 0.001,
+      debug: config.debug || false, // ✅ NEW: Debug visualization
       ...config
     };
 
@@ -27,6 +29,11 @@ export class PhysicsManager extends EventEmitter {
     this.physicsBodies = new Map(); // entity.id -> body
 
     this.isEnabled = true;
+
+    // ✅ NEW: Debug visualization
+    this.debugEnabled = this.config.debug;
+    this.debugMeshes = new Map(); // body.id -> debug mesh
+    this.debugScene = null; // Will be set by engine
 
     this._initialize();
   }
@@ -84,6 +91,11 @@ export class PhysicsManager extends EventEmitter {
     this.world.addBody(body);
     this.bodies.set(body.id, body);
 
+    // ✅ NEW: Create debug mesh if debug is enabled
+    if (this.debugEnabled) {
+      this.createDebugMesh(body);
+    }
+
     return body;
   }
 
@@ -111,6 +123,11 @@ export class PhysicsManager extends EventEmitter {
 
     this.world.addBody(body);
     this.bodies.set(body.id, body);
+
+    // ✅ NEW: Create debug mesh if debug is enabled
+    if (this.debugEnabled) {
+      this.createDebugMesh(body);
+    }
 
     return body;
   }
@@ -143,6 +160,11 @@ export class PhysicsManager extends EventEmitter {
     this.world.addBody(body);
     this.bodies.set(body.id, body);
 
+    // ✅ NEW: Create debug mesh if debug is enabled
+    if (this.debugEnabled) {
+      this.createDebugMesh(body);
+    }
+
     return body;
   }
 
@@ -166,6 +188,11 @@ export class PhysicsManager extends EventEmitter {
 
     this.world.addBody(body);
     this.bodies.set(body.id, body);
+
+    // ✅ NEW: Create debug mesh if debug is enabled
+    if (this.debugEnabled) {
+      this.createDebugMesh(body);
+    }
 
     return body;
   }
@@ -261,6 +288,9 @@ export class PhysicsManager extends EventEmitter {
   removeBody(body) {
     if (!body) return;
 
+    // ✅ NEW: Remove debug mesh
+    this.removeDebugMesh(body);
+
     this.world.removeBody(body);
     this.bodies.delete(body.id);
   }
@@ -291,6 +321,11 @@ export class PhysicsManager extends EventEmitter {
 
     // Sync entity positions with physics bodies
     this.syncEntities();
+
+    // ✅ NEW: Update debug visualization
+    if (this.debugEnabled) {
+      this.updateDebugVisualization();
+    }
 
     this.emit('updated', { deltaTime });
   }
@@ -500,9 +535,156 @@ export class PhysicsManager extends EventEmitter {
   }
 
   /**
+   * Set the Three.js scene for debug visualization
+   * ✅ NEW: Called by GameEngine
+   */
+  setDebugScene(scene) {
+    this.debugScene = scene;
+  }
+
+  /**
+   * Enable debug visualization
+   * ✅ NEW: Shows wireframes for all physics bodies
+   */
+  enableDebug() {
+    this.debugEnabled = true;
+    
+    // Create debug meshes for existing bodies
+    for (const body of this.bodies.values()) {
+      this.createDebugMesh(body);
+    }
+    
+    console.log('🔍 Physics debug visualization enabled');
+  }
+
+  /**
+   * Disable debug visualization
+   * ✅ NEW
+   */
+  disableDebug() {
+    this.debugEnabled = false;
+    
+    // Remove all debug meshes
+    for (const [bodyId, debugMesh] of this.debugMeshes) {
+      if (this.debugScene) {
+        this.debugScene.remove(debugMesh);
+      }
+    }
+    this.debugMeshes.clear();
+    
+    console.log('🔍 Physics debug visualization disabled');
+  }
+
+  /**
+   * Toggle debug visualization
+   * ✅ NEW
+   */
+  toggleDebug() {
+    if (this.debugEnabled) {
+      this.disableDebug();
+    } else {
+      this.enableDebug();
+    }
+  }
+
+  /**
+   * Create debug mesh for a physics body
+   * ✅ NEW: Creates wireframe visualization
+   */
+  createDebugMesh(body) {
+    if (!this.debugScene || !this.debugEnabled) return;
+
+    // Skip if already has debug mesh
+    if (this.debugMeshes.has(body.id)) return;
+
+    let geometry;
+    const shape = body.shapes[0]; // Get first shape
+
+    if (!shape) return;
+
+    // Create geometry based on shape type
+    if (shape instanceof CANNON.Box) {
+      const halfExtents = shape.halfExtents;
+      geometry = new THREE.BoxGeometry(
+        halfExtents.x * 2,
+        halfExtents.y * 2,
+        halfExtents.z * 2
+      );
+    } else if (shape instanceof CANNON.Sphere) {
+      geometry = new THREE.SphereGeometry(shape.radius, 16, 12);
+    } else if (shape instanceof CANNON.Cylinder) {
+      geometry = new THREE.CylinderGeometry(
+        shape.radiusTop,
+        shape.radiusBottom,
+        shape.height,
+        16
+      );
+    } else if (shape instanceof CANNON.Plane) {
+      geometry = new THREE.PlaneGeometry(100, 100);
+    } else {
+      // Default box for unknown shapes
+      geometry = new THREE.BoxGeometry(1, 1, 1);
+    }
+
+    // Create wireframe material
+    const material = new THREE.MeshBasicMaterial({
+      color: body.mass === 0 ? 0x00ff00 : 0xff00ff, // Green for static, Magenta for dynamic
+      wireframe: true,
+      transparent: true,
+      opacity: 0.5
+    });
+
+    const debugMesh = new THREE.Mesh(geometry, material);
+    
+    // Set initial position and rotation
+    debugMesh.position.copy(body.position);
+    debugMesh.quaternion.copy(body.quaternion);
+
+    this.debugScene.add(debugMesh);
+    this.debugMeshes.set(body.id, debugMesh);
+  }
+
+  /**
+   * Update debug visualization
+   * ✅ NEW: Syncs debug meshes with physics bodies
+   */
+  updateDebugVisualization() {
+    if (!this.debugEnabled || !this.debugScene) return;
+
+    for (const body of this.bodies.values()) {
+      let debugMesh = this.debugMeshes.get(body.id);
+      
+      // Create debug mesh if it doesn't exist
+      if (!debugMesh) {
+        this.createDebugMesh(body);
+        debugMesh = this.debugMeshes.get(body.id);
+      }
+
+      // Update position and rotation
+      if (debugMesh) {
+        debugMesh.position.copy(body.position);
+        debugMesh.quaternion.copy(body.quaternion);
+      }
+    }
+  }
+
+  /**
+   * Remove debug mesh for a body
+   * ✅ NEW
+   */
+  removeDebugMesh(body) {
+    const debugMesh = this.debugMeshes.get(body.id);
+    if (debugMesh && this.debugScene) {
+      this.debugScene.remove(debugMesh);
+      this.debugMeshes.delete(body.id);
+    }
+  }
+
+  /**
    * Dispose physics manager
    */
   dispose() {
+    this.disableDebug();
     this.clear();
     this.world = null;
     this.removeAllListeners();

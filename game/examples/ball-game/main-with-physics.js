@@ -197,9 +197,16 @@ class PhysicsBallScene extends GameScene {
   update(deltaTime, elapsedTime) {
     super.update(deltaTime, elapsedTime);
 
+    const input = this.engine.inputManager;
+
+    // ✅ NEW: Toggle physics debug with 'P' key
+    if (input.isKeyPressed('KeyP')) {
+      this.engine.physicsManager.toggleDebug();
+      this.updateDebugUI();
+    }
+
     // Control ball with WASD using forces (physics-based)
     if (this.player && this.player.physicsBody) {
-      const input = this.engine.inputManager;
       const force = 20; // Force strength
       
       let forceX = 0;
@@ -276,6 +283,15 @@ class PhysicsBallScene extends GameScene {
       velocityEl.textContent = speed.toFixed(1);
     }
   }
+
+  updateDebugUI() {
+    const debugStatusEl = document.getElementById('debug-status');
+    if (debugStatusEl) {
+      const isEnabled = this.engine.physicsManager.debugEnabled;
+      debugStatusEl.textContent = isEnabled ? 'ON' : 'OFF';
+      debugStatusEl.style.color = isEnabled ? '#00ff88' : '#ff6b6b';
+    }
+  }
 }
 
 /**
@@ -289,7 +305,8 @@ function initGame() {
     physics: true, // ✅ PHYSICS ENABLED! (NaN bug is fixed)
     physicsConfig: {
       gravity: -20,
-      iterations: 10
+      iterations: 10,
+      debug: false  // Start with debug OFF, press P to toggle
     }
   });
 
@@ -298,7 +315,7 @@ function initGame() {
 
   console.log('🎮 Physics Ball Game started!');
   console.log('✅ Using real physics engine (NaN bug fixed!)');
-  console.log('🎮 Controls: WASD to push ball');
+  console.log('🎮 Controls: WASD to push ball, P to toggle debug');
 }
 
 window.addEventListener('DOMContentLoaded', initGame);

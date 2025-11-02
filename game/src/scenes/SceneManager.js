@@ -62,6 +62,11 @@ export class SceneManager extends EventEmitter {
       // Load scene
       await newScene.load();
 
+      // ✅ NEW: Connect physics debug visualization to scene
+      if (this.engine.physicsManager && newScene.threeScene) {
+        this.engine.physicsManager.setDebugScene(newScene.threeScene);
+      }
+
       // Enter new scene
       newScene.onEnter(data);
 
