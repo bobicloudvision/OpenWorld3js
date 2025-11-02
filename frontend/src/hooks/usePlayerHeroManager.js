@@ -92,9 +92,9 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
     console.log('[usePlayerHeroManager] Socket ready and player authenticated, fetching heroes')
     hasFetchedHeroesRef.current = true
     
-    setLoadingHeroes(true)
-    socket.emit('get:player:heroes')
-    socket.emit('get:heroes:available')
+      setLoadingHeroes(true)
+      socket.emit('get:player:heroes')
+      socket.emit('get:heroes:available')
   }, [socketReady, player?.id, socketRef])
 
   // Set up socket event listeners for player and hero updates

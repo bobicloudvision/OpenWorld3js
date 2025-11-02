@@ -341,9 +341,14 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
                 keyboardMap={keyboardMap}
                 activeHero={activeHero}
                 player={player}
+                playerHeroes={playerHeroes}
                 socket={socketRef.current}
                 currentZone={currentZone}
+                showHeroSwitcher={showHeroSwitcher}
+                onShowHeroSwitcherChange={setShowHeroSwitcher}
                 onOpenHeroSelection={() => setShowHeroSelection(true)}
+                onHeroSelected={handleHeroSelected}
+                onHeroesUpdate={setPlayerHeroes}
                 onHeroStatsUpdate={(heroId, stats) => {
                   // Update hero stats in real-time during combat
                   updateHeroStats(heroId, stats);

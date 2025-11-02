@@ -18,18 +18,24 @@ import MagicPalette from './MagicPalette'
 import { KeyboardShapeCreator } from './KeyboardShapeCreator'
 import { MaterialPalette } from './MaterialPalette'
 import Chat from './Chat'
+import HeroSwitcherModal from './HeroSwitcherModal'
 import { addVfx } from '../stores/effectsStore'
 
 export default function GameplayScene({ 
   playerPositionRef, 
   keyboardMap, 
   activeHero,
-  onOpenHeroSelection,
-  onHeroStatsUpdate,
-  socket,
   player,
-  onReturnToLobby,
+  playerHeroes,
+  socket,
   currentZone,
+  showHeroSwitcher,
+  onShowHeroSwitcherChange,
+  onOpenHeroSelection,
+  onHeroSelected,
+  onHeroesUpdate,
+  onHeroStatsUpdate,
+  onReturnToLobby,
   skipAutoJoinCombat
 }) {
   const mapFilePath = React.useMemo(() => 
@@ -234,6 +240,18 @@ export default function GameplayScene({
       {/* <MaterialPalette /> */}
 
       <Chat socket={socket} currentPlayerId={player?.id} />
+      
+      {/* Hero Switcher Modal */}
+      {showHeroSwitcher && (
+        <HeroSwitcherModal
+          player={player}
+          playerHeroes={playerHeroes}
+          socket={socket}
+          onHeroSelected={onHeroSelected}
+          onHeroesUpdate={onHeroesUpdate}
+          onClose={() => onShowHeroSwitcherChange && onShowHeroSwitcherChange(false)}
+        />
+      )}
       
       {/* <EcctrlJoystick /> */}
       <Canvas 
