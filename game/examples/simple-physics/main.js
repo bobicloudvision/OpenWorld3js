@@ -33,9 +33,8 @@ class SimplePhysicsScene extends PhysicsScene {
       castShadow: true
     });
     
-    // Set position
+    // Set position (auto-syncs mesh!)
     this.player.setPosition(0, 2, 0);
-    this.player.mesh.position.set(0, 2, 0);  // Sync mesh position!
     
     this.addEntity(this.player);
 
@@ -62,11 +61,11 @@ class SimplePhysicsScene extends PhysicsScene {
       });
       
       const angle = (i / 5) * Math.PI * 2;
-      cube.setPosition(
-        Math.cos(angle) * 10,
-        5 + i * 2,
-        Math.sin(angle) * 10
-      );
+      const x = Math.cos(angle) * 10;
+      const y = 5 + i * 2;
+      const z = Math.sin(angle) * 10;
+      
+      cube.setPosition(x, y, z);  // Auto-syncs mesh!
       
       this.addEntity(cube);
       
@@ -122,11 +121,7 @@ class SimplePhysicsScene extends PhysicsScene {
       this.jumpActor(this.player, 80);
     }
 
-    // Sync visual with physics
-    this.player.syncPhysicsToVisual();
-    
-    // Sync cubes
-    this.cubes.forEach(cube => cube.syncPhysicsToVisual());
+    // ✅ NO SYNC NEEDED! Auto-syncs in Actor.update()
   }
 
   handleToggles() {
@@ -162,11 +157,11 @@ class SimplePhysicsScene extends PhysicsScene {
         castShadow: true
       });
       
-      cube.setPosition(
-        this.player.position.x,
-        this.player.position.y + 5,
-        this.player.position.z
-      );
+      const x = this.player.position.x;
+      const y = this.player.position.y + 5;
+      const z = this.player.position.z;
+      
+      cube.setPosition(x, y, z);  // Auto-syncs mesh!
       
       this.addEntity(cube);
       

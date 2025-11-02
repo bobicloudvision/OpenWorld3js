@@ -44,8 +44,18 @@ export class Actor extends Entity {
   update(deltaTime, elapsedTime) {
     super.update(deltaTime, elapsedTime);
 
-    // Apply velocity to position
-    this.position.addScaledVector(this.velocity, deltaTime);
+    // ✅ AUTO-SYNC: If physics is enabled, sync physics → visual
+    if (this.physicsEnabled && this.physicsBody) {
+      this.syncPhysicsToVisual();
+    } else {
+      // No physics - apply velocity to position manually
+      this.position.addScaledVector(this.velocity, deltaTime);
+      
+      // Auto-sync mesh position
+      if (this.mesh) {
+        this.mesh.position.copy(this.position);
+      }
+    }
 
     // Update moving state
     this.isMoving = this.velocity.lengthSq() > 0.01;

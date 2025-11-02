@@ -158,6 +158,12 @@ export class Entity extends EventEmitter {
     } else {
       this.position.set(x, y, z);
     }
+    
+    // Auto-sync mesh position if mesh exists
+    if (this.mesh) {
+      this.mesh.position.copy(this.position);
+    }
+    
     this.emit('positionChanged', this.position);
   }
 

@@ -19,7 +19,7 @@ class BallGameScene extends PhysicsScene {  // ← Simplified!
     this.camera = null;
     this.score = 0;
     this.goals = [];
-    this.pushForce = 15;
+    this.pushForce = 25;  // Stronger push force!
   }
 
   async load() {
@@ -32,13 +32,13 @@ class BallGameScene extends PhysicsScene {  // ← Simplified!
       shape: 'sphere',
       color: 0xff4444,
       size: { width: 1 },  // radius
-      mass: 1,
+      mass: 0.5,  // Lighter = easier to push!
       speed: 0
     });
 
     // Custom damping for rolling ball
-    this.ball.physicsBody.linearDamping = 0.3;
-    this.ball.physicsBody.angularDamping = 0.1;
+    this.ball.physicsBody.linearDamping = 0.2;  // Less damping = more responsive
+    this.ball.physicsBody.angularDamping = 0.05;
 
     // ⚡ ONE LINE - Walls around arena!
     this.addWalls({ size: 50, height: 3 });
@@ -133,10 +133,7 @@ class BallGameScene extends PhysicsScene {  // ← Simplified!
       this.pushActor(this.ball, dir, this.pushForce);
     }
 
-    // Sync visual with physics
-    this.ball.position.copy(body.position);
-    this.ball.mesh.position.copy(body.position);
-    this.ball.mesh.quaternion.copy(body.quaternion);
+    // ✅ NO SYNC NEEDED! Auto-syncs in Actor.update()
 
     // Reset if ball falls off
     if (body.position.y < -10) {
