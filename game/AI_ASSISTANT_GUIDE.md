@@ -352,11 +352,300 @@ this.entity.broadcastMessage('alert', player);
 
 ---
 
+## Project Architecture & File Organization
+
+### Recommended Project Structure
+
+For clean, maintainable games, organize your project into separate files:
+
+```
+your-game/
+├── components/          # Reusable component behaviors
+│   ├── PlayerController.js
+│   ├── EnemyAI.js
+│   ├── HealthComponent.js
+│   └── CollectibleComponent.js
+│
+├── systems/            # Game-wide systems (managers)
+│   ├── GameManager.js
+│   ├── SpawnManager.js
+│   └── ScoreManager.js
+│
+├── scenes/             # Scene definitions
+│   ├── MainMenuScene.js
+│   ├── GameScene.js
+│   └── GameOverScene.js
+│
+├── prefabs/            # Prefab definitions (optional)
+│   ├── EnemyPrefabs.js
+│   └── PowerUpPrefabs.js
+│
+├── main.js             # Entry point
+├── index.html          # HTML page
+└── README.md           # Documentation
+```
+
+### Component Files
+
+Each component should be in its own file and export a single class:
+
+**components/PlayerController.js**
+```javascript
+import { Component } from '../../../src/index.js';
+
+export class PlayerController extends Component {
+  constructor(config = {}) {
+    super();
+    this.speed = config.speed || 5;
+    this.jumpForce = config.jumpForce || 10;
+  }
+
+  update(deltaTime) {
+    const input = this.entity.scene.engine.inputManager;
+    
+    if (input.isKeyDown('KeyW')) {
+      this.entity.velocity.z = -this.speed;
+    }
+    if (input.isKeyDown('Space')) {
+      this.jump();
+    }
+  }
+
+  jump() {
+    if (this.isGrounded) {
+      this.entity.velocity.y = this.jumpForce;
+    }
+  }
+}
+```
+
+### System Files
+
+Systems are components that manage game-wide state:
+
+**systems/GameManager.js**
+```javascript
+import { Component } from '../../../src/index.js';
+
+export class GameManager extends Component {
+  constructor(config = {}) {
+    super();
+    this.score = 0;
+    this.gameSpeed = 10;
+    this.isGameOver = false;
+  }
+
+  start() {
+    // Set up event listeners
+    const player = this.entity.scene.findWithTag('player');
+    player.on('died', () => this.gameOver());
+  }
+
+  update(deltaTime) {
+    if (this.isGameOver) return;
+    
+    // Update game state
+    this.score += deltaTime * 10;
+    this.updateUI();
+  }
+
+  updateUI() {
+    document.getElementById('score').textContent = Math.floor(this.score);
+  }
+
+  gameOver() {
+    this.isGameOver = true;
+    // Show game over screen
+  }
+}
+```
+
+### Scene Files
+
+Scenes compose GameObjects and components together:
+
+**scenes/GameScene.js**
+```javascript
+import { GameScene, GameObjectFactory } from '../../../src/index.js';
+import { PlayerController } from '../components/PlayerController.js';
+import { EnemyAI } from '../components/EnemyAI.js';
+import { GameManager } from '../systems/GameManager.js';
+
+export class MyGameScene extends GameScene {
+  constructor(engine) {
+    super(engine);
+    this.name = 'MyGame';
+    this.backgroundColor = 0x87CEEB;
+  }
+
+  async load() {
+    // Setup lighting
+    this.ambientLight.intensity = 0.6;
+    this.directionalLight.position.set(10, 20, 10);
+    
+    // Create player
+    const player = GameObjectFactory.createCapsule({
+      name: 'Player',
+      color: 0x0000ff
+    });
+    player.addTag('player');
+    player.setPosition(0, 1, 0);
+    player.addComponent(PlayerController, { speed: 8 });
+    this.addEntity(player);
+    
+    // Create game manager
+    const gameManager = GameObjectFactory.createEmpty({ name: 'GameManager' });
+    gameManager.addComponent(GameManager);
+    this.addEntity(gameManager);
+    
+    await super.load();
+  }
+}
+```
+
+### Main Entry Point
+
+Keep the main file clean and simple:
+
+**main.js**
+```javascript
+import { GameEngine } from '../../src/index.js';
+import { MyGameScene } from './scenes/GameScene.js';
+
+// Initialize and start
+const engine = new GameEngine({ physics: false });
+engine.start();
+engine.loadScene(MyGameScene);
+
+console.log('Game Started!');
+```
+
+### Why This Architecture?
+
+**Benefits:**
+- ✅ **Modularity**: Each file has one clear responsibility
+- ✅ **Reusability**: Components can be used across projects
+- ✅ **Maintainability**: Easy to find and fix bugs
+- ✅ **Scalability**: Simple to add new features
+- ✅ **Team Collaboration**: Multiple developers can work without conflicts
+- ✅ **Testing**: Components can be tested independently
+
+**Example: Adding a New Feature**
+
+Want to add power-ups? Just create a new component file:
+
+```javascript
+// components/PowerUpComponent.js
+export class PowerUpComponent extends Component {
+  activate(player) {
+    // Power-up logic here
+  }
+}
+```
+
+No need to modify existing files!
+
+### Component Communication Between Files
+
+**Method 1: Events (Recommended)**
+```javascript
+// In HealthComponent.js
+this.emit('died');
+
+// In GameManager.js
+const health = player.getComponent(HealthComponent);
+health.on('died', () => this.gameOver());
+```
+
+**Method 2: Scene Queries**
+```javascript
+// Any component can find objects
+const player = this.entity.scene.findWithTag('player');
+const enemies = this.entity.scene.findGameObjectsWithTag('enemy');
+```
+
+**Method 3: Direct Component Access**
+```javascript
+// Get component from same GameObject
+const health = this.getComponent(HealthComponent);
+
+// Get component from another GameObject
+const player = this.entity.scene.findWithTag('player');
+const playerHealth = player.getComponent(HealthComponent);
+```
+
+### Real-World Example: Endless Runner
+
+See `examples/endless-runner/` for a complete modular game:
+
+```
+endless-runner/
+├── components/
+│   ├── PlayerController.js       (85 lines)
+│   ├── CameraFollowComponent.js  (42 lines)
+│   ├── CollisionDetector.js      (44 lines)
+│   └── RotateComponent.js        (17 lines)
+├── systems/
+│   ├── GameManager.js            (70 lines)
+│   └── TrackGenerator.js         (157 lines)
+├── scenes/
+│   └── EndlessRunnerScene.js     (50 lines)
+└── main.js                       (35 lines)
+```
+
+**Compare to monolithic:**
+- ❌ Single file: 473 lines - hard to maintain
+- ✅ Modular: 8 files averaging 62 lines each - easy to understand
+
+### Prefab Organization
+
+For complex prefabs, use dedicated files:
+
+**prefabs/EnemyPrefabs.js**
+```javascript
+import { GameObjectFactory, PrefabManager } from '../../../src/index.js';
+import { EnemyAI } from '../components/EnemyAI.js';
+import { HealthComponent } from '../components/HealthComponent.js';
+
+export function registerEnemyPrefabs() {
+  PrefabManager.register('FastEnemy', () => {
+    const enemy = GameObjectFactory.createCube({ color: 0xff0000 });
+    enemy.addTag('enemy');
+    enemy.addComponent(HealthComponent, { maxHealth: 30 });
+    enemy.addComponent(EnemyAI, { speed: 10, aggressive: true });
+    return enemy;
+  });
+
+  PrefabManager.register('TankEnemy', () => {
+    const enemy = GameObjectFactory.createCube({ color: 0x880000 });
+    enemy.addTag('enemy');
+    enemy.addComponent(HealthComponent, { maxHealth: 100 });
+    enemy.addComponent(EnemyAI, { speed: 3, aggressive: false });
+    return enemy;
+  });
+}
+
+// In main.js or scene
+import { registerEnemyPrefabs } from './prefabs/EnemyPrefabs.js';
+registerEnemyPrefabs();
+```
+
+---
+
 ## Best Practices for AI Assistants
 
 ### ✅ DO
 
-1. **Always use GameObjectFactory or builder pattern**
+1. **Organize games into modular file structure**
+   ```
+   your-game/
+   ├── components/     # One component per file
+   ├── systems/        # Game managers
+   ├── scenes/         # Scene definitions
+   └── main.js         # Entry point
+   ```
+
+2. **Always use GameObjectFactory or builder pattern**
    ```javascript
    const obj = GameObjectFactory.builder()
      .name('MyObject')
@@ -364,12 +653,12 @@ this.entity.broadcastMessage('alert', player);
      .build();
    ```
 
-2. **Use GameScene instead of Scene**
+3. **Use GameScene instead of Scene**
    ```javascript
    class MyGame extends GameScene { }
    ```
 
-3. **Components should accept config objects**
+4. **Components should accept config objects**
    ```javascript
    constructor(config = {}) {
      super();
@@ -377,19 +666,25 @@ this.entity.broadcastMessage('alert', player);
    }
    ```
 
-4. **Use tags for querying**
+5. **Export components from their own files**
+   ```javascript
+   // components/PlayerController.js
+   export class PlayerController extends Component { ... }
+   ```
+
+6. **Use tags for querying**
    ```javascript
    player.addTag('player');
    const player = scene.findWithTag('player');
    ```
 
-5. **Use Prefabs for reusable objects**
+7. **Use Prefabs for reusable objects**
    ```javascript
    PrefabManager.register('Enemy', () => { ... });
    const enemy = PrefabManager.instantiate('Enemy');
    ```
 
-6. **Always call `super.load()` in scene load**
+8. **Always call `super.load()` in scene load**
    ```javascript
    async load() {
      // Your code
@@ -397,17 +692,24 @@ this.entity.broadcastMessage('alert', player);
    }
    ```
 
+9. **Keep files small and focused (< 100 lines when possible)**
+   - One component = one file
+   - One scene = one file
+   - Group related prefabs in one file
+
 ### ❌ DON'T
 
-1. **Don't use Actor/Entity directly** - Use GameObject instead
-2. **Don't use Scene directly** - Use GameScene instead
-3. **Don't enable physics** - It's currently broken (causes NaN positions)
-4. **Don't use ThirdPersonCamera.update()** - It's broken (causes NaN camera positions)
-5. **Don't create GameObjects without adding to scene**
+1. **Don't create monolithic single-file games** - Split into components/systems/scenes
+2. **Don't use Actor/Entity directly** - Use GameObject instead
+3. **Don't use Scene directly** - Use GameScene instead
+4. **Don't enable physics** - It's currently broken (causes NaN positions)
+5. **Don't use ThirdPersonCamera.update()** - It's broken (causes NaN camera positions)
+6. **Don't create GameObjects without adding to scene**
    ```javascript
    const obj = GameObjectFactory.createCube();
    scene.addEntity(obj); // Required!
    ```
+7. **Don't put all code in main.js** - Extract components to separate files
 
 ---
 
@@ -565,21 +867,44 @@ console.log('Game Started!');
 
 When helping users build games with **OpenWorld3D**:
 
-1. **Use GameObject-Component architecture** (like Unity)
-2. **Create objects with GameObjectFactory.builder()**
-3. **Components handle behavior** (movement, health, AI, etc.)
-4. **GameScene manages objects** (with Find/FindWithTag queries)
-5. **Prefabs for reusable objects**
-6. **Avoid physics and ThirdPersonCamera** (currently broken)
-7. **Always use config objects in component constructors**
-8. **Use tags for easy object finding**
+### Core Principles
 
-**Key Pattern:**
+1. **Use GameObject-Component architecture** (like Unity)
+2. **Organize into modular file structure** (components/, systems/, scenes/)
+3. **One component per file** - Keep files small and focused
+4. **Create objects with GameObjectFactory.builder()**
+5. **Components handle behavior** (movement, health, AI, etc.)
+6. **GameScene manages objects** (with Find/FindWithTag queries)
+7. **Prefabs for reusable objects**
+8. **Avoid physics and ThirdPersonCamera** (currently broken)
+9. **Always use config objects in component constructors**
+10. **Use tags for easy object finding**
+
+### Key Pattern
+
 ```
 GameObject (container) + Components (behavior) = Game Object
 Scene (manages) → multiple GameObjects
 Engine (runs) → Scenes
 ```
+
+### File Organization Pattern
+
+```
+your-game/
+├── components/          # Reusable behaviors (one per file)
+├── systems/            # Game managers
+├── scenes/             # Scene compositions
+└── main.js             # Clean entry point
+```
+
+### Architecture Benefits
+
+✅ **Modular** - Easy to understand and modify
+✅ **Reusable** - Components work across projects
+✅ **Scalable** - Simple to add features
+✅ **Maintainable** - Find bugs quickly
+✅ **Professional** - Industry-standard patterns
 
 This architecture makes games organized, maintainable, and familiar to Unity developers! 🎮
 
