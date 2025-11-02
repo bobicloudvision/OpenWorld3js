@@ -70,11 +70,21 @@ export class PhysicsManager extends EventEmitter {
       mass = 1,
       position = { x: 0, y: 0, z: 0 },
       rotation = { x: 0, y: 0, z: 0 },
-      material = null
+      material = null,
+      restitution = 0.3,  // ✅ Bounciness
+      friction = 0.3      // ✅ Friction
     } = options;
 
+    // Create material if not provided but restitution/friction specified
+    let bodyMaterial = material;
+    if (!bodyMaterial) {
+      bodyMaterial = new CANNON.Material();
+      bodyMaterial.restitution = restitution;
+      bodyMaterial.friction = friction;
+    }
+
     const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
-    const body = new CANNON.Body({ mass, material });
+    const body = new CANNON.Body({ mass, material: bodyMaterial });
     
     // Explicitly set body type based on mass
     if (mass > 0) {
@@ -107,11 +117,21 @@ export class PhysicsManager extends EventEmitter {
       radius = 1,
       mass = 1,
       position = { x: 0, y: 0, z: 0 },
-      material = null
+      material = null,
+      restitution = 0.3,  // ✅ Bounciness
+      friction = 0.3      // ✅ Friction
     } = options;
 
+    // Create material if not provided but restitution/friction specified
+    let bodyMaterial = material;
+    if (!bodyMaterial) {
+      bodyMaterial = new CANNON.Material();
+      bodyMaterial.restitution = restitution;
+      bodyMaterial.friction = friction;
+    }
+
     const shape = new CANNON.Sphere(radius);
-    const body = new CANNON.Body({ mass, material });
+    const body = new CANNON.Body({ mass, material: bodyMaterial });
     
     // Explicitly set body type based on mass
     if (mass > 0) {
@@ -143,11 +163,21 @@ export class PhysicsManager extends EventEmitter {
       numSegments = 8,
       mass = 1,
       position = { x: 0, y: 0, z: 0 },
-      material = null
+      material = null,
+      restitution = 0.3,  // ✅ Bounciness
+      friction = 0.3      // ✅ Friction
     } = options;
 
+    // Create material if not provided but restitution/friction specified
+    let bodyMaterial = material;
+    if (!bodyMaterial) {
+      bodyMaterial = new CANNON.Material();
+      bodyMaterial.restitution = restitution;
+      bodyMaterial.friction = friction;
+    }
+
     const shape = new CANNON.Cylinder(radiusTop, radiusBottom, height, numSegments);
-    const body = new CANNON.Body({ mass, material });
+    const body = new CANNON.Body({ mass, material: bodyMaterial });
     
     // Explicitly set body type based on mass
     if (mass > 0) {
@@ -176,11 +206,21 @@ export class PhysicsManager extends EventEmitter {
       mass = 0, // Static by default
       position = { x: 0, y: 0, z: 0 },
       rotation = { x: -Math.PI / 2, y: 0, z: 0 },
-      material = null
+      material = null,
+      restitution = 0.3,  // ✅ Bounciness
+      friction = 0.3      // ✅ Friction
     } = options;
 
+    // Create material if not provided but restitution/friction specified
+    let bodyMaterial = material;
+    if (!bodyMaterial) {
+      bodyMaterial = new CANNON.Material();
+      bodyMaterial.restitution = restitution;
+      bodyMaterial.friction = friction;
+    }
+
     const shape = new CANNON.Plane();
-    const body = new CANNON.Body({ mass, material });
+    const body = new CANNON.Body({ mass, material: bodyMaterial });
     
     body.addShape(shape);
     body.position.set(position.x, position.y, position.z);

@@ -49,10 +49,12 @@ export class PhysicsBallScene extends GameScene {
     ground.receiveShadow = true;
     this.threeScene.add(ground);
 
-    // Ground physics
+    // Ground physics - needs restitution for ball to bounce!
     this.engine.physicsManager.createPlane({
       position: { x: 0, y: 0, z: 0 },
-      mass: 0
+      mass: 0,
+      restitution: 0.6,  // ✅ Bouncy ground
+      friction: 0.5
     });
   }
 
@@ -81,13 +83,15 @@ export class PhysicsBallScene extends GameScene {
       mesh.castShadow = true;
       this.threeScene.add(mesh);
 
-      // Physics
+      // Physics - walls need restitution too!
       this.engine.physicsManager.createBox({
         width: wall.width,
         height: height,
         depth: wall.depth,
         position: { x: wall.x, y: height / 2, z: wall.z },
-        mass: 0
+        mass: 0,
+        restitution: 0.5,  // ✅ Bouncy walls
+        friction: 0.3
       });
     });
   }
