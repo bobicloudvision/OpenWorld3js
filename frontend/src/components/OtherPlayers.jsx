@@ -146,8 +146,9 @@ function OtherPlayer({ otherPlayer }) {
  * Main component that manages all other players
  * @param {Object} socket - The socket.io instance
  * @param {number} currentPlayerId - The current player's ID to exclude from rendering
+ * @param {number} currentZoneId - The current zone ID for validation
  */
-export default function OtherPlayers({ socket, currentPlayerId }) {
+export default function OtherPlayers({ socket, currentPlayerId, currentZoneId }) {
   const [otherPlayers, setOtherPlayers] = useState(new Map()) // playerId -> playerData (includes socketId)
   const playerLastUpdateRef = useRef(new Map()) // Track last update time for each player (by playerId)
   
@@ -180,7 +181,14 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
     // Handle new player joining
     const handlePlayerJoined = (playerData) => {
       if (playerData.playerId === currentPlayerId || !playerData.playerId) return
-      console.log(`[OtherPlayers] Player joined: ${playerData.playerId} (${playerData.name || 'Unknown'})`)
+      
+      // Zone validation: Ensure player is in the correct zone
+      if (currentZoneId && playerData.zoneId && playerData.zoneId !== currentZoneId) {
+        console.warn(`[OtherPlayers] ⚠️ Received player:joined for wrong zone! Current: ${currentZoneId}, Received: ${playerData.zoneId} (Player ${playerData.playerId})`)
+        return // Ignore players from other zones
+      }
+      
+      console.log(`[OtherPlayers] Player joined: ${playerData.playerId} (${playerData.name || 'Unknown'}) in zone ${playerData.zoneId}`)
       setOtherPlayers(prev => {
         // If player already exists, merge data and update socketId (for reconnections)
         // If not, add as new player
@@ -208,10 +216,20 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
     }
     
     // Handle player position updates
-    const handlePositionChanged = ({ socketId, playerId: incomingPlayerId, position, rotation }) => {
+    const handlePositionChanged = ({ socketId, playerId: incomingPlayerId, zoneId, position, rotation }) => {
+      // Zone validation: Ensure position update is from the correct zone
+      if (currentZoneId && zoneId && zoneId !== currentZoneId) {
+        if (!handlePositionChanged._warnedZones) handlePositionChanged._warnedZones = new Set()
+        if (!handlePositionChanged._warnedZones.has(incomingPlayerId)) {
+          console.warn(`[OtherPlayers] ⚠️ Received position update from wrong zone! Current: ${currentZoneId}, Received: ${zoneId} (Player ${incomingPlayerId})`)
+          handlePositionChanged._warnedZones.add(incomingPlayerId)
+        }
+        return // Ignore position updates from other zones
+      }
+      
       // Log first position update for debugging (throttled)
       if (!handlePositionChanged._lastLog || Date.now() - handlePositionChanged._lastLog > 5000) {
-        console.log(`[OtherPlayers] Position update - playerId: ${incomingPlayerId}, socketId: ${socketId?.substring(0, 6)}`)
+        console.log(`[OtherPlayers] Position update - playerId: ${incomingPlayerId}, zoneId: ${zoneId}, socketId: ${socketId?.substring(0, 6)}`)
         handlePositionChanged._lastLog = Date.now()
       }
       
@@ -365,28 +383,60 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
     }
   }, [socket, currentPlayerId])
   
+  // Zone change cleanup: Remove players when zone changes (but not on initial load)
+  const previousZoneIdRef = useRef(null)
+  
+  useEffect(() => {
+    if (!currentZoneId) return
+    
+    // Only clear if zone actually CHANGED (not initial load)
+    if (previousZoneIdRef.current !== null && previousZoneIdRef.current !== currentZoneId) {
+      console.log(`[OtherPlayers] Zone changed from ${previousZoneIdRef.current} to ${currentZoneId}, clearing player list`)
+      setOtherPlayers(new Map())
+      playerLastUpdateRef.current.clear()
+    } else if (previousZoneIdRef.current === null) {
+      console.log(`[OtherPlayers] Initial zone set to ${currentZoneId}, keeping players from zone join`)
+    }
+    
+    // Update previous zone
+    previousZoneIdRef.current = currentZoneId
+  }, [currentZoneId])
+  
   // Keep-alive mechanism: periodically check for stale players and refresh list
   useEffect(() => {
-    if (!socket) return
+    if (!socket || !currentZoneId) return
     
     const KEEP_ALIVE_INTERVAL = 30000 // 30 seconds - check for stale players
     const REFRESH_INTERVAL = 60000 // 60 seconds - refresh full player list
     const STALE_THRESHOLD = 60000 // 60 seconds - consider player stale if no update
+    const ZONE_VALIDATION_INTERVAL = 15000 // 15 seconds - validate zone consistency
     
-    // Check for stale players periodically
+    // Check for stale players and zone consistency periodically
     const keepAliveInterval = setInterval(() => {
       const now = Date.now()
       setOtherPlayers(prev => {
         const updated = new Map(prev)
         let hasChanges = false
         
-        // Remove stale players (by playerId)
-        for (const [playerId, lastUpdate] of playerLastUpdateRef.current.entries()) {
+        // Remove stale players and players from wrong zones
+        for (const [playerId, playerData] of updated.entries()) {
+          const lastUpdate = playerLastUpdateRef.current.get(playerId) || 0
+          
+          // Remove stale players (no update in a while)
           if (now - lastUpdate > STALE_THRESHOLD) {
             updated.delete(playerId)
             playerLastUpdateRef.current.delete(playerId)
             hasChanges = true
-            console.log(`Removed stale player: ${playerId}`)
+            console.log(`[OtherPlayers] Removed stale player: ${playerId}`)
+            continue
+          }
+          
+          // Remove players from wrong zones (defensive cleanup)
+          if (playerData.zoneId && playerData.zoneId !== currentZoneId) {
+            updated.delete(playerId)
+            playerLastUpdateRef.current.delete(playerId)
+            hasChanges = true
+            console.warn(`[OtherPlayers] 🧹 Removed player from wrong zone: ${playerId} (zone ${playerData.zoneId}, current ${currentZoneId})`)
           }
         }
         
@@ -403,7 +453,7 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
       clearInterval(keepAliveInterval)
       clearInterval(refreshInterval)
     }
-  }, [socket])
+  }, [socket, currentZoneId])
   
   // Convert Map to array (already unique by playerId since Map uses playerId as key)
   // Still filter to ensure player has required data

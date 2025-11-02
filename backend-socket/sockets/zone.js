@@ -101,6 +101,7 @@ export function registerZoneHandlers(socket, io) {
       // Leave current zone room
       if (currentZoneId) {
         socket.leave(`zone-${currentZoneId}`);
+        console.log(`[zone] Socket ${socket.id} left room 'zone-${currentZoneId}'`);
         await zoneService.removePlayerFromZone(playerId, currentZoneId);
         
         // Notify others in old zone
@@ -119,6 +120,7 @@ export function registerZoneHandlers(socket, io) {
       
       // Join socket room for this zone
       socket.join(`zone-${zoneId}`);
+      console.log(`[zone] Socket ${socket.id} joined room 'zone-${zoneId}'`);
       
       // Update player's zone in multiplayer service
       updatePlayerZoneInGameSession(socket.id, zoneId);

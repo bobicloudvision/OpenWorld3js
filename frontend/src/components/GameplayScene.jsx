@@ -268,7 +268,7 @@ export default function GameplayScene({
             </Ecctrl>
             
             {/* Render other players */}
-            <OtherPlayers socket={socket} currentPlayerId={player?.id} /> 
+            <OtherPlayers socket={socket} currentPlayerId={player?.id} currentZoneId={currentZone?.id} /> 
             
             {/* <Shapes /> */}
             <Enemies playerPositionRef={playerPositionRef} /> 
