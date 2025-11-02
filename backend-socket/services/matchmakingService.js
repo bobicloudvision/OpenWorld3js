@@ -8,6 +8,7 @@ import { initializeCombatInstance } from './combatService.js';
 import { registerCombatInstance } from '../sockets/combat.js';
 import { getActiveHeroForPlayer } from './playerService.js';
 import * as enemyService from './enemyService.js';
+import { getSocketIdByPlayerId, updatePlayerZoneInGameSession } from './multiplayerService.js';
 
 // Queue storage
 const queues = new Map(); // queueType -> Queue
@@ -496,6 +497,13 @@ async function startCombat(matchId, io) {
       
       // Add to arena zone (forced - matchmaking already validated)
       await zoneService.addPlayerToZone(player.playerId, arenaZone.id, spawnPos);
+      
+      // IMPORTANT: Also update multiplayer service so players:list has correct zone
+      const socketId = getSocketIdByPlayerId(player.playerId);
+      if (socketId) {
+        updatePlayerZoneInGameSession(socketId, arenaZone.id);
+        console.log(`[matchmaking] ✅ Updated multiplayer session for player ${player.playerId} (socket ${socketId})`);
+      }
       
       console.log(`[matchmaking] ✅ Transferred player ${player.playerId} from zone ${fromZoneId} to arena zone ${arenaZone.id}`);
     } catch (error) {

@@ -258,10 +258,15 @@ export function useZoneManager(socketRef, socketReady, onZoneChange) {
   // Helper function to update zone state directly (for cases like combat rejoin)
   const updateZone = useCallback((zone) => {
     if (zone) {
-      console.log('[useZoneManager] Updating zone:', zone.name)
-      setCurrentZone(zone)
+      // Only update if zone actually changed (prevent unnecessary re-renders)
+      if (currentZone?.id !== zone.id) {
+        console.log('[useZoneManager] Updating zone:', zone.name)
+        setCurrentZone(zone)
+      } else {
+        console.log('[useZoneManager] Zone already set to:', zone.name, '- skipping update')
+      }
     }
-  }, [])
+  }, [currentZone])
 
   return {
     currentZone,

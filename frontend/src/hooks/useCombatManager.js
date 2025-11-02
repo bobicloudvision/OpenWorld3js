@@ -244,11 +244,11 @@ export function useCombatManager(
       console.log('='.repeat(60))
       const { combatInstanceId, zone, position } = data
 
-      // IMPORTANT: Set matchmaking flags FIRST before zone update
-      // This ensures GameplayScene mounts with skipAutoJoinCombat=true
-      setInCombatMatch(true)
+      // IMPORTANT: Only set isMatchmakingBattle flag
+      // inCombatMatch is already true from the zone-based combat logic
+      // Setting it again causes an unnecessary re-render and scene remount
       setIsMatchmakingBattle(true)
-      console.log('[useCombatManager] inCombatMatch set to TRUE (matchmaking)')
+      console.log('[useCombatManager] isMatchmakingBattle set to TRUE')
 
       // Then update zone (after flags are set)
       // This ensures zone validation passes on the backend

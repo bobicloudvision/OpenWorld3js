@@ -62,6 +62,14 @@ function GameplayScene({
   const [combatInstanceId, setCombatInstanceId] = useState(null)
   const [hasJoinedOnce, setHasJoinedOnce] = useState(false)
 
+  // Ref for skipAutoJoinCombat to avoid re-running effect when it changes
+  const skipAutoJoinCombatRef = React.useRef(skipAutoJoinCombat)
+  
+  // Keep ref in sync with prop
+  React.useEffect(() => {
+    skipAutoJoinCombatRef.current = skipAutoJoinCombat
+  }, [skipAutoJoinCombat])
+
   // Memoize player position change handler
   const handlePositionChange = React.useCallback((position) => {
     playerPositionRef.current = position
@@ -105,7 +113,8 @@ function GameplayScene({
     }
 
     // Initial join on mount (only when in battle scene and not a matchmaking battle)
-    if (!skipAutoJoinCombat) {
+    // Use ref to avoid re-running effect when skipAutoJoinCombat prop changes
+    if (!skipAutoJoinCombatRef.current) {
       joinCombat()
     }
 
@@ -172,12 +181,12 @@ function GameplayScene({
 
     // Rejoin on reconnect or after auth OK (e.g., server restart) - only for non-matchmaking battles
     const onSocketConnect = () => {
-      if (player && !skipAutoJoinCombat) {
+      if (player && !skipAutoJoinCombatRef.current) {
         joinCombat()
       }
     }
     const onAuthOk = () => {
-      if (!skipAutoJoinCombat) {
+      if (!skipAutoJoinCombatRef.current) {
         joinCombat()
       }
     }
@@ -200,13 +209,15 @@ function GameplayScene({
       socket.off('auth:ok', onAuthOk)
       // Only leave combat when unmounting for non-matchmaking battles
       // For matchmaking battles, combat leave is handled by App.jsx when combat ends
-      if (!skipAutoJoinCombat) {
+      // Use ref to check skipAutoJoinCombat to avoid re-running effect when it changes
+      const skipAutoJoin = skipAutoJoinCombatRef.current
+      if (!skipAutoJoin) {
         console.log('[combat] Leaving combat (battle scene unmounted)')
         socket.emit('combat:leave')
         window.__inCombat = false
       }
     }
-  }, [socket, player, onHeroStatsUpdate, skipAutoJoinCombat])
+  }, [socket, player, onHeroStatsUpdate]) // Removed skipAutoJoinCombat from deps
 
   return (
     <>
@@ -255,7 +266,7 @@ function GameplayScene({
       {/* <KeyboardShapeCreator /> */}
       {/* <MaterialPalette /> */}
 
-      <Chat socket={socket} currentPlayerId={player?.id} />
+      {/* <Chat socket={socket} currentPlayerId={player?.id} /> */}
       
       {/* Hero Switcher Modal */}
       {showHeroSwitcher && (
