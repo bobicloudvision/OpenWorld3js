@@ -1,207 +1,140 @@
-# ⚽ Ball Game - Simple Physics Demo
+# 🎮 Rolling Ball Game
 
-A fun, simple ball rolling game that demonstrates the game engine's physics capabilities!
+A modern 3D ball game built with the **OpenWorld3D** game engine using GameObject-Component architecture.
 
-## 🎮 Gameplay
+## 🎯 Objective
 
-- **Roll a red ball** around the arena
-- **Collect yellow goals** (cylinders)
-- **Avoid falling off** the arena
-- **Score points** for each goal collected
-- **All goals collected?** New ones spawn automatically!
+Roll your ball around the arena and collect all the yellow spheres to win!
 
-## 🎯 Controls
+## 🎮 Controls
 
-- **WASD** - Push the ball in different directions
-- **Mouse Movement** - Rotate camera around ball
-- **Mouse Wheel** - Zoom in/out
-- **R** - Reset ball to center
+- **WASD** - Move the ball
+- **R** - Reset ball position (if stuck)
+
+## 🏗️ Architecture
+
+This game demonstrates proper modular organization:
+
+### Components (`components/`)
+- **BallController.js** - Handles ball movement with WASD controls
+- **CameraFollowComponent.js** - Smooth camera following system
+- **CollectibleComponent.js** - Makes objects collectible with points
+- **RotateComponent.js** - Rotates and bobs objects
+
+### Systems (`systems/`)
+- **GameManager.js** - Manages score, game state, and UI updates
+- **PlatformManager.js** - Spawns obstacles and collectibles
+
+### Scenes (`scenes/`)
+- **RollingBallScene.js** - Main game scene with ground, walls, and setup
+
+### Entry Point
+- **main.js** - Game initialization (clean and simple)
 
 ## ✨ Features
 
-### Physics
-- ✅ Sphere physics body
-- ✅ Rolling friction and damping
-- ✅ Force-based movement (push the ball)
-- ✅ Collision detection with walls
-- ✅ Realistic ball rolling
+- ✅ Smooth ball movement with WASD controls
+- ✅ Camera follows the ball smoothly
+- ✅ Collectible items with visual feedback
+- ✅ Score tracking and UI updates
+- ✅ Boundary walls prevent falling off
+- ✅ Obstacles to navigate around
+- ✅ Win condition when all items collected
+- ✅ Modern, clean UI
 
-### Game Mechanics
-- ✅ Goal collection system
-- ✅ Score tracking
-- ✅ Auto-respawn goals when all collected
-- ✅ Visual feedback on goal collection
-- ✅ Ball reset functionality
+## 🎨 Design Patterns
 
-### Visuals
-- ✅ Smooth third-person camera following ball
-- ✅ Glowing goals with emissive materials
-- ✅ Grid pattern ground
-- ✅ Walls keeping ball in arena
-- ✅ Shadows and lighting
-
-## 🏗️ Code Highlights
-
-### Ball Physics Setup
+### GameObject-Component Architecture
+Every game object is composed of reusable components:
 
 ```javascript
-// Create sphere physics body
-const ballBody = physics.addToEntity(this.ball, {
-  type: 'sphere',
-  radius: 1,
-  mass: 1
+const player = GameObjectFactory.builder()
+  .name('Player')
+  .withTag('player')
+  .withMesh(MeshBuilder.createSphere({ radius: 1, color: 0xff4444 }))
+  .at(0, 1, 0)
+  .withComponent(BallController, { speed: 15 })
+  .build();
+```
+
+### Event-Driven Communication
+Components communicate through events:
+
+```javascript
+// In CollectibleComponent
+this.emit('collected', { points: 10 });
+
+// In GameManager
+collectibleComp.on('collected', (data) => {
+  this.score += data.points;
 });
-
-// Add damping for realistic rolling
-ballBody.linearDamping = 0.3;  // Friction
-ballBody.angularDamping = 0.1; // Spin friction
 ```
 
-### Force-Based Movement
+### Scene Queries
+Find objects easily:
 
 ```javascript
-// Push ball based on camera direction
-const force = { x: 0, y: 0, z: 0 };
-
-if (input.isActionDown('forward')) {
-  force.x += forward.x * pushForce;
-  force.z += forward.z * pushForce;
-}
-
-physics.applyForce(body, force);
+const player = this.entity.scene.findWithTag('player');
+const collectibles = this.entity.scene.findGameObjectsWithTag('collectible');
 ```
 
-### Goal Collection
+## 📂 File Structure
 
-```javascript
-// Distance-based collision detection
-const distance = Math.sqrt(dx * dx + dz * dz);
-
-if (distance < 3) {
-  collectGoal(goal);
-  score += 10;
-}
+```
+ball-game/
+├── components/
+│   ├── BallController.js           (85 lines)
+│   ├── CameraFollowComponent.js    (48 lines)
+│   ├── CollectibleComponent.js     (75 lines)
+│   └── RotateComponent.js          (33 lines)
+├── systems/
+│   ├── GameManager.js              (118 lines)
+│   └── PlatformManager.js          (94 lines)
+├── scenes/
+│   └── RollingBallScene.js         (92 lines)
+├── main.js                         (30 lines)
+├── index.html                      (UI + styling)
+└── README.md
 ```
 
-## 🎓 What This Demonstrates
-
-### Engine Features Used:
-1. **PhysicsManager** - Sphere bodies, forces, damping
-2. **MeshBuilder** - Sphere, cylinder, plane, box creation
-3. **ThirdPersonCamera** - Following the ball smoothly
-4. **InputManager** - WASD controls and key bindings
-5. **Scene System** - Clean scene structure
-6. **Color System** - Built-in color constants
-
-### Physics Concepts:
-1. **Sphere collision** - Different from box collision
-2. **Force application** - Pushing vs velocity
-3. **Damping** - Simulating friction
-4. **Trigger volumes** - Goals don't block, just detect
-5. **Reset mechanics** - Resetting physics state
+**Total: 7 organized files** instead of one monolithic file!
 
 ## 🚀 Running the Game
 
-```bash
-# From /game directory
-npm run dev
+1. Make sure you're in the project root
+2. Start a local server (e.g., `npx vite` or `python -m http.server`)
+3. Navigate to `/examples/ball-game/`
+4. Play!
 
-# Open browser to:
-http://localhost:5173/examples/ball-game/
-```
+## 🎓 What You'll Learn
 
-## 🎯 Game Tips
+- ✅ GameObject-Component architecture (like Unity)
+- ✅ Modular file organization
+- ✅ Component communication via events
+- ✅ Scene management and queries
+- ✅ Camera follow systems
+- ✅ Game state management
+- ✅ UI integration with game logic
 
-1. **Don't hold keys continuously** - Tap to push gently
-2. **Use camera angles** - Rotate to see where you're going
-3. **Watch your speed** - Too fast = hard to control
-4. **Plan your route** - Collect goals efficiently
-5. **Use walls** - Bounce off them to change direction!
+## 🔧 Customization
 
-## 🔧 Customization Ideas
+Easy to modify:
 
-Try changing these values in `main.js`:
-
-### Ball Properties
 ```javascript
-// Make ball heavier/lighter
-mass: 5  // Heavier = harder to push
+// Change ball speed
+{ speed: 20 }  // in BallController
 
-// Change size
-radius: 2  // Bigger ball
+// More collectibles
+{ collectibleCount: 20 }  // in PlatformManager
 
-// More/less friction
-linearDamping: 0.5  // More friction = stops faster
+// Adjust camera
+{ offset: { x: 0, y: 15, z: 20 } }  // in CameraFollowComponent
 ```
 
-### Push Force
-```javascript
-// Make it easier/harder to push
-this.pushForce = 30;  // Stronger push
-```
+## 📚 Learn More
 
-### Gravity
-```javascript
-// Change physics feel
-physicsConfig: {
-  gravity: -50  // Stronger gravity
-}
-```
+See `AI_ASSISTANT_GUIDE.md` in the root directory for complete engine documentation.
 
-### Goal Count
-```javascript
-// More goals to collect
-const positions = [
-  { x: 10, z: 10 },
-  { x: -10, z: 10 },
-  // Add more positions...
-];
-```
+---
 
-## 📊 Comparison to Other Examples
-
-| Feature | Basic Example | Physics Demo | Ball Game |
-|---------|---------------|--------------|-----------|
-| Physics Body | Box | Box | **Sphere** |
-| Movement | Velocity | Velocity | **Forces** |
-| Game Goal | Explore | Test physics | **Collect goals** |
-| Difficulty | Easy | Medium | Easy |
-
-## 🏆 Challenges
-
-Try implementing these features:
-
-1. **Timer** - Race against the clock
-2. **Obstacles** - Add moving obstacles
-3. **Power-ups** - Speed boost, jump ability
-4. **Multiplayer** - Two balls competing
-5. **Levels** - Different arena layouts
-6. **Ball trail** - Visual effect behind ball
-7. **Sound effects** - Goal collection sounds
-8. **Leaderboard** - Save high scores
-
-## 💡 Learning Points
-
-This simple game teaches:
-
-1. **Sphere physics** - Different collision shape
-2. **Force-based movement** - More realistic than setting velocity
-3. **Trigger volumes** - Detection without blocking
-4. **Game loop** - Score, goals, win conditions
-5. **Visual feedback** - Scaling, glowing, messages
-6. **State management** - Tracking collected goals
-
-## 🎮 Game Feel Tips
-
-The game feels good because of:
-
-- **Smooth camera** - Follows ball naturally
-- **Damping values** - Ball doesn't slide forever
-- **Force magnitude** - Not too fast, not too slow
-- **Visual feedback** - Goals pulse when collected
-- **Reset button** - Easy to retry
-
-Perfect example of how good physics + simple mechanics = fun game! 🎮
-
-Enjoy rolling! ⚽
-
+**Built with OpenWorld3D** 🎮
