@@ -24,8 +24,10 @@ import {
 // Custom Components
 
 class HealthComponent extends Component {
-  constructor(maxHealth = 100) {
+  constructor(config = {}) {
     super();
+    // Handle both number and object config
+    const maxHealth = typeof config === 'number' ? config : (config.maxHealth || 100);
     this.maxHealth = maxHealth;
     this.health = maxHealth;
   }
@@ -344,16 +346,7 @@ class DemoScene extends GameScene {
 
     this.addEntity(this.player);
 
-    // Debug: Check if mesh was added
-    console.log('Player mesh:', this.player.mesh);
-    console.log('Player position:', this.player.position);
-    console.log('Player mesh in scene:', this.threeScene.children.includes(this.player.mesh));
-
-    // TODO: Physics has issues causing NaN positions - disable for now
-    // Enable physics - AFTER adding to scene so physics manager can access it
-    console.log('Player position (no physics):', this.player.position);
-    
-    // TEMPORARY: Disable physics to test basic GameObject functionality
+    // TODO: Physics has issues causing NaN positions - needs investigation
     // this.player.enablePhysics({
     //   shape: 'box',
     //   width: 1,
@@ -365,15 +358,12 @@ class DemoScene extends GameScene {
 
     // Setup camera
     const activeCamera = this.engine.cameraManager.getActiveCamera();
-    console.log('Active camera:', activeCamera);
-    console.log('Camera position before:', activeCamera.position);
     
-    // IMPORTANT: Set initial camera position before ThirdPersonCamera takes over
+    // Set initial camera position
     activeCamera.position.set(0, 8, 15);
     activeCamera.lookAt(0, 1, 0);
     
-    console.log('Camera position after manual set:', activeCamera.position);
-    
+    // Create third person camera (not updating - TODO: fix mouse handling causing NaN)
     this.camera = new ThirdPersonCamera(
       activeCamera,
       this.player,
@@ -381,8 +371,6 @@ class DemoScene extends GameScene {
     );
     // TODO: Fix ThirdPersonCamera mouse handling before enabling
     // this.camera.setInputManager(this.engine.inputManager);
-    
-    console.log('Scene children count:', this.threeScene.children.length);
 
     // Spawn some initial enemies
     for (let i = 0; i < 3; i++) {
@@ -523,21 +511,10 @@ class DemoScene extends GameScene {
   update(deltaTime, elapsedTime) {
     super.update(deltaTime, elapsedTime);
 
-    // Update camera
-    // TODO: Fix ThirdPersonCamera before enabling
+    // Update camera (TODO: Fix ThirdPersonCamera before enabling)
     // if (this.camera) {
     //   this.camera.update(deltaTime);
     // }
-
-    // Debug: Log first few frames
-    if (elapsedTime < 1) {
-      console.log('Frame update - elapsed:', elapsedTime.toFixed(2), 'entities:', this.entities.size);
-      
-      // Log player position
-      if (this.player) {
-        console.log('Player pos:', this.player.position, 'mesh pos:', this.player.mesh?.position);
-      }
-    }
 
     // Update stats periodically
     if (Math.floor(elapsedTime * 2) !== Math.floor((elapsedTime - deltaTime) * 2)) {
@@ -549,74 +526,13 @@ class DemoScene extends GameScene {
 // Initialize Game
 
 const engine = new GameEngine({
-  physics: false,  // Disabled temporarily - causes NaN positions
-  // physicsConfig: {
-  //   gravity: { x: 0, y: -20, z: 0 }
-  // }
+  physics: false,  // TODO: Physics disabled - causes NaN positions, needs investigation
 });
-
-console.log('Engine created:', engine);
-console.log('Renderer:', engine.renderer);
-console.log('Canvas:', engine.renderer.domElement);
 
 engine.start();
-console.log('Engine started, isRunning:', engine.isRunning);
-
 engine.loadScene(DemoScene);
 
-// Debug rendering
-let renderCallCount = 0;
-engine.on('render', () => {
-  renderCallCount++;
-  if (renderCallCount === 1 || renderCallCount === 60) {
-    console.log(`Render called ${renderCallCount} times`);
-  }
-});
-
-setTimeout(() => {
-  console.log('\n=== AFTER 1 SECOND ===');
-  const scene = engine.getCurrentScene();
-  const camera = engine.cameraManager.getActiveCamera();
-  
-  console.log('- Scene:', scene);
-  console.log('- Scene.threeScene:', scene?.threeScene);
-  console.log('- Scene children:', scene?.threeScene.children.length);
-  console.log('- Camera:', camera);
-  console.log('- Camera position:', camera?.position);
-  console.log('- Camera rotation:', camera?.rotation);
-  console.log('- Entities:', scene?.entities.size);
-  console.log('- Renderer info:', engine.renderer.info.render);
-  console.log('- Render calls:', renderCallCount);
-  
-  // List scene objects
-  if (scene) {
-    console.log('\nScene objects:');
-    scene.threeScene.children.forEach((child, i) => {
-      console.log(`  ${i}: ${child.type} "${child.name || 'unnamed'}" at (${child.position.x.toFixed(1)}, ${child.position.y.toFixed(1)}, ${child.position.z.toFixed(1)}) visible=${child.visible}`);
-    });
-    
-    // Find player
-    console.log('\nPlayer info:');
-    const player = scene.find('Player');
-    if (player) {
-      console.log('  - Player found:', player.name);
-      console.log('  - Position:', player.position);
-      console.log('  - Mesh:', player.mesh);
-      console.log('  - Mesh position:', player.mesh?.position);
-      console.log('  - Mesh visible:', player.mesh?.visible);
-      console.log('  - Physics body:', player.physicsBody);
-      console.log('  - Physics pos:', player.physicsBody?.position);
-    } else {
-      console.log('  - Player NOT FOUND!');
-    }
-  }
-}, 1000);
-
 console.log('🎮 GameObject Demo Started!');
-console.log('This demo showcases:');
-console.log('- GameObject & Component system');
-console.log('- Lifecycle hooks (Awake, Start, Update)');
-console.log('- Prefab system');
-console.log('- Scene queries');
-console.log('- Builder pattern');
+console.log('Controls: WASD to move, E to spawn enemy, C to spawn collectible, Q to attack');
+console.log('Note: Physics and ThirdPersonCamera disabled temporarily due to bugs');
 

@@ -7,8 +7,11 @@ import { Component } from '../../src/entities/Component.js';
  * This is NOT part of the engine - it's an example for YOUR game
  */
 export class HealthComponent extends Component {
-  constructor(maxHealth = 100) {
+  constructor(config = {}) {
     super();
+    
+    // Handle both number and object config for flexibility
+    const maxHealth = typeof config === 'number' ? config : (config.maxHealth || 100);
     
     this.maxHealth = maxHealth;
     this.health = maxHealth;
