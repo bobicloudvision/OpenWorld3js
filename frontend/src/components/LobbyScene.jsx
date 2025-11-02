@@ -20,6 +20,7 @@ export default function LobbyScene({
   activeHero,
   socket,
   player,
+  playerHeroes,
   onEnterBattle,
   currentZone,
   showLeaderboard,
@@ -86,6 +87,7 @@ export default function LobbyScene({
       {showHeroSwitcher && (
         <HeroSwitcherModal
           player={player}
+          playerHeroes={playerHeroes}
           socket={socket}
           onHeroSelected={onHeroSelected}
           onHeroesUpdate={onHeroesUpdate}

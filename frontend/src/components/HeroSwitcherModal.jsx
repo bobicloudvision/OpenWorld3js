@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useMemo } from 'react'
 import FantasyModal from './ui/FantasyModal'
 import FantasyCard from './ui/FantasyCard'
 import FantasyButton from './ui/FantasyButton'
@@ -7,27 +7,71 @@ import { useHeroSwitcher } from '../hooks/useHeroSwitcher'
 
 export default function HeroSwitcherModal({ 
   player, 
+  playerHeroes: initialPlayerHeroes, // Accept heroes as prop to avoid duplicate fetching
   socket,
   onHeroSelected,
   onHeroesUpdate,
   onClose 
 }) {
+  // If playerHeroes prop is provided, trust parent to manage it
+  // Don't register duplicate listeners - parent (usePlayerHeroManager) handles socket events
+  // Use useMemo to ensure stable reference - prevents hook from re-registering listeners
+  const effectiveOnHeroesUpdate = useMemo(() => {
+    // If prop is provided (even if empty array), don't pass callback to prevent duplicate listeners
+    // The parent will update the prop when heroes arrive via its socket listeners
+    return initialPlayerHeroes !== undefined ? undefined : onHeroesUpdate
+  }, [initialPlayerHeroes, onHeroesUpdate])
+  
+  // Hook for switching logic only - don't use it for fetching/managing heroes when prop is provided
   const { 
-    playerHeroes, 
+    playerHeroes: hookPlayerHeroes, 
     loading, 
     error,
     fetchHeroes, 
     switchHero 
-  } = useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate)
+  } = useHeroSwitcher(
+    socket, 
+    onHeroSelected, 
+    effectiveOnHeroesUpdate
+  )
+  
+  // Always use prop heroes if provided (even if empty initially - parent will update it)
+  // Otherwise fall back to hook heroes for backward compatibility
+  const playerHeroes = initialPlayerHeroes !== undefined 
+    ? initialPlayerHeroes 
+    : hookPlayerHeroes
   
   const switchInitiatedRef = useRef(false)
+  const hasRequestedHeroesRef = useRef(false)
 
-  // Fetch heroes when modal opens
+  // If heroes prop is provided but empty, trigger a single fetch request
+  // Parent (usePlayerHeroManager) will receive the response and update the prop
   useEffect(() => {
     if (!socket) return
-    fetchHeroes()
+    
+    // If prop is provided (even if empty), trust parent to manage it
+    if (initialPlayerHeroes !== undefined) {
+      // If heroes are empty, trigger one fetch - parent will handle the response
+      if (initialPlayerHeroes.length === 0 && !hasRequestedHeroesRef.current) {
+        hasRequestedHeroesRef.current = true
+        socket.emit('get:player:heroes')
+      }
+      return
+    }
+    
+    // Prop not provided - use hook's fetch mechanism (backward compatibility)
+    if (!hasRequestedHeroesRef.current) {
+      hasRequestedHeroesRef.current = true
+      fetchHeroes()
+    }
+
+    return () => {
+      // Reset when modal unmounts so it can fetch again if reopened
+      hasRequestedHeroesRef.current = false
+    }
+    // Only depend on socket - don't refetch if initialPlayerHeroes changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [socket]) // Only depend on socket, fetchHeroes is stable enough
+  }, [socket])
 
   // Auto-close modal on successful hero switch
   useEffect(() => {

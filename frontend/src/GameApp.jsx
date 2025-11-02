@@ -247,6 +247,7 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
                   playerHeroes?.find(h => h.playerHeroId === player.active_hero_id) || null
                 }
                 player={player}
+                playerHeroes={playerHeroes}
                 socket={socketRef.current}
                 currentZone={currentZone}
                 showLeaderboard={showLeaderboard}

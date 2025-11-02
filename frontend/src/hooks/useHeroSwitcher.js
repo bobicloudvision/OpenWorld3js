@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 /**
  * Custom hook for managing hero switching logic
@@ -12,29 +12,54 @@ export function useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Listen for socket events
+  // Use refs to store latest callbacks to avoid re-registering listeners
+  const onHeroSelectedRef = useRef(onHeroSelected)
+  const onHeroesUpdateRef = useRef(onHeroesUpdate)
+
+  // Keep refs in sync with latest callbacks
   useEffect(() => {
-    if (!socket) return
+    onHeroSelectedRef.current = onHeroSelected
+    onHeroesUpdateRef.current = onHeroesUpdate
+  }, [onHeroSelected, onHeroesUpdate])
+  
+  // Listen to player:heroes only if onHeroesUpdate is provided (for backward compatibility)
+  // When heroes are passed as props, this listener should not trigger updates
+  useEffect(() => {
+    if (!socket || !onHeroesUpdate) return
 
     const handlePlayerHeroes = (heroes) => {
       console.log('[useHeroSwitcher] Received player heroes:', heroes)
       setPlayerHeroes(heroes)
-      if (onHeroesUpdate) {
-        onHeroesUpdate(heroes)
+      // Only call onHeroesUpdate if it's actually being used
+      // In HeroSwitcherModal, we pass heroes as props, so this won't cause duplicate updates
+      if (onHeroesUpdateRef.current) {
+        onHeroesUpdateRef.current(heroes)
       }
     }
+
+    socket.on('player:heroes', handlePlayerHeroes)
+
+    return () => {
+      socket.off('player:heroes', handlePlayerHeroes)
+    }
+    // Only depend on socket - callbacks are accessed via refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket, onHeroesUpdate])
+
+  // Listen for socket events (only hero switching events, not player:heroes)
+  // player:heroes is handled by usePlayerHeroManager to avoid duplicate updates
+  useEffect(() => {
+    if (!socket) return
 
     const handleHeroSetActiveOk = ({ player: updatedPlayer }) => {
       console.log('[useHeroSwitcher] Hero switched successfully:', updatedPlayer)
       setLoading(false)
       setError('')
-      if (onHeroSelected) {
-        onHeroSelected(updatedPlayer)
+      if (onHeroSelectedRef.current) {
+        onHeroSelectedRef.current(updatedPlayer)
       }
-      // Refresh hero list to get updated stats
-      if (socket) {
-        socket.emit('get:player:heroes')
-      }
+      // Note: usePlayerHeroManager also listens to hero:set:active:ok and will refresh heroes
+      // No need to emit get:player:heroes here to avoid duplicate requests
     }
 
     const handleHeroSetActiveError = ({ message }) => {
@@ -43,22 +68,22 @@ export function useHeroSwitcher(socket, onHeroSelected, onHeroesUpdate) {
       setError(message || 'Failed to set active hero')
     }
 
-    socket.on('player:heroes', handlePlayerHeroes)
     socket.on('hero:set:active:ok', handleHeroSetActiveOk)
     socket.on('hero:set:active:error', handleHeroSetActiveError)
 
     return () => {
-      socket.off('player:heroes', handlePlayerHeroes)
       socket.off('hero:set:active:ok', handleHeroSetActiveOk)
       socket.off('hero:set:active:error', handleHeroSetActiveError)
     }
-  }, [socket, onHeroSelected, onHeroesUpdate])
+    // Only depend on socket - callbacks are accessed via refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [socket])
 
   // Request heroes list
-  const fetchHeroes = () => {
+  const fetchHeroes = useCallback(() => {
     if (!socket) return
     socket.emit('get:player:heroes')
-  }
+  }, [socket])
 
   // Switch to a different hero
   const switchHero = (playerHeroId) => {
