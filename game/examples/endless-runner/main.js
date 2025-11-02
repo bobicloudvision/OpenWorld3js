@@ -16,10 +16,9 @@ import {
   GameObjectFactory,
   Component,
   MeshBuilder,
-  Color
+  Color,
+  Vector3
 } from '../../src/index.js';
-
-import * as THREE from 'three';
 
 // ===== COMPONENTS =====
 
@@ -49,22 +48,17 @@ class PlayerController extends Component {
 
     const input = this.entity.scene.engine.inputManager;
     
-    if (!input) {
-      console.error('InputManager not found!');
-      return;
-    }
+    if (!input) return;
     
     // Lane switching (Arrow Keys or A/D)
     if ((input.isKeyPressed('ArrowLeft') || input.isKeyPressed('KeyA')) && this.currentLane > 0) {
       this.currentLane--;
       this.targetX = (this.currentLane - 1) * this.laneWidth;
-      console.log('Move left to lane:', this.currentLane);
     }
     
     if ((input.isKeyPressed('ArrowRight') || input.isKeyPressed('KeyD')) && this.currentLane < 2) {
       this.currentLane++;
       this.targetX = (this.currentLane - 1) * this.laneWidth;
-      console.log('Move right to lane:', this.currentLane);
     }
     
     // Smooth lane transition
@@ -131,7 +125,6 @@ class TrackGenerator extends Component {
     // Player moves in negative Z, so check if player is getting close to last generated position
     if (player.position.z < this.generatedZ + 50) {
       this.generateSegment();
-      console.log('Generated new segment at z:', this.generatedZ);
     }
     
     // Remove old segments that are behind the player
@@ -269,9 +262,9 @@ class CameraFollowComponent extends Component {
   constructor(config = {}) {
     super();
     // Higher and further back to see more track ahead
-    this.offset = new THREE.Vector3(0, 8, 12);
+    this.offset = new Vector3(0, 8, 12);
     this.smoothness = 0.1;
-    this.targetPosition = new THREE.Vector3();
+    this.targetPosition = new Vector3();
   }
 
   start() {
@@ -291,15 +284,15 @@ class CameraFollowComponent extends Component {
     this.targetPosition.copy(player.position).add(this.offset);
     
     // Smooth follow
-    this.camera.position.lerp(this.targetPosition, this.smoothness);
+    this.camera.position.lerp(this.targetPosition._getThreeVector(), this.smoothness);
     
     // Look at position far ahead of player to see more track
-    const lookAtPos = new THREE.Vector3(
+    const lookAtPos = new Vector3(
       player.position.x,
       player.position.y + 1,
       player.position.z - 15  // Look 15 units ahead
     );
-    this.camera.lookAt(lookAtPos);
+    this.camera.lookAt(lookAtPos._getThreeVector());
   }
 }
 
