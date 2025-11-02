@@ -23,6 +23,7 @@ class PlayerAuthController extends Controller
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
+            'currency'=>100000000
         ]);
 
         $token = $player->createToken('player-api')->plainTextToken;
