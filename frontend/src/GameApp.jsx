@@ -27,6 +27,7 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
   // Create a ref to store the loadZoneData function so we can use it in the auth callback
   const loadZoneDataRef = React.useRef(null)
   const lastZoneLoadSocketIdRef = React.useRef(null)
+  const previousHeroIdRef = React.useRef(null)
 
   // Zone manager hook with callback to handle position updates
   const onZoneChangeCallback = React.useCallback((zone, position) => {
@@ -66,47 +67,134 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     updateHeroes
   } = usePlayerHeroManager(socketRef, socketReady, handlePlayerChange, handleAuthCheckFailed)
 
-  // Debug: Log active hero data
+  // Handle player initialization - wait for player to be fully loaded
   React.useEffect(() => {
-    if (player && playerHeroes.length > 0) {
-      const activeHero = playerHeroes.find(h => h.playerHeroId === player.active_hero_id)
-      console.log('[GameApp] Active hero check:', {
-        activeHeroId: player.active_hero_id,
-        activeHero,
-        activeHeroModel: activeHero?.model,
-        allPlayerHeroes: playerHeroes
-      })
+    if (!player) {
+      return
     }
-  }, [player, playerHeroes])
 
-  // Handle auth success - load zone data after socket is authenticated
-  // This effect triggers when socket becomes ready and authenticated
-  React.useEffect(() => {
-    if (socketReady && socketRef?.current?.connected && loadZoneDataRef.current) {
-      const socket = socketRef.current
-      const socketId = socket.id
+    let cancelled = false
+
+    const initializePlayer = async () => {
+      console.log('[GameApp] Player loaded, initializing...', {
+        playerId: player.id,
+        activeHeroId: player.active_hero_id
+      })
       
-      // Check if we've already attempted to load zone for this socket ID
-      const isReconnection = lastZoneLoadSocketIdRef.current && lastZoneLoadSocketIdRef.current !== socketId
+      // Wait for player data to be fully propagated
+      await new Promise(resolve => setTimeout(resolve, 50))
       
-      if (isReconnection || !lastZoneLoadSocketIdRef.current) {
-        console.log('[GameApp] Socket authenticated, loading zone data...', {
-          socketId,
-          isReconnection,
-          previousSocketId: lastZoneLoadSocketIdRef.current
-        })
-        lastZoneLoadSocketIdRef.current = socketId
-        
-        // Delay to ensure server has fully processed authentication binding
-        setTimeout(() => {
-          if (loadZoneDataRef.current && socket?.connected && socket.id === socketId) {
-            console.log('[GameApp] Calling loadZoneData, socket ID:', socket.id)
-            loadZoneDataRef.current(socket)
-          }
-        }, 600)
+      if (!cancelled) {
+        console.log('[GameApp] Player initialization complete')
       }
     }
-  }, [socketReady, socketRef])
+
+    initializePlayer()
+
+    return () => {
+      cancelled = true
+    }
+  }, [player])
+
+  // Memoized active hero - computed once when player or playerHeroes changes
+  const activeHero = React.useMemo(() => {
+    if (!player?.active_hero_id || !playerHeroes?.length) {
+      return null
+    }
+    
+    const hero = playerHeroes.find(h => h.playerHeroId === player.active_hero_id)
+    
+    if (hero) {
+      console.log('[GameApp] Active hero:', {
+        activeHeroId: player.active_hero_id,
+        heroModel: hero.model,
+        heroLevel: hero.level
+      })
+    }
+  
+
+    return hero
+  }, [player?.active_hero_id, playerHeroes])
+
+  // Reset zone loading tracker when hero changes (especially when first selected)
+  React.useEffect(() => {
+
+    const currentHeroId = player?.active_hero_id
+    const previousHeroId = previousHeroIdRef.current
+    
+    // If hero changed (especially from null to a value), reset zone loading tracker
+    if (currentHeroId === previousHeroId) {
+      return
+    }
+
+    let cancelled = false
+
+    const handleHeroChange = async () => {
+      console.log('[GameApp] Active hero changed, resetting zone load tracker:', {
+        previousHeroId,
+        currentHeroId
+      })
+      
+      // Small delay to ensure hero data is fully propagated
+      await new Promise(resolve => setTimeout(resolve, 100))
+      
+      if (!cancelled) {
+        lastZoneLoadSocketIdRef.current = null
+        previousHeroIdRef.current = currentHeroId
+      }
+    }
+
+    handleHeroChange()
+
+    return () => {
+      cancelled = true
+    }
+  }, [player?.active_hero_id])
+
+  // Handle auth success - load zone data after socket is authenticated AND player has active hero
+  // This effect triggers when socket becomes ready, authenticated, and player has selected a hero
+  React.useEffect(() => {
+    if (!socketReady || !socketRef?.current?.connected || !loadZoneDataRef.current || !player?.active_hero_id) {
+      return
+    }
+
+    const socket = socketRef.current
+    const socketId = socket.id
+    
+    // Check if we've already attempted to load zone for this socket ID
+    const isReconnection = lastZoneLoadSocketIdRef.current && lastZoneLoadSocketIdRef.current !== socketId
+    
+    if (!isReconnection && lastZoneLoadSocketIdRef.current) {
+      return 
+    }
+
+    let cancelled = false
+
+    const loadZone = async () => {
+      console.log('[GameApp] Socket authenticated and hero selected, loading zone data...', {
+        socketId,
+        isReconnection,
+        activeHeroId: player.active_hero_id,
+        previousSocketId: lastZoneLoadSocketIdRef.current
+      })
+      lastZoneLoadSocketIdRef.current = socketId
+      
+      // Delay to ensure server has fully processed authentication binding
+      await new Promise(resolve => setTimeout(resolve, 600))
+      
+      if (!cancelled && loadZoneDataRef.current && socket?.connected && socket.id === socketId) {
+        console.log('[GameApp] Calling loadZoneData, socket ID:', socket.id)
+        await loadZoneDataRef.current(socket)
+        console.log('[GameApp] Zone loading complete')
+      }
+    }
+
+    loadZone()
+
+    return () => {
+      cancelled = true
+    }
+  }, [socketReady, socketRef, player?.active_hero_id])
 
   const {
     currentZone,
@@ -148,8 +236,8 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     loadZoneDataRef.current = loadZoneData
   }, [loadZoneData])
 
-  // Use enemy manager hook to handle all enemy-related logic
-  useEnemyManager(socketRef, socketReady, currentZone);
+  // Use enemy manager hook to handle all enemy-related logic (only when player has active hero)
+  useEnemyManager(socketRef, socketReady && !!player?.active_hero_id, currentZone);
 
   // Keyboard shortcut: Press 'P' to open matchmaking
   React.useEffect(() => {
@@ -239,9 +327,7 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
               <GameplayScene
                 playerPositionRef={playerPositionRef}
                 keyboardMap={keyboardMap}
-                activeHero={
-                  playerHeroes?.find(h => h.playerHeroId === player.active_hero_id) || null
-                }
+                activeHero={activeHero}
                 player={player}
                 socket={socketRef.current}
                 currentZone={currentZone}
@@ -256,9 +342,7 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
               <LobbyScene
                 playerPositionRef={playerPositionRef}
                 keyboardMap={keyboardMap}
-                activeHero={
-                  playerHeroes?.find(h => h.playerHeroId === player.active_hero_id) || null
-                }
+                activeHero={activeHero}
                 player={player}
                 playerHeroes={playerHeroes}
                 socket={socketRef.current}
@@ -300,9 +384,7 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     {player && socketReady && showZoneSelector && !isMatchmakingBattle && (
       <ZoneSelector
         socket={socketRef.current}
-        playerLevel={
-          playerHeroes?.find(h => h.playerHeroId === player.active_hero_id)?.level || 1
-        }
+        playerLevel={activeHero?.level || 1}
         onClose={() => setShowZoneSelector(false)}
         onZoneChange={handleZoneChange}
       />

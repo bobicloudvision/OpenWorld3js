@@ -19,8 +19,10 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
   useEffect(() => {
     let isMounted = true
     
-    fetchMe()
-      .then((response) => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetchMe()
+        
         if (!isMounted) return
         
         if (response && response.data) {
@@ -32,15 +34,17 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
             onAuthCheckFailed()
           }
         }
-      })
-      .catch(() => {
+      } catch (error) {
         if (!isMounted) return
         
         console.log('[usePlayerHeroManager] Auth check failed')
         if (onAuthCheckFailed) {
           onAuthCheckFailed()
         }
-      })
+      }
+    }
+    
+    checkAuth()
     
     return () => {
       isMounted = false
@@ -136,7 +140,7 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
       const { newHealth, newPower, maxHealth, maxPower } = data
 
       setPlayerHeroes(prevHeroes =>
-        prevHeroes.map(hero => {
+        (prevHeroes || []).map(hero => {
           // Update only the active hero
           if (hero.playerHeroId === player?.active_hero_id) {
             return {
@@ -157,7 +161,7 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
       const { newHealth, newPower } = data
 
       setPlayerHeroes(prevHeroes =>
-        prevHeroes.map(hero => {
+        (prevHeroes || []).map(hero => {
           if (hero.playerHeroId === player?.active_hero_id) {
             return {
               ...hero,
@@ -175,7 +179,7 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
       const { newHealth, newPower } = data
 
       setPlayerHeroes(prevHeroes =>
-        prevHeroes.map(hero => {
+        (prevHeroes || []).map(hero => {
           if (hero.playerHeroId === player?.active_hero_id) {
             return {
               ...hero,
@@ -232,7 +236,7 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
   // Helper function to update hero stats (for external updates during combat)
   const updateHeroStats = useCallback((heroId, stats) => {
     setPlayerHeroes(prevHeroes =>
-      prevHeroes.map(h =>
+      (prevHeroes || []).map(h =>
         h.playerHeroId === heroId ? { ...h, ...stats } : h
       )
     )
@@ -241,10 +245,10 @@ export function usePlayerHeroManager(socketRef, socketReady, onPlayerChange, onA
   // Helper function to update heroes list
   const updateHeroes = useCallback((updatedPlayerHeroes, updatedAvailableHeroes) => {
     if (updatedPlayerHeroes) {
-      setPlayerHeroes(updatedPlayerHeroes)
+      setPlayerHeroes(updatedPlayerHeroes || [])
     }
     if (updatedAvailableHeroes) {
-      setAvailableHeroes(updatedAvailableHeroes)
+      setAvailableHeroes(updatedAvailableHeroes || [])
     }
   }, [])
 

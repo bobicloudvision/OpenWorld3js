@@ -30,7 +30,10 @@ export default function LobbyScene({
   onHeroSelected,
   onHeroesUpdate
 }) {
-  const mapFilePath = currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb';
+  const mapFilePath = React.useMemo(() => 
+    currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb',
+    [currentZone?.map_file]
+  );
   console.log('[LobbyScene] Rendering with zone:', currentZone?.name, 'map_file:', currentZone?.map_file, 'computed mapPath:', mapFilePath);
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [inCombat, setInCombat] = useState(false)

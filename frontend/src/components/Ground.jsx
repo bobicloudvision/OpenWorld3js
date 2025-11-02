@@ -1,20 +1,16 @@
 import { useGLTF } from "@react-three/drei"
 import { RigidBody } from "@react-three/rapier"
-import { useMemo } from "react"
+import { useMemo, memo } from "react"
 import useGameStore from '../stores/gameStore'
 import { addVfx } from '../stores/effectsStore'
 
-export default function Ground(props) {
+function Ground(props) {
   const mapFile = props.mapFile || '/models/world1.glb'
-  
-  // Log when map file changes to debug zone transitions
-  console.log('[Ground] Loading map file:', mapFile)
   
   const { scene } = useGLTF(mapFile)
   
   // Clone the scene to ensure we get a fresh instance
   const clonedScene = useMemo(() => {
-    console.log('[Ground] Creating cloned scene from:', mapFile)
     return scene.clone()
   }, [scene, mapFile])
   
@@ -29,13 +25,11 @@ export default function Ground(props) {
   
   const handleGroundClick = (event) => {
     event.stopPropagation()
-    console.log('Ground clicked!')
     
     // Get the intersection point from the event
     const point = event.point
     // Use the actual intersection Y from the GLB surface instead of forcing 0
     const targetPosition = [point.x, point.y, point.z]
-    console.log('Ground click position:', targetPosition)
     
     // Show click effect at clicked position (visual cursor) - only if combat is enabled
     if (window.addClickEffect && !disableCombat) {
@@ -71,12 +65,7 @@ export default function Ground(props) {
       const selectedMagicType = magicTypes[player.selectedMagic]
       const magicRange = selectedMagicType ? selectedMagicType.range : 15
       
-      console.log(`Player position: [${playerX.toFixed(2)}, ${playerZ.toFixed(2)}]`)
-      console.log(`Distance to player: ${distanceToPlayer.toFixed(2)}m, Magic range: ${magicRange}m`)
-      
       if (distanceToPlayer <= magicRange) {
-        console.log(`Casting ${player.selectedMagic} at clicked position [${targetPosition[0].toFixed(2)}, ${targetPosition[2].toFixed(2)}]`)
-        
         socket.emit('combat:cast-spell', {
           spellKey: player.selectedMagic,
           targetPosition: targetPosition
@@ -93,8 +82,6 @@ export default function Ground(props) {
             console.warn('[combat] ack error:', ack.error)
           }
         })
-      } else {
-        console.log(`Target too far! Distance: ${distanceToPlayer.toFixed(2)}m, Range: ${magicRange}m`)
       }
     } else if (castingMode && (!socket || !socket.connected)) {
       console.warn('Cannot cast: socket not connected')
@@ -118,3 +105,14 @@ export default function Ground(props) {
     </RigidBody>
   )
 }
+
+// Memoize Ground component to prevent unnecessary re-renders
+// Only re-render when mapFile, socket, disableCombat, or playerPositionRef change
+export default memo(Ground, (prevProps, nextProps) => {
+  return (
+    prevProps.mapFile === nextProps.mapFile &&
+    prevProps.socket === nextProps.socket &&
+    prevProps.disableCombat === nextProps.disableCombat &&
+    prevProps.playerPositionRef === nextProps.playerPositionRef
+  )
+})

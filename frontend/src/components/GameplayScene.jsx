@@ -32,8 +32,14 @@ export default function GameplayScene({
   currentZone,
   skipAutoJoinCombat
 }) {
-  const mapFilePath = currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb';
-  const environmentPath = currentZone?.environment_file || 'models/night.hdr';
+  const mapFilePath = React.useMemo(() => 
+    currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb',
+    [currentZone?.map_file]
+  );
+  const environmentPath = React.useMemo(() => 
+    currentZone?.environment_file || 'models/night.hdr',
+    [currentZone?.environment_file]
+  );
   console.log('[GameplayScene] Rendering with zone:', currentZone?.name, 'map_file:', currentZone?.map_file, 'computed mapPath:', mapFilePath, 'environmentPath:', environmentPath);
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [combatInstanceId, setCombatInstanceId] = useState(null)

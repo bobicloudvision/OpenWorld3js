@@ -54,7 +54,7 @@ export function useZoneManager(socketRef, socketReady, onZoneChange) {
   }, [socketRef, socketReady])
 
   // Helper function to load zone data and auto-join lobby
-  const loadZoneData = useCallback((socket) => {
+  const loadZoneData = useCallback(async (socket) => {
     // Capture the socket instance at the start - use passed socket or socketRef.current
     // This ensures we use the same socket instance throughout the function
     const actualSocket = socket || socketRef?.current
@@ -94,65 +94,75 @@ export function useZoneManager(socketRef, socketReady, onZoneChange) {
     loadZoneAttemptedRef.current = true
     lastSocketIdRef.current = socketIdAtStart
     
-    // Since bindSocket happens synchronously before auth:ok on the backend,
-    // if socketReady is true, the socket is already authenticated.
-    // Small delay to ensure server has processed everything
-    setTimeout(() => {
+    try {
+      // Small delay to ensure server has processed authentication
+      await new Promise(resolve => setTimeout(resolve, 200))
+
       // Request list of zones to find default lobby
-      actualSocket.emit('zone:list', {}, (response) => {
-        console.log('[useZoneManager] Zone list response:', response)
-        if (response?.ok && response.zones) {
-          const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone)
-          console.log('[useZoneManager] Found lobby zone:', lobby)
-          if (lobby) {
-            // Auto-join lobby zone with retry logic for authentication timing issues
-            const attemptZoneJoin = (retryCount = 0) => {
-              // Verify socket ID hasn't changed (shouldn't, but checking for debugging)
-              const currentSocketId = actualSocket.id
-              if (currentSocketId !== socketIdAtStart) {
-                console.warn('[useZoneManager] ⚠️ Socket ID changed! Was:', socketIdAtStart, 'Now:', currentSocketId)
-              }
-              console.log(`[useZoneManager] Attempting zone join (attempt ${retryCount + 1}/4)...`)
-              console.log(`[useZoneManager] Socket ID at join attempt:`, currentSocketId)
-              console.log(`[useZoneManager] Socket connected:`, actualSocket.connected)
-              console.log(`[useZoneManager] Socket ready state:`, socketReady)
-              console.log('[useZoneManager] About to emit zone:join with socket ID:', currentSocketId)
-              actualSocket.emit('zone:join', { zoneId: lobby.id }, (joinResponse) => {
-                console.log('[useZoneManager] Zone join response:', joinResponse)
-                console.log('[useZoneManager] Response socket ID check - expected:', actualSocket.id)
-                if (joinResponse?.ok && joinResponse.zone) {
-                  handleZoneChange(joinResponse.zone, joinResponse.position)
-                  console.log('[useZoneManager] ✅ Auto-joined zone:', joinResponse.zone.name)
-                  // Mark as successful so we don't retry unnecessarily
-                  loadZoneAttemptedRef.current = true 
-                } else if (joinResponse?.error === 'Not authenticated' && retryCount < 3) {
-                  console.error('[useZoneManager] ❌ Not authenticated error - socket ID:', actualSocket.id, 'connected:', actualSocket.connected)
-                  // Retry if not authenticated (server might need more time)
-                  const delay = 300 * (retryCount + 1) // 300ms, 600ms, 900ms
-                  console.log(`[useZoneManager] ⏳ Retrying zone join in ${delay}ms (attempt ${retryCount + 2}/4)...`)
-                  setTimeout(() => attemptZoneJoin(retryCount + 1), delay)
-                } else {
-                  const errorMsg = joinResponse?.error || 'Zone join response missing ok or zone'
-                  console.error('[useZoneManager] ❌ Failed to join zone after retries:', errorMsg)
-                  console.error('[useZoneManager] Full response:', joinResponse)
-                }
-              })
-            }
-            
-            // Small delay to ensure server has fully processed bindSocket
-            setTimeout(() => attemptZoneJoin(), 300)
-          } else {
-            console.warn('[useZoneManager] No lobby zone found in zones list')
-          }
-        } else {
-          console.error('[useZoneManager] Failed to get zone list:', response?.error || 'Unknown error')
-        }
+      const response = await new Promise(resolve => {
+        actualSocket.emit('zone:list', {}, resolve)
       })
-    }, 200) // Small delay to ensure server bindSocket is fully processed
-  }, [handleZoneChange, socketRef, socketReady])
+
+      console.log('[useZoneManager] Zone list response:', response)
+      
+      if (!response?.ok || !response.zones) {
+        console.error('[useZoneManager] Failed to get zone list:', response?.error || 'Unknown error')
+        return
+      }
+
+      const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone)
+      console.log('[useZoneManager] Found lobby zone:', lobby)
+      
+      if (!lobby) {
+        console.warn('[useZoneManager] No lobby zone found in zones list')
+        return
+      }
+
+      // Auto-join lobby zone with retry logic for authentication timing issues
+      for (let retryCount = 0; retryCount < 4; retryCount++) {
+        // Verify socket ID hasn't changed
+        const currentSocketId = actualSocket.id
+        if (currentSocketId !== socketIdAtStart) {
+          console.warn('[useZoneManager] ⚠️ Socket ID changed! Was:', socketIdAtStart, 'Now:', currentSocketId)
+        }
+        
+        console.log(`[useZoneManager] Attempting zone join (attempt ${retryCount + 1}/4)...`)
+        console.log(`[useZoneManager] Socket ID at join attempt:`, currentSocketId)
+        
+        // Small delay before join attempt (progressive: 0ms, 300ms, 600ms, 900ms)
+        if (retryCount > 0) {
+          await new Promise(resolve => setTimeout(resolve, 300 * retryCount))
+        }
+
+        const joinResponse = await new Promise(resolve => {
+          actualSocket.emit('zone:join', { zoneId: lobby.id }, resolve)
+        })
+
+        console.log('[useZoneManager] Zone join response:', joinResponse)
+        
+        if (joinResponse?.ok && joinResponse.zone) {
+          handleZoneChange(joinResponse.zone, joinResponse.position)
+          console.log('[useZoneManager] ✅ Auto-joined zone:', joinResponse.zone.name)
+          loadZoneAttemptedRef.current = true
+          return // Success, exit the function
+        }
+        
+        if (joinResponse?.error !== 'Not authenticated' || retryCount === 3) {
+          const errorMsg = joinResponse?.error || 'Zone join response missing ok or zone'
+          console.error('[useZoneManager] ❌ Failed to join zone:', errorMsg)
+          console.error('[useZoneManager] Full response:', joinResponse)
+          return // No point retrying non-auth errors
+        }
+        
+        console.log(`[useZoneManager] ⏳ Retrying zone join (attempt ${retryCount + 2}/4)...`)
+      }
+    } catch (error) {
+      console.error('[useZoneManager] Error loading zone data:', error)
+    }
+  }, [handleZoneChange, socketRef, socketReady, currentZone])
 
   // Helper function to return to lobby zone
-  const returnToLobby = useCallback((socket) => {
+  const returnToLobby = useCallback(async (socket) => {
     const actualSocket = socket || socketRef?.current
     if (!actualSocket || !socketReady) {
       console.log('[useZoneManager] Cannot return to lobby: socket not ready or not authenticated')
@@ -164,22 +174,37 @@ export function useZoneManager(socketRef, socketReady, onZoneChange) {
       return
     }
 
-    console.log('[useZoneManager] Returning to lobby zone...')
-    actualSocket.emit('zone:list', {}, (response) => {
-      if (response.ok && response.zones) {
-        const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone)
-        if (lobby) {
-          actualSocket.emit('zone:join', { zoneId: lobby.id }, (joinResponse) => {
-            if (joinResponse.ok) {
-              console.log('[useZoneManager] ✅ Returned to lobby zone:', joinResponse.zone.name)
-              handleZoneChange(joinResponse.zone, joinResponse.position)
-            } else {
-              console.error('[useZoneManager] Failed to return to lobby:', joinResponse.error)
-            }
-          })
-        }
+    try {
+      console.log('[useZoneManager] Returning to lobby zone...')
+      
+      const response = await new Promise(resolve => {
+        actualSocket.emit('zone:list', {}, resolve)
+      })
+
+      if (!response?.ok || !response.zones) {
+        console.error('[useZoneManager] Failed to get zone list')
+        return
       }
-    })
+
+      const lobby = response.zones.find(z => z.slug === 'starter-lobby' || z.is_safe_zone)
+      if (!lobby) {
+        console.error('[useZoneManager] No lobby zone found')
+        return
+      }
+
+      const joinResponse = await new Promise(resolve => {
+        actualSocket.emit('zone:join', { zoneId: lobby.id }, resolve)
+      })
+
+      if (joinResponse?.ok) {
+        console.log('[useZoneManager] ✅ Returned to lobby zone:', joinResponse.zone.name)
+        handleZoneChange(joinResponse.zone, joinResponse.position)
+      } else {
+        console.error('[useZoneManager] Failed to return to lobby:', joinResponse?.error)
+      }
+    } catch (error) {
+      console.error('[useZoneManager] Error returning to lobby:', error)
+    }
   }, [handleZoneChange, socketRef, socketReady])
 
   // Helper function to get zone by ID
