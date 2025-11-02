@@ -812,6 +812,139 @@ class MyGame extends GameScene {
 
 See `PHYSICS_DEBUG.md` for complete documentation.
 
+### 🎯 Complete Physics Parameters Reference
+
+**The PhysicsManager now supports ALL Cannon.js body parameters!**
+
+#### Material Properties
+```javascript
+player.enablePhysics({
+  shape: 'sphere',
+  mass: 1,
+  restitution: 0.7,  // Bounciness (0 = no bounce, 1 = perfect bounce)
+  friction: 0.5      // Surface friction (0 = ice, 1 = rubber)
+});
+```
+
+#### Damping (Resistance)
+```javascript
+player.enablePhysics({
+  shape: 'box',
+  mass: 1,
+  linearDamping: 0.3,   // Velocity reduction (higher = more drag)
+  angularDamping: 0.2   // Rotation reduction (higher = less spin)
+});
+```
+
+#### Movement Restrictions
+```javascript
+// Character controller - no rotation, only XZ movement
+player.enablePhysics({
+  shape: 'box',
+  mass: 1,
+  fixedRotation: true,  // Prevent ALL rotation
+  linearFactor: { x: 1, y: 1, z: 1 }  // Allow all movement
+});
+
+// Platform - moves only vertically
+platform.enablePhysics({
+  shape: 'box',
+  mass: 2,
+  linearFactor: { x: 0, y: 1, z: 0 },  // Only Y movement
+  angularFactor: { x: 0, y: 0, z: 0 }  // No rotation
+});
+```
+
+#### Performance Optimization
+```javascript
+obstacle.enablePhysics({
+  shape: 'box',
+  mass: 5,
+  allowSleep: true,        // Enable sleep optimization (default: true)
+  sleepSpeedLimit: 0.1,    // Speed below which body can sleep
+  sleepTimeLimit: 1        // Time before body sleeps (seconds)
+});
+```
+
+#### Collision Filtering (Layers)
+```javascript
+// Define collision groups
+const PLAYER_GROUP = 1;
+const ENEMY_GROUP = 2;
+const GROUND_GROUP = 4;
+const COLLECTIBLE_GROUP = 8;
+
+// Player collides with enemies and ground
+player.enablePhysics({
+  shape: 'sphere',
+  mass: 1,
+  collisionFilterGroup: PLAYER_GROUP,
+  collisionFilterMask: ENEMY_GROUP | GROUND_GROUP  // Bitwise OR
+});
+
+// Collectible - trigger only (no physical collision)
+collectible.enablePhysics({
+  shape: 'sphere',
+  mass: 0,
+  isTrigger: true,
+  collisionResponse: false,
+  collisionFilterGroup: COLLECTIBLE_GROUP,
+  collisionFilterMask: PLAYER_GROUP
+});
+```
+
+#### Common Use Cases
+
+**Bouncy Ball:**
+```javascript
+ball.enablePhysics({
+  shape: 'sphere',
+  radius: 1,
+  mass: 1,
+  restitution: 0.7,      // Very bouncy
+  friction: 0.5,
+  linearDamping: 0.1,    // Low drag
+  angularDamping: 0.1
+});
+```
+
+**Character Controller:**
+```javascript
+player.enablePhysics({
+  shape: 'box',
+  width: 1, height: 2, depth: 1,
+  mass: 1,
+  fixedRotation: true,   // No tipping over
+  friction: 0.0,         // Smooth movement
+  linearDamping: 0.9     // Quick stops
+});
+```
+
+**Trigger Zone:**
+```javascript
+zone.enablePhysics({
+  shape: 'box',
+  width: 10, height: 5, depth: 10,
+  mass: 0,               // Static
+  isTrigger: true,       // No collision response
+  collisionResponse: false
+});
+```
+
+**Heavy Crate:**
+```javascript
+crate.enablePhysics({
+  shape: 'box',
+  width: 2, height: 2, depth: 2,
+  mass: 50,              // Heavy!
+  restitution: 0.1,      // Doesn't bounce much
+  friction: 0.9,         // Hard to push
+  linearDamping: 0.5     // Slows down quickly
+});
+```
+
+**See:** `PhysicsManager.js` has complete documentation with all parameters.
+
 ### ⚠️ ThirdPersonCamera - DISABLED
 **Issue**: Mouse handling causes NaN camera positions
 **Workaround**: Use static camera position
