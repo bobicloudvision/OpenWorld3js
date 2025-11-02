@@ -21,7 +21,7 @@ class BallGameScene extends Scene {
     this.camera = null;
     this.score = 0;
     this.goals = [];
-    this.maxSpeed = 8;  // Max ball speed
+    this.maxSpeed = 40;  // Max ball speed
   }
 
   async load() {
