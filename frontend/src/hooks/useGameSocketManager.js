@@ -74,7 +74,7 @@ export function useGameSocketManager(player, onAuthSuccess, onAuthError) {
     // Get existing socket or create new one
     let socket = socketRef.current
     if (!socket) {
-      const socketUrl = import.meta.env.SOCKET_URL || 'http://localhost:6060'
+      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:6060'
       
       console.log('[GameSocketManager] Creating new socket connection for player', player.id, {
         hasToken: !!token,
