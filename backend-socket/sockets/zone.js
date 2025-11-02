@@ -1,6 +1,6 @@
 import * as zoneService from '../services/zoneService.js';
 import { getPlayerIdBySocket } from '../services/sessionService.js';
-import { getSocketIdByPlayerId, getPlayerInGameSession } from '../services/multiplayerService.js';
+import { getSocketIdByPlayerId, getPlayerInGameSession, updatePlayerZoneInGameSession } from '../services/multiplayerService.js';
 
 /**
  * Zone Socket Handlers
@@ -120,6 +120,9 @@ export function registerZoneHandlers(socket, io) {
       // Join socket room for this zone
       socket.join(`zone-${zoneId}`);
       
+      // Update player's zone in multiplayer service
+      updatePlayerZoneInGameSession(socket.id, zoneId);
+      
       // Notify socket about zone change (for position tracking reset)
       socket.emit('zone:changed', { zoneId, position: spawnPosition });
       
@@ -157,6 +160,7 @@ export function registerZoneHandlers(socket, io) {
         name: player.name,
         position: spawnPosition,
         rotation: [0, 0, 0],
+        zoneId: zoneId, // Include zone ID so frontend knows which zone player is in
         heroModel: playerInSession?.heroModel || null,
         heroModelScale: playerInSession?.heroModelScale || 1,
         heroModelRotation: playerInSession?.heroModelRotation || [0, 0, 0]
@@ -274,6 +278,9 @@ export function registerZoneHandlers(socket, io) {
       // Join new zone room
       socket.join(`zone-${portal.to_zone_id}`);
       
+      // Update player's zone in multiplayer service
+      updatePlayerZoneInGameSession(socket.id, portal.to_zone_id);
+      
       // Get portals for destination zone
       const destinationPortals = await zoneService.getZonePortals(portal.to_zone_id);
       
@@ -307,6 +314,7 @@ export function registerZoneHandlers(socket, io) {
         name: player.name,
         position: result.position,
         rotation: [0, 0, 0],
+        zoneId: portal.to_zone_id, // Include zone ID so frontend knows which zone player is in
         heroModel: playerInSession?.heroModel || null,
         heroModelScale: playerInSession?.heroModelScale || 1,
         heroModelRotation: playerInSession?.heroModelRotation || [0, 0, 0]

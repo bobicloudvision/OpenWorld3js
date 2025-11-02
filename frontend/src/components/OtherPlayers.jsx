@@ -415,7 +415,7 @@ export default function OtherPlayers({ socket, currentPlayerId }) {
   useEffect(() => {
     console.log(`[OtherPlayers] Rendering ${players.length} other players`)
     players.forEach(p => {
-      console.log(`  - Player ${p.playerId} (${p.name}): model=${p.heroModel || 'none'}, pos=${JSON.stringify(p.position)}`)
+      console.log(`  - Player ${p.playerId} (${p.name}): zone=${p.zoneId || 'unknown'}, model=${p.heroModel || 'none'}, pos=${JSON.stringify(p.position)}`)
     })
   }, [players.length])
   

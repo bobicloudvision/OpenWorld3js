@@ -55,6 +55,7 @@ export function addPlayerToGameSession(socketId, playerId, playerData = {}) {
     playerId,
     position: [0, 0, 0], // Default spawn position
     rotation: [0, 0, 0],
+    zoneId: playerData.zoneId || null, // Track which zone player is in
     name: playerData.name || `Player ${playerId}`,
     activeHeroId: playerData.activeHeroId || null,
     heroModel: playerData.heroModel || null,
@@ -94,6 +95,22 @@ export function updatePlayerPositionInGameSession(socketId, position, rotation =
  */
 export function removePlayerFromGameSession(socketId) {
   return connectedPlayers.delete(socketId);
+}
+
+/**
+ * Update player's zone in the game session
+ * @param {string} socketId - The socket ID
+ * @param {number} zoneId - The new zone ID
+ * @returns {boolean} True if player was found and updated
+ */
+export function updatePlayerZoneInGameSession(socketId, zoneId) {
+  const player = connectedPlayers.get(socketId);
+  if (!player) return false;
+  
+  player.zoneId = zoneId;
+  player.lastUpdate = Date.now();
+  
+  return true;
 }
 
 /**

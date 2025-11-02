@@ -110,6 +110,7 @@ export function registerMultiplayerHandlers(socket, io) {
           socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
             socketId: socket.id,
             playerId: playerId, // Include playerId for stable identification
+            zoneId: currentZoneId, // Include zone ID for tracking and debugging
             position,
             rotation,
           });
@@ -131,6 +132,7 @@ export function registerMultiplayerHandlers(socket, io) {
           socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
             socketId: socket.id,
             playerId: playerId, // Include playerId for stable identification
+            zoneId: currentZoneId, // Include zone ID for tracking and debugging
             position,
             rotation,
           });
@@ -166,6 +168,7 @@ export function registerMultiplayerHandlers(socket, io) {
           socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
             socketId: socket.id,
             playerId: playerId, // Include playerId for stable identification
+            zoneId: currentZoneId, // Include zone ID for tracking and debugging
             position: lastPosData.position,
             rotation,
           });
@@ -196,6 +199,7 @@ export function registerMultiplayerHandlers(socket, io) {
       socket.to(`zone-${currentZoneId}`).emit('player:position:changed', {
         socketId: socket.id,
         playerId: playerId, // Include playerId for stable identification
+        zoneId: currentZoneId, // Include zone ID for tracking and debugging
         position,
         rotation,
       });
