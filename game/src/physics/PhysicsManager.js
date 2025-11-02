@@ -69,6 +69,11 @@ export class PhysicsManager extends EventEmitter {
     const shape = new CANNON.Box(new CANNON.Vec3(width / 2, height / 2, depth / 2));
     const body = new CANNON.Body({ mass, material });
     
+    // Explicitly set body type based on mass
+    if (mass > 0) {
+      body.type = CANNON.Body.DYNAMIC;
+    }
+    
     body.addShape(shape);
     body.position.set(position.x, position.y, position.z);
     
@@ -96,6 +101,11 @@ export class PhysicsManager extends EventEmitter {
     const shape = new CANNON.Sphere(radius);
     const body = new CANNON.Body({ mass, material });
     
+    // Explicitly set body type based on mass
+    if (mass > 0) {
+      body.type = CANNON.Body.DYNAMIC;
+    }
+    
     body.addShape(shape);
     body.position.set(position.x, position.y, position.z);
 
@@ -121,6 +131,11 @@ export class PhysicsManager extends EventEmitter {
 
     const shape = new CANNON.Cylinder(radiusTop, radiusBottom, height, numSegments);
     const body = new CANNON.Body({ mass, material });
+    
+    // Explicitly set body type based on mass
+    if (mass > 0) {
+      body.type = CANNON.Body.DYNAMIC;
+    }
     
     body.addShape(shape);
     body.position.set(position.x, position.y, position.z);

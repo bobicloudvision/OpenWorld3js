@@ -111,7 +111,10 @@ export class GameHelpers {
     // Add mesh to scene (important!)
     this.scene.add(mesh);
 
-    // Add physics if available
+    // Add to scene first (so actor has access to scene.engine)
+    this.scene.addEntity(player);
+
+    // ✅ NEW API - Enable physics on actor
     if (this.physics) {
       const bodyOptions = {
         type: shape === 'sphere' ? 'sphere' : 'box',
@@ -126,18 +129,17 @@ export class GameHelpers {
         bodyOptions.depth = size.depth || 1;
       }
 
-      const body = this.physics.addToEntity(player, bodyOptions);
+      player.enablePhysics(bodyOptions);
       
       // Don't lock rotation for spheres (they need to roll!)
       if (shape !== 'sphere') {
-        body.fixedRotation = true;
-        body.updateMassProperties();
+        player.physicsBody.fixedRotation = true;
+        player.physicsBody.updateMassProperties();
       }
       
-      body.linearDamping = 0.1;
+      player.physicsBody.linearDamping = 0.1;
     }
 
-    this.scene.addEntity(player);
     return player;
   }
 
@@ -306,7 +308,16 @@ export class GameHelpers {
    * @param {object} bindings - Custom bindings (optional)
    */
   setupInput(bindings = {}) {
+    console.log('⌨️ GameHelpers.setupInput called');
+    console.log('  this.engine:', !!this.engine);
+    console.log('  this.engine.inputManager:', !!this.engine?.inputManager);
+    
     const input = this.engine.inputManager;
+
+    if (!input) {
+      console.error('❌ No InputManager found!');
+      return;
+    }
 
     const defaultBindings = {
       forward: ['KeyW', 'ArrowUp'],
@@ -319,9 +330,12 @@ export class GameHelpers {
       ...bindings
     };
 
+    console.log('⌨️ Setting up input bindings:', defaultBindings);
     Object.entries(defaultBindings).forEach(([action, keys]) => {
+      console.log(`  Binding ${action} to`, keys);
       input.bindAction(action, keys);
     });
+    console.log('✅ Input setup complete');
   }
 
   /**

@@ -39,6 +39,22 @@ export class PhysicsScene extends Scene {
   }
 
   /**
+   * Update - step physics before updating entities
+   */
+  update(deltaTime, elapsedTime) {
+    // Step physics world
+    if (this.engine.physicsManager) {
+      console.log('⏱️ Stepping physics with deltaTime:', deltaTime.toFixed(4));
+      this.engine.physicsManager.update(deltaTime);
+    } else {
+      console.error('❌ No physics manager!');
+    }
+    
+    // Update all entities (which will auto-sync physics → visual)
+    super.update(deltaTime, elapsedTime);
+  }
+
+  /**
    * Quick ground creation
    */
   addGround(options) {
@@ -94,6 +110,7 @@ export class PhysicsScene extends Scene {
    * Quick input setup
    */
   setupInput(bindings) {
+    console.log('🎮 PhysicsScene.setupInput called');
     return this.helpers.setupInput(bindings);
   }
 
