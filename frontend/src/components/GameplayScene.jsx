@@ -39,6 +39,18 @@ export default function GameplayScene({
   const [combatInstanceId, setCombatInstanceId] = useState(null)
   const [hasJoinedOnce, setHasJoinedOnce] = useState(false)
 
+  // Log when zone changes
+  useEffect(() => {
+    console.log('[GameplayScene] Current zone changed:', {
+      zoneId: currentZone?.id,
+      zoneName: currentZone?.name,
+      mapFile: currentZone?.map_file,
+      environmentFile: currentZone?.environment_file,
+      computedMapPath: mapFilePath,
+      computedEnvironmentPath: environmentPath
+    });
+  }, [currentZone, mapFilePath, environmentPath])
+
   useEffect(() => {
     const handleVisibilityChange = () => {
       setIsTabVisible(!document.hidden)

@@ -1,11 +1,23 @@
 import { useGLTF } from "@react-three/drei"
 import { RigidBody } from "@react-three/rapier"
+import { useMemo } from "react"
 import useGameStore from '../stores/gameStore'
 import { addVfx } from '../stores/effectsStore'
 
 export default function Ground(props) {
   const mapFile = props.mapFile || '/models/world1.glb'
+  
+  // Log when map file changes to debug zone transitions
+  console.log('[Ground] Loading map file:', mapFile)
+  
   const { scene } = useGLTF(mapFile)
+  
+  // Clone the scene to ensure we get a fresh instance
+  const clonedScene = useMemo(() => {
+    console.log('[Ground] Creating cloned scene from:', mapFile)
+    return scene.clone()
+  }, [scene, mapFile])
+  
   const socket = props.socket
   const disableCombat = props.disableCombat || false
   
@@ -96,7 +108,7 @@ export default function Ground(props) {
       colliders="trimesh"
     >
       <primitive 
-        object={scene} 
+        object={clonedScene} 
         scale={1}
         metalness={0.1}
         roughness={0.8}

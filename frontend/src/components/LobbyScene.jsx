@@ -35,6 +35,17 @@ export default function LobbyScene({
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [inCombat, setInCombat] = useState(false)
 
+  // Log when zone changes
+  useEffect(() => {
+    console.log('[LobbyScene] Current zone changed:', {
+      zoneId: currentZone?.id,
+      zoneName: currentZone?.name,
+      mapFile: currentZone?.map_file,
+      environmentFile: currentZone?.environment_file,
+      computedMapPath: mapFilePath
+    });
+  }, [currentZone, mapFilePath])
+
   // Listen for combat state changes
   useEffect(() => {
     if (!socket) return;

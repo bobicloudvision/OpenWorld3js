@@ -68,8 +68,13 @@ export default function ZoneSelector({ socket, playerLevel = 1, onClose, onZoneC
       useZoneStore.getState().endTransition();
       
       if (response.ok) {
-        console.log('[zone] Successfully joined zone:', response.zone.name);
-        console.log('[zone] Zone data:', response.zone);
+        console.log('[ZoneSelector] Successfully joined zone:', response.zone.name);
+        console.log('[ZoneSelector] Zone data:', response.zone);
+        console.log('[ZoneSelector] Map file:', response.zone.map_file);
+        console.log('[ZoneSelector] Environment file:', response.zone.environment_file);
+        
+        // Update zone store's current zone
+        useZoneStore.getState().setCurrentZone(response.zone);
         
         // Notify parent component about zone change
         if (onZoneChange) {
