@@ -112,8 +112,9 @@ class PhysicsDemoScene extends Scene {
     playerBody.fixedRotation = true;
     playerBody.updateMassProperties();
     
-    // Damping to prevent sliding
-    playerBody.linearDamping = 0.9;
+    // Damping to prevent sliding (low value for responsive movement)
+    playerBody.linearDamping = 0.1; // Was 0.9 - way too high!
+    playerBody.angularDamping = 0.5; // Prevent spinning
 
     this.addEntity(this.player);
   }
@@ -244,9 +245,9 @@ class PhysicsDemoScene extends Scene {
       // Rotate player to face movement direction
       this.player.rotation.y = Math.atan2(moveDirection.x, moveDirection.z);
     } else {
-      // Stop horizontal movement
-      body.velocity.x *= 0.9;
-      body.velocity.z *= 0.9;
+      // Stop horizontal movement (reduced damping for snappier feel)
+      body.velocity.x *= 0.8;
+      body.velocity.z *= 0.8;
     }
 
     // ✅ Jump with physics
@@ -254,7 +255,8 @@ class PhysicsDemoScene extends Scene {
       const isGrounded = this.isPlayerGrounded(body);
       
       if (isGrounded) {
-        physics.applyImpulse(body, { x: 0, y: 50, z: 0 });
+        // Higher impulse for snappier jump (adjusted for stronger gravity)
+        physics.applyImpulse(body, { x: 0, y: 80, z: 0 });
         console.log('🚀 Jump! Position:', body.position.y.toFixed(2), 'Velocity:', body.velocity.y.toFixed(2));
       } else {
         console.log('❌ Cannot jump - not grounded. Y:', body.position.y.toFixed(2), 'Vel:', body.velocity.y.toFixed(2));
@@ -352,7 +354,7 @@ function initGame() {
     shadowMapEnabled: true,
     physics: true, // Enable physics!
     physicsConfig: {
-      gravity: -9.82,
+      gravity: -25, // Game gravity (stronger than realistic -9.82)
       iterations: 10
     }
   });
