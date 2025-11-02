@@ -24,7 +24,7 @@ const QUEUE_TYPES = {
     name: 'Duel (1v1)',
     minPlayers: 2,
     maxPlayers: 2,
-    countdownSeconds: 10,
+    countdownSeconds: 2,
     teams: false
   },
   '2v2': {
@@ -195,6 +195,7 @@ export function leaveQueue(playerId, io) {
 
 /**
  * Check if queue has enough players and start match
+ * IMPORTANT: Only matches players from the SAME zone
  */
 function checkAndStartMatch(queueType, io) {
   const queue = queues.get(queueType);
@@ -204,17 +205,50 @@ function checkAndStartMatch(queueType, io) {
     return;
   }
 
-  // Take required number of players
-  const matchPlayers = queue.players.splice(0, config.maxPlayers);
+  // Group players by zone ID
+  const playersByZone = new Map();
+  queue.players.forEach(player => {
+    const zoneId = player.zoneId;
+    if (!zoneId) {
+      console.warn(`[matchmaking] Player ${player.playerId} has no zoneId, skipping`);
+      return;
+    }
+    
+    if (!playersByZone.has(zoneId)) {
+      playersByZone.set(zoneId, []);
+    }
+    playersByZone.get(zoneId).push(player);
+  });
+
+  // Find the first zone that has enough players for a match
+  let matchPlayers = null;
+  let matchZoneId = null;
+
+  for (const [zoneId, players] of playersByZone.entries()) {
+    if (players.length >= config.minPlayers) {
+      // Take the required number of players from this zone
+      matchPlayers = players.slice(0, config.maxPlayers);
+      matchZoneId = zoneId;
+      console.log(`[matchmaking] Found ${matchPlayers.length} players in zone ${zoneId} for ${queueType} match`);
+      break;
+    }
+  }
+
+  // If no zone has enough players, don't create a match
+  if (!matchPlayers || !matchZoneId) {
+    console.log(`[matchmaking] Not enough players in same zone for ${queueType} match`);
+    return;
+  }
+
+  // Remove matched players from queue
+  const matchedPlayerIds = new Set(matchPlayers.map(p => p.playerId));
+  queue.players = queue.players.filter(p => !matchedPlayerIds.has(p.playerId));
   
   // Remove players from tracking
   matchPlayers.forEach(p => playerQueues.delete(p.playerId));
 
   // Create match
   const matchId = `match-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  
-  // Collect zones players are coming from (for reference/tracking)
-  const playerZones = matchPlayers.map(p => p.zoneId).filter(Boolean);
   
   const match = {
     matchId,
@@ -223,14 +257,15 @@ function checkAndStartMatch(queueType, io) {
     state: 'countdown',
     countdownStarted: Date.now(),
     countdownDuration: config.countdownSeconds * 1000,
-    zoneId: null, // Will be assigned to arena zone
-    playerOriginZones: playerZones, // Track where players came from
+    zoneId: null, // Will be assigned to arena zone later
+    playerOriginZones: [matchZoneId], // All players from same zone
+    requiredZoneId: matchZoneId, // Track the zone requirement for validation
     combatInstanceId: null
   };
 
   activeMatches.set(matchId, match);
 
-  console.log(`[matchmaking] Starting match ${matchId} for ${queueType} with ${matchPlayers.length} players`);
+  console.log(`[matchmaking] ✅ Starting match ${matchId} for ${queueType} with ${matchPlayers.length} players from zone ${matchZoneId}`);
 
   // Start countdown
   startCountdown(matchId, io);
@@ -449,25 +484,44 @@ async function startCombat(matchId, io) {
 
   console.log(`[matchmaking] Combat started: ${combatInstanceId} in zone ${arenaZone.id} (${arenaZone.name})`);
 
-  // Teleport all players to arena and notify
+  // Step 1: Transfer ALL players to arena zone FIRST (complete before sending any events)
+  console.log(`[matchmaking] 📍 Transferring ${match.players.length} players to arena zone ${arenaZone.id}...`);
   for (const player of match.players) {
-    // Add player to zone
+    const fromZoneId = player.zoneId; // Player's original zone
     try {
+      // Remove from old zone 
+      if (fromZoneId) {
+        await zoneService.removePlayerFromZone(player.playerId, fromZoneId);
+      }
+      
+      // Add to arena zone (forced - matchmaking already validated)
       await zoneService.addPlayerToZone(player.playerId, arenaZone.id, spawnPos);
+      
+      console.log(`[matchmaking] ✅ Transferred player ${player.playerId} from zone ${fromZoneId} to arena zone ${arenaZone.id}`);
     } catch (error) {
-      console.error('[matchmaking] Error adding player to zone:', error);
+      console.error('[matchmaking] ❌ Error transferring player to arena zone:', error);
     }
-
-    // Notify player about zone change (clears position tracking for anti-teleport)
-    // This must happen BEFORE match:started so position tracking is reset
+  }
+  
+  // Small delay to ensure database writes complete
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  // Step 2: Notify ALL players about zone change (must happen BEFORE match:started)
+  console.log(`[matchmaking] 📢 Notifying players about zone change...`);
+  for (const player of match.players) {
     io.to(player.playerId).emit('zone:changed', { 
       zoneId: arenaZone.id, 
       position: spawnPos 
     });
-
-    // Notify player
+  }
+  
+  // Small delay to let frontend process zone:changed before match:started
+  await new Promise(resolve => setTimeout(resolve, 200));
+  
+  // Step 3: Notify ALL players that match has started
+  console.log(`[matchmaking] 🎮 Notifying players that match has started...`);
+  for (const player of match.players) {
     console.log(`[matchmaking] Emitting match:started to player ${player.playerId} (${player.playerName}) in room ${player.playerId}`);
-    console.log(`[matchmaking] Event data:`, { matchId, combatInstanceId, zoneName: arenaZone.name });
     
     // Check how many sockets are in this room
     const socketsInRoom = await io.in(player.playerId).fetchSockets();
@@ -484,6 +538,8 @@ async function startCombat(matchId, io) {
       enemies: config.isPvE ? enemyIds : null // Include enemy IDs for PvE matches
     });
   }
+  
+  console.log(`[matchmaking] ✅ All ${match.players.length} players transferred and notified`);
 }
 
 /**
