@@ -27,6 +27,9 @@ export { InputManager } from './input/InputManager.js';
 export { CameraManager } from './camera/CameraManager.js';
 export { ThirdPersonCamera } from './camera/ThirdPersonCamera.js';
 
+// Physics
+export { PhysicsManager } from './physics/PhysicsManager.js';
+
 // Configuration
 export { 
   EngineDefaults, 

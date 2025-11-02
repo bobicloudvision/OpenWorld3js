@@ -87,6 +87,11 @@ class BasicGameScene extends Scene {
     this.player.mesh = mesh;
     this.player.setPosition(0, 1, 0);
 
+    // Add jump properties
+    this.player.jumpForce = 8;
+    this.player.gravity = -20;
+    this.player.isJumping = false;
+
     this.addEntity(this.player);
   }
 
@@ -188,9 +193,26 @@ class BasicGameScene extends Scene {
       this.player.stop();
     }
 
-    // Keep player above ground
-    if (this.player.position.y < 1) {
-      this.player.position.y = 1;
+    // ✅ Jump functionality
+    if (input.isActionPressed('jump') && this.player.isGrounded) {
+      this.player.velocity.y = this.player.jumpForce;
+      this.player.isGrounded = false;
+      this.player.isJumping = true;
+    }
+
+    // Apply gravity
+    if (!this.player.isGrounded) {
+      this.player.velocity.y += this.player.gravity * deltaTime;
+      this.player.position.y += this.player.velocity.y * deltaTime;
+    }
+
+    // Ground collision
+    const groundLevel = 1; // Height of player when on ground
+    if (this.player.position.y <= groundLevel) {
+      this.player.position.y = groundLevel;
+      this.player.velocity.y = 0;
+      this.player.isGrounded = true;
+      this.player.isJumping = false;
     }
   }
 

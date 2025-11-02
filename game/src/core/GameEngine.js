@@ -6,6 +6,7 @@ import { InputManager } from '../input/InputManager.js';
 import { NetworkManager } from '../network/NetworkManager.js';
 import { AssetManager } from '../assets/AssetManager.js';
 import { CameraManager } from '../camera/CameraManager.js';
+import { PhysicsManager } from '../physics/PhysicsManager.js';
 
 /**
  * Main Game Engine class
@@ -21,7 +22,7 @@ export class GameEngine extends EventEmitter {
       shadowMapEnabled: true,
       shadowMapType: THREE.PCFSoftShadowMap,
       pixelRatio: window.devicePixelRatio,
-      physics: true,
+      physics: false,
       networking: false,
       ...config
     };
@@ -34,6 +35,7 @@ export class GameEngine extends EventEmitter {
     this.networkManager = null;
     this.assetManager = null;
     this.cameraManager = null;
+    this.physicsManager = null;
 
     // State
     this.isRunning = false;
@@ -67,6 +69,11 @@ export class GameEngine extends EventEmitter {
     // Initialize networking if enabled
     if (this.config.networking) {
       this.networkManager = new NetworkManager(this, this.config.networkConfig);
+    }
+
+    // Initialize physics if enabled
+    if (this.config.physics) {
+      this.physicsManager = new PhysicsManager(this.config.physicsConfig);
     }
 
     // Setup resize handler
@@ -199,6 +206,11 @@ export class GameEngine extends EventEmitter {
       this.networkManager.update(deltaTime);
     }
 
+    // Update physics
+    if (this.physicsManager) {
+      this.physicsManager.update(deltaTime);
+    }
+
     // Update current scene
     this.sceneManager.update(deltaTime, elapsedTime);
 
@@ -270,6 +282,10 @@ export class GameEngine extends EventEmitter {
     
     if (this.networkManager) {
       this.networkManager.dispose();
+    }
+
+    if (this.physicsManager) {
+      this.physicsManager.dispose();
     }
 
     // Dispose renderer
