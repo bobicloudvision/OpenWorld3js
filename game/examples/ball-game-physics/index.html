@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎮 Physics Ball Game - OpenWorld3D</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      overflow: hidden;
+      background: #0a0a0f;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Title Badge */
+    .title {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 20px;
+      box-shadow: 0 4px 20px rgba(102, 126, 234, 0.5);
+      letter-spacing: 1px;
+    }
+
+    /* Stats Panel */
+    .stats {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      background: rgba(10, 10, 15, 0.9);
+      color: white;
+      padding: 25px;
+      border-radius: 15px;
+      min-width: 280px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(102, 126, 234, 0.4);
+      box-shadow: 0 4px 25px rgba(0, 0, 0, 0.5);
+    }
+
+    .stats h2 {
+      margin: 0 0 20px 0;
+      font-size: 22px;
+      color: #667eea;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 12px 0;
+      font-size: 15px;
+    }
+
+    .stat-label {
+      color: #999;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      color: #fff;
+      font-weight: bold;
+      font-size: 18px;
+    }
+
+    .stat-value.highlight {
+      color: #00ff88;
+      font-size: 28px;
+    }
+
+    .stat-value.collected {
+      color: #ffdd00;
+    }
+
+    /* Controls Panel */
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(10, 10, 15, 0.9);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(102, 126, 234, 0.4);
+    }
+
+    .controls h3 {
+      margin: 0 0 15px 0;
+      font-size: 17px;
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .control-item {
+      display: flex;
+      align-items: center;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+
+    .key {
+      background: linear-gradient(145deg, #2d2d44, #1a1a2e);
+      padding: 6px 14px;
+      border-radius: 6px;
+      margin-right: 12px;
+      font-weight: bold;
+      min-width: 60px;
+      text-align: center;
+      border: 1px solid #667eea;
+      color: #667eea;
+      font-size: 13px;
+    }
+
+    /* Info Panel */
+    .info {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(10, 10, 15, 0.9);
+      color: white;
+      padding: 20px;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 221, 0, 0.4);
+      max-width: 320px;
+    }
+
+    .info h3 {
+      margin: 0 0 12px 0;
+      color: #ffdd00;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .info p {
+      margin: 8px 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #bbb;
+    }
+
+    .info strong {
+      color: #fff;
+    }
+
+    .color-legend {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .color-legend p {
+      margin: 6px 0;
+      font-size: 12px;
+    }
+
+    /* Message */
+    .message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(10, 10, 15, 0.95);
+      color: white;
+      padding: 30px 60px;
+      border-radius: 20px;
+      font-size: 28px;
+      font-weight: bold;
+      text-align: center;
+      display: none;
+      border: 3px solid #00ff88;
+      box-shadow: 0 0 40px rgba(0, 255, 136, 0.6);
+      animation: messageAppear 0.3s ease-out;
+    }
+
+    .message.show {
+      display: block;
+    }
+
+    @keyframes messageAppear {
+      from {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+      }
+      to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .stats, .controls, .info {
+        font-size: 11px;
+        padding: 15px;
+      }
+      .title {
+        font-size: 16px;
+        padding: 12px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game-canvas"></canvas>
+
+  <!-- Title -->
+  <div class="title">
+    ⚡ PHYSICS BALL GAME
+  </div>
+
+  <!-- Stats Panel -->
+  <div class="stats">
+    <h2>📊 Game Stats</h2>
+    <div class="stat-row">
+      <span class="stat-label">Score:</span>
+      <span class="stat-value highlight" id="score">0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Collected:</span>
+      <span class="stat-value collected" id="collected">0/0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Velocity:</span>
+      <span class="stat-value" id="velocity">0</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Time:</span>
+      <span class="stat-value" id="time">0:00</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">Debug:</span>
+      <span class="stat-value" id="debug" style="color: #ff6b6b;">OFF</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-label">FPS:</span>
+      <span class="stat-value" id="fps">0</span>
+    </div>
+  </div>
+
+  <!-- Controls Panel -->
+  <div class="controls">
+    <h3>🎮 Controls</h3>
+    <div class="control-item">
+      <span class="key">W A S D</span>
+      <span>Move Ball</span>
+    </div>
+    <div class="control-item">
+      <span class="key">SPACE</span>
+      <span>Jump</span>
+    </div>
+    <div class="control-item">
+      <span class="key">P</span>
+      <span>Toggle Physics Debug</span>
+    </div>
+    <div class="control-item">
+      <span class="key">R</span>
+      <span>Reset Ball</span>
+    </div>
+  </div>
+
+  <!-- Info Panel -->
+  <div class="info">
+    <h3>🎯 Objective</h3>
+    <p>Roll the ball and collect all <strong style="color: #ffdd00;">yellow spheres</strong> to win!</p>
+    <p>Push <strong>colored obstacles</strong> out of your way.</p>
+    
+    <div class="color-legend">
+      <p><strong>Obstacle Colors:</strong></p>
+      <p>🟢 <span style="color: #66cc66;">Green</span> = Light (easy to push)</p>
+      <p>🟠 <span style="color: #ccaa44;">Orange</span> = Medium</p>
+      <p>🔴 <span style="color: #cc6666;">Red</span> = Heavy (hard to push)</p>
+    </div>
+    
+    <p style="margin-top: 12px; font-size: 11px; color: #888;">
+      Press <strong style="color: #667eea;">P</strong> to see collision shapes
+    </p>
+  </div>
+
+  <!-- Message -->
+  <div class="message" id="message">
+    🎉 Message
+  </div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
+
