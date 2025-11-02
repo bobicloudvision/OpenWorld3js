@@ -102,9 +102,14 @@ export class RaceScene extends GameScene {
         turnSpeed: 3 
       })
       .withComponent(CameraFollowComponent, {
-        offset: { x: 0, y: 10, z: 18 },
-        lookAtHeight: 1,
-        smoothing: 3
+        distance: 6,               // Very close distance behind car
+        height: 3,                 // Lower camera height
+        heightDamping: 3.0,        // How quickly camera adjusts height
+        rotationDamping: 3.5,      // How quickly camera follows car rotation (lower = more lag)
+        lookAheadDistance: 2,      // Look just ahead
+        lookAtHeight: 1.0,         // Look at point height
+        useSpeedEffect: true,      // Pull back camera at high speed
+        maxSpeedOffset: 2          // Less pullback at top speed
       })
       .build();
 
