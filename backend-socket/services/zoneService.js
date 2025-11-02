@@ -117,36 +117,41 @@ export async function getZonePortals(zoneId) {
 
 /**
  * Check if player can enter zone
+ * @param {Object} options - Options for validation
+ * @param {boolean} options.skipLevelCheck - Skip level requirements (for combat rejoin)
  */
-export async function canPlayerEnterZone(player, zoneId) {
+export async function canPlayerEnterZone(player, zoneId, options = {}) {
   const zone = await getZoneById(zoneId);
   
   if (!zone) {
     return { allowed: false, reason: 'Zone not found or inactive' };
   }
 
-  // Get player's active hero level
-  const [playerHero] = await query(
-    `SELECT level FROM player_heroes WHERE id = ?`,
-    [player.active_hero_id]
-  );
-  
-  const playerLevel = playerHero?.level || 1;
+  // Skip level check for combat rejoin
+  if (!options.skipLevelCheck) {
+    // Get player's active hero level
+    const [playerHero] = await query(
+      `SELECT level FROM player_heroes WHERE id = ?`,
+      [player.active_hero_id]
+    );
+    
+    const playerLevel = playerHero?.level || 1;
 
-  // Check min level
-  if (playerLevel < zone.min_level) {
-    return { 
-      allowed: false, 
-      reason: `Level ${zone.min_level} required (you are level ${playerLevel})` 
-    };
-  }
+    // Check min level
+    if (playerLevel < zone.min_level) {
+      return { 
+        allowed: false, 
+        reason: `Level ${zone.min_level} required (you are level ${playerLevel})` 
+      };
+    }
 
-  // Check max level
-  if (zone.max_level && playerLevel > zone.max_level) {
-    return { 
-      allowed: false, 
-      reason: `Max level ${zone.max_level} (you are level ${playerLevel})` 
-    };
+    // Check max level
+    if (zone.max_level && playerLevel > zone.max_level) {
+      return { 
+        allowed: false, 
+        reason: `Max level ${zone.max_level} (you are level ${playerLevel})` 
+      };
+    }
   }
 
   // Check capacity

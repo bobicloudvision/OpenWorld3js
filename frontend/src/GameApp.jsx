@@ -77,6 +77,61 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     updateHeroes(updatedPlayerHeroes, updatedAvailableHeroes)
   }, [updateHeroes])
 
+  // Memoize hero stats update callback
+  const handleHeroStatsUpdate = React.useCallback((heroId, stats) => {
+    updateHeroStats(heroId, stats)
+  }, [updateHeroStats])
+
+  // Memoize UI toggle callbacks
+  const handleOpenHeroSelection = React.useCallback(() => {
+    setShowHeroSelection(true)
+  }, [])
+
+  const handleShowZoneSelector = React.useCallback(() => {
+    setShowZoneSelector(true)
+  }, [])
+
+  const handleShowLeaderboard = React.useCallback(() => {
+    setShowLeaderboard(true)
+  }, [])
+
+  const handleShowHeroSwitcher = React.useCallback(() => {
+    setShowHeroSwitcher(true)
+  }, [])
+
+  const handleLogout = React.useCallback(() => {
+    setPlayer(null)
+    if (disconnect) {
+      disconnect()
+    }
+  }, [disconnect])
+
+  const handleCloseHeroSelection = React.useCallback(() => {
+    setShowHeroSelection(false)
+  }, [])
+
+  const handleCloseZoneSelector = React.useCallback(() => {
+    setShowZoneSelector(false)
+  }, [])
+
+  const handleCloseMatchmaking = React.useCallback(() => {
+    setShowMatchmaking(false)
+  }, [])
+
+  const handleCloseAuth = React.useCallback(() => {
+    setAuthOpen(false)
+  }, [])
+
+  const handleAuthSuccess = React.useCallback((p) => {
+    setPlayer(p)
+    setAuthOpen(false)
+  }, [])
+
+  const handleHeroSelectionWithClose = React.useCallback((updatedPlayer) => {
+    setPlayer(updatedPlayer)
+    setShowHeroSelection(false)
+  }, [])
+
   // Handle player initialization - wait for player to be fully loaded
   React.useEffect(() => {
     if (!player) {
@@ -106,6 +161,9 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     }
   }, [player])
 
+  // Track last logged hero to prevent excessive logging
+  const lastLoggedHeroRef = React.useRef(null)
+
   // Memoized active hero - computed once when player or playerHeroes changes
   const activeHero = React.useMemo(() => {
     if (!player?.active_hero_id || !playerHeroes?.length) {
@@ -114,14 +172,15 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     
     const hero = playerHeroes.find(h => h.playerHeroId === player.active_hero_id)
     
-    if (hero) {
-      console.log('[GameApp] Active hero:', {
+    // Only log when hero actually changes, not on every stats update
+    if (hero && lastLoggedHeroRef.current !== hero.playerHeroId) {
+      console.log('[GameApp] Active hero changed:', {
         activeHeroId: player.active_hero_id,
         heroModel: hero.model,
         heroLevel: hero.level
       })
+      lastLoggedHeroRef.current = hero.playerHeroId
     }
-  
 
     return hero
   }, [player?.active_hero_id, playerHeroes])
@@ -192,8 +251,26 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
       // Delay to ensure server has fully processed authentication binding
       await new Promise(resolve => setTimeout(resolve, 600))
       
-      if (!cancelled && loadZoneDataRef.current && socket?.connected && socket.id === socketId) {
-        console.log('[GameApp] Calling loadZoneData, socket ID:', socket.id)
+      if (cancelled || !loadZoneDataRef.current || !socket?.connected || socket.id !== socketId) {
+        return
+      }
+      
+      // IMPORTANT: Check for active combat BEFORE auto-joining zone
+      // If player has active combat, skip auto-join - combat rejoin will handle zone
+      console.log('[GameApp] Checking for active combat before auto-join...')
+      const hasActiveCombat = await new Promise(resolve => {
+        socket.emit('combat:check-active', (response) => {
+          resolve(response?.ok && response?.hasActiveCombat)
+        })
+      })
+      
+      if (hasActiveCombat) {
+        console.log('[GameApp] ⏭️ Active combat detected, skipping auto-join to lobby (combat rejoin will handle zone)')
+        return
+      }
+      
+      if (!cancelled && socket?.connected && socket.id === socketId) {
+        console.log('[GameApp] No active combat, proceeding with zone auto-join. Socket ID:', socket.id)
         await loadZoneDataRef.current(socket)
         console.log('[GameApp] Zone loading complete')
       }
@@ -228,8 +305,33 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     setCombatState
   } = useCombatManager(socketRef, socketReady, onCombatStateChange, returnToLobby, updateZone, getZoneById)
 
+  // Callbacks that depend on hook values - must be defined AFTER hooks
+  const handleShowMatchmaking = React.useCallback(() => {
+    if (!currentZone) {
+      alert('You must be in a zone to join matchmaking. Please select a zone first.')
+      return
+    }
+    setShowMatchmaking(true)
+  }, [currentZone])
+
+  const handleMatchmakingStarted = React.useCallback((data) => {
+    setShowMatchmaking(false)
+    const result = handleMatchStarted(data)
+    // Update player position if provided
+    if (result?.position) {
+      playerPositionRef.current = [result.position.x, result.position.y, result.position.z]
+    }
+  }, [handleMatchStarted])
+
   // Update combat state based on zone type
+  // Note: Don't override combat state for matchmaking battles
   React.useEffect(() => {
+    // Don't change combat state if we're in a matchmaking battle
+    if (isMatchmakingBattle) {
+      console.log('[app] In matchmaking battle, keeping combat state as is');
+      return;
+    }
+
     if (currentZone) {
       if (currentZone.is_combat_zone && !currentZone.is_safe_zone) {
         console.log('[app] Switching to GameplayScene (combat zone)');
@@ -239,7 +341,7 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
         setCombatState(false, false);
       }
     }
-  }, [currentZone, setCombatState]);
+  }, [currentZone, setCombatState, isMatchmakingBattle]);
 
   // Store loadZoneData ref for use in auth success callback
   React.useEffect(() => {
@@ -248,6 +350,16 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
 
   // Use enemy manager hook to handle all enemy-related logic (only when player has active hero)
   useEnemyManager(socketRef, socketReady && !!player?.active_hero_id, currentZone);
+
+  // Memoize keyboard map to prevent recreation on every render
+  const keyboardMap = React.useMemo(() => [
+    { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
+    { name: 'backward', keys: ['ArrowDown', 'KeyS'] },
+    { name: 'leftward', keys: ['ArrowLeft', 'KeyA'] },
+    { name: 'rightward', keys: ['ArrowRight', 'KeyD'] },
+    { name: 'jump', keys: ['Space'] },
+    { name: 'run', keys: ['Shift'] },
+  ], [])
 
   // Keyboard shortcut: Press 'P' to open matchmaking
   React.useEffect(() => {
@@ -265,15 +377,6 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [player, socketReady, currentZone, isMatchmakingBattle])
   
-  const keyboardMap = [
-    { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
-    { name: 'backward', keys: ['ArrowDown', 'KeyS'] },
-    { name: 'leftward', keys: ['ArrowLeft', 'KeyA'] },
-    { name: 'rightward', keys: ['ArrowRight', 'KeyD'] },
-    { name: 'jump', keys: ['Space'] },
-    { name: 'run', keys: ['Shift'] },
-  ]
-  
   return (
     <div className="game-app-container">
     {/* Game Header */}
@@ -284,29 +387,18 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
         currentZone={currentZone}
         socketRef={socketRef}
         isMatchmakingBattle={isMatchmakingBattle}
-        onShowZoneSelector={() => setShowZoneSelector(true)}
-        onShowMatchmaking={() => {
-          if (!currentZone) {
-            alert('You must be in a zone to join matchmaking. Please select a zone first.');
-            return;
-          }
-          setShowMatchmaking(true);
-        }}
-        onShowHeroSelection={() => setShowHeroSelection(true)}
-        onShowLeaderboard={() => setShowLeaderboard(true)}
-        onShowHeroSwitcher={() => setShowHeroSwitcher(true)}
-        onLogout={() => {
-          setPlayer(null);
-          if (disconnect) {
-            disconnect();
-          }
-        }}
+        onShowZoneSelector={handleShowZoneSelector}
+        onShowMatchmaking={handleShowMatchmaking}
+        onShowHeroSelection={handleOpenHeroSelection}
+        onShowLeaderboard={handleShowLeaderboard}
+        onShowHeroSwitcher={handleShowHeroSwitcher}
+        onLogout={handleLogout}
       />
     )}
     <AuthOverlay
       open={authOpen}
-      onClose={() => setAuthOpen(false)}
-      onAuthenticated={(p) => { setPlayer(p); setAuthOpen(false); }}
+      onClose={handleCloseAuth}
+      onAuthenticated={handleAuthSuccess}
     />
     {/* <GameInstructions /> */}
     {player && !socketReady && (
@@ -346,13 +438,10 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
                 currentZone={currentZone}
                 showHeroSwitcher={showHeroSwitcher}
                 onShowHeroSwitcherChange={setShowHeroSwitcher}
-                onOpenHeroSelection={() => setShowHeroSelection(true)}
+                onOpenHeroSelection={handleOpenHeroSelection}
                 onHeroSelected={handleHeroSelected}
                 onHeroesUpdate={setPlayerHeroes}
-                onHeroStatsUpdate={(heroId, stats) => {
-                  // Update hero stats in real-time during combat
-                  updateHeroStats(heroId, stats);
-                }}
+                onHeroStatsUpdate={handleHeroStatsUpdate}
                 skipAutoJoinCombat={isMatchmakingBattle}
               />
             ) : (
@@ -378,12 +467,9 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
                 playerHeroes={playerHeroes}
                 availableHeroes={availableHeroes}
                 socket={socketRef.current}
-                onHeroSelected={(updatedPlayer) => {
-                  setPlayer(updatedPlayer);
-                  setShowHeroSelection(false);
-                }}
+                onHeroSelected={handleHeroSelectionWithClose}
                 onHeroesUpdate={handleHeroesUpdate}
-                onClose={() => setShowHeroSelection(false)}
+                onClose={handleCloseHeroSelection}
               />
             )}
           </>
@@ -396,7 +482,7 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
       <ZoneSelector
         socket={socketRef.current}
         playerLevel={activeHero?.level || 1}
-        onClose={() => setShowZoneSelector(false)}
+        onClose={handleCloseZoneSelector}
         onZoneChange={handleZoneChange}
       />
     )}
@@ -405,15 +491,8 @@ export default function GameApp({ onPlayerChange, socketRef, socketReady, discon
     {player && socketReady && showMatchmaking && !isMatchmakingBattle && (
       <MatchmakingQueue
         socket={socketRef.current}
-        onClose={() => setShowMatchmaking(false)}
-        onMatchStarted={(data) => {
-          setShowMatchmaking(false); // Close matchmaking modal
-          const result = handleMatchStarted(data);
-          // Update player position if provided
-          if (result?.position) {
-            playerPositionRef.current = [result.position.x, result.position.y, result.position.z];
-          }
-        }}
+        onClose={handleCloseMatchmaking}
+        onMatchStarted={handleMatchmakingStarted}
       />
     )}
     

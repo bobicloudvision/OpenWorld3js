@@ -461,13 +461,17 @@ export default function OtherPlayers({ socket, currentPlayerId, currentZoneId })
     player.playerId && player.socketId
   )
   
-  // Log player count changes (throttled)
+  // Log player count changes (throttled) - only log when count actually changes
+  const prevPlayerCountRef = useRef(0)
   useEffect(() => {
-    console.log(`[OtherPlayers] Rendering ${players.length} other players`)
+    if (players.length !== prevPlayerCountRef.current) {
+      console.log(`[OtherPlayers] Player count changed: ${prevPlayerCountRef.current} -> ${players.length}`)
     players.forEach(p => {
       console.log(`  - Player ${p.playerId} (${p.name}): zone=${p.zoneId || 'unknown'}, model=${p.heroModel || 'none'}, pos=${JSON.stringify(p.position)}`)
     })
-  }, [players.length])
+      prevPlayerCountRef.current = players.length
+    }
+  }, [players.length, players])
   
   return (
     <>

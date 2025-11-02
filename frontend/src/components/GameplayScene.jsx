@@ -21,7 +21,7 @@ import Chat from './Chat'
 import HeroSwitcherModal from './HeroSwitcherModal'
 import { addVfx } from '../stores/effectsStore'
 
-export default function GameplayScene({ 
+function GameplayScene({ 
   playerPositionRef, 
   keyboardMap, 
   activeHero,
@@ -46,10 +46,26 @@ export default function GameplayScene({
     currentZone?.environment_file || 'models/night.hdr',
     [currentZone?.environment_file]
   );
-  console.log('[GameplayScene] Rendering with zone:', currentZone?.name, 'map_file:', currentZone?.map_file, 'computed mapPath:', mapFilePath, 'environmentPath:', environmentPath);
+  
+  // Throttle render logging
+  const lastRenderLogRef = React.useRef(0)
+  const renderCount = React.useRef(0)
+  renderCount.current++
+  
+  if (Date.now() - lastRenderLogRef.current > 1000) {
+    console.log('[GameplayScene] Rendered', renderCount.current, 'times. Zone:', currentZone?.name, 'map_file:', currentZone?.map_file);
+    renderCount.current = 0
+    lastRenderLogRef.current = Date.now()
+  }
+  
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [combatInstanceId, setCombatInstanceId] = useState(null)
   const [hasJoinedOnce, setHasJoinedOnce] = useState(false)
+
+  // Memoize player position change handler
+  const handlePositionChange = React.useCallback((position) => {
+    playerPositionRef.current = position
+  }, [playerPositionRef])
 
   // Log when zone changes
   useEffect(() => {
@@ -291,9 +307,7 @@ export default function GameplayScene({
               camFollowDistance={4}
             >
               <Player 
-                onPositionChange={function(position) {
-                  playerPositionRef.current = position; 
-                }}
+                onPositionChange={handlePositionChange}
                 heroModel={activeHero?.model}
                 heroModelScale={activeHero?.modelScale}
                 heroModelRotation={activeHero?.modelRotation}
@@ -304,7 +318,11 @@ export default function GameplayScene({
             </Ecctrl>
             
             {/* Render other players */}
-            <OtherPlayers socket={socket} currentPlayerId={player?.id} currentZoneId={currentZone?.id} /> 
+            <OtherPlayers 
+              socket={socket} 
+              currentPlayerId={player?.id} 
+              currentZoneId={currentZone?.id}
+            /> 
             
             {/* <Shapes /> */}
             <Enemies playerPositionRef={playerPositionRef} /> 
@@ -333,4 +351,42 @@ export default function GameplayScene({
     </>
   )
 }
+
+// Memoize component to prevent unnecessary re-renders
+// Only re-render when props actually change
+export default React.memo(GameplayScene, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render)
+  // Return false if props are different (do re-render)
+  
+  // Always re-render if these critical props change
+  if (
+    prevProps.activeHero?.playerHeroId !== nextProps.activeHero?.playerHeroId ||
+    prevProps.player?.id !== nextProps.player?.id ||
+    prevProps.currentZone?.id !== nextProps.currentZone?.id ||
+    prevProps.showHeroSwitcher !== nextProps.showHeroSwitcher ||
+    prevProps.skipAutoJoinCombat !== nextProps.skipAutoJoinCombat ||
+    prevProps.socket !== nextProps.socket
+  ) {
+    return false // Props changed, do re-render
+  }
+  
+  // Skip re-render for playerHeroes if only stats changed (health/power)
+  // This prevents re-renders from regeneration ticks
+  if (prevProps.playerHeroes !== nextProps.playerHeroes) {
+    // Only re-render if the array length changed or hero IDs changed
+    if (prevProps.playerHeroes?.length !== nextProps.playerHeroes?.length) {
+      return false // Hero count changed, re-render
+    }
+    
+    // Check if hero IDs are the same (ignore stat changes like health/power)
+    const prevIds = prevProps.playerHeroes?.map(h => h.playerHeroId).join(',') || ''
+    const nextIds = nextProps.playerHeroes?.map(h => h.playerHeroId).join(',') || ''
+    if (prevIds !== nextIds) {
+      return false // Different heroes, re-render
+    }
+  }
+  
+  // All other prop changes are ignored (refs, callbacks should be stable)
+  return true // Props effectively equal, skip re-render
+})
 

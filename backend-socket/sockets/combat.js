@@ -19,6 +19,7 @@ import {
 } from '../services/multiplayerService.js';
 import { getSpellForCombat } from '../services/spellService.js';
 import { leaveCombat } from '../services/regenerationService.js';
+import * as zoneService from '../services/zoneService.js';
 
 // Global combat tick system that processes all active combat instances (matchmaking only)
 let globalCombatTick = null;
@@ -219,8 +220,7 @@ export function registerCombatHandlers(socket, io) {
     console.log(`[combat] Map after set:`, Array.from(socketCombatInstances.entries()));
   };
   const clearCombatInstanceId = () => {
-    console.log(`[combat] 🗑️ CLEARING combatInstanceId for socket ${socket.id}`);
-    console.trace('[combat] Clear called from:');
+    console.log(`[combat] 🗑️ Clearing combatInstanceId for socket ${socket.id}`);
     socketCombatInstances.delete(socket.id);
   };
 
@@ -261,6 +261,18 @@ export function registerCombatHandlers(socket, io) {
       if (!isParticipant) {
         const error = 'Player not a participant in this combat';
         console.error(`[combat] ❌ Player ${playerId} not a participant in ${instanceId}. Participants:`, instance.participants.players);
+        socket.emit('combat:error', { message: error });
+        if (typeof ack === 'function') ack({ ok: false, error });
+        return;
+      }
+
+      // Verify player is in the correct zone for this combat instance
+      const playerZoneId = zoneService.getPlayerZone(playerId);
+      const combatZoneId = instance.zoneId;
+      
+      if (playerZoneId && combatZoneId && playerZoneId !== combatZoneId) {
+        const error = `Zone mismatch: Player in zone ${playerZoneId}, combat in zone ${combatZoneId}`;
+        console.error(`[combat] ❌ ${error} for player ${playerId} joining ${instanceId}`);
         socket.emit('combat:error', { message: error });
         if (typeof ack === 'function') ack({ ok: false, error });
         return;
@@ -563,6 +575,8 @@ export function registerCombatHandlers(socket, io) {
       leaveCombat(playerId);
 
       clearCombatInstanceId();
+    } else {
+      console.log(`[combat] ⚠️ combat:leave called but player ${playerId} has no active combat instance (redundant call)`);
     }
     
     // Note: Combat tick cleanup is handled by global tick system

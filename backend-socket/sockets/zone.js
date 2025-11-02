@@ -67,7 +67,7 @@ export function registerZoneHandlers(socket, io) {
   /**
    * Join a zone
    */
-  socket.on('zone:join', async ({ zoneId, position }, ack) => {
+  socket.on('zone:join', async ({ zoneId, position, skipLevelCheck }, ack) => {
     try {
       const playerId = getPlayerIdBySocket(socket.id);
       
@@ -77,7 +77,7 @@ export function registerZoneHandlers(socket, io) {
         return;
       }
 
-      console.log('[zone] Player', playerId, 'attempting to join zone', zoneId);
+      console.log('[zone] Player', playerId, 'attempting to join zone', zoneId, skipLevelCheck ? '(skip level check for combat rejoin)' : '');
 
       // Get player data from database
       const [player] = await zoneService.getPlayerById(playerId);
@@ -87,8 +87,8 @@ export function registerZoneHandlers(socket, io) {
         return;
       }
 
-      // Check if player can enter
-      const check = await zoneService.canPlayerEnterZone(player, zoneId);
+      // Check if player can enter (skip level check for combat rejoin)
+      const check = await zoneService.canPlayerEnterZone(player, zoneId, { skipLevelCheck });
       if (!check.allowed) {
         console.log('[zone] Player cannot enter zone:', check.reason);
         if (ack) return ack({ ok: false, error: check.reason });
@@ -137,13 +137,21 @@ export function registerZoneHandlers(socket, io) {
         .map(p => {
           const playerSocketId = getSocketIdByPlayerId(p.playerId);
           const playerData = playerSocketId ? getPlayerInGameSession(playerSocketId) : null;
-          return playerData || {
+          
+          // Ensure zone ID is current (override any stale data)
+          const dataWithZone = playerData ? {
+            ...playerData,
+            zoneId: zoneId // Use the current zone ID, not cached data
+          } : {
             socketId: null,
             playerId: p.playerId,
             position: p.position,
             rotation: [0, 0, 0],
             name: `Player ${p.playerId}`,
+            zoneId: zoneId
           };
+          
+          return dataWithZone;
         })
         .filter(p => p.socketId !== null); // Only include players with active connections
       

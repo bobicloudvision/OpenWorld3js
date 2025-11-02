@@ -23,11 +23,18 @@ export function useCombatManager(
   const [showCombatRejoin, setShowCombatRejoin] = useState(false)
   const [activeCombatInfo, setActiveCombatInfo] = useState(null)
   const returnToLobbyRef = useRef(null)
+  const inCombatMatchRef = useRef(false)
+  const hasCheckedActiveCombatRef = useRef(false)
 
   // Store returnToLobby in ref for use in callbacks
   useEffect(() => {
     returnToLobbyRef.current = returnToLobby
   }, [returnToLobby])
+
+  // Keep combat state ref in sync with state
+  useEffect(() => {
+    inCombatMatchRef.current = inCombatMatch
+  }, [inCombatMatch])
 
   // Notify parent when combat state changes
   useEffect(() => {
@@ -84,11 +91,25 @@ export function useCombatManager(
 
     // Check for active combat on reconnect
     const checkActiveCombat = () => {
+      // Don't check if already in combat or if we've already checked this session
+      if (inCombatMatchRef.current || hasCheckedActiveCombatRef.current) {
+        console.log('[useCombatManager] Skipping active combat check', {
+          inCombat: inCombatMatchRef.current,
+          alreadyChecked: hasCheckedActiveCombatRef.current
+        })
+        return
+      }
+      
+      hasCheckedActiveCombatRef.current = true
+      console.log('[useCombatManager] Checking for active combat...')
+      
       socket.emit('combat:check-active', (response) => {
         if (response?.ok && response.hasActiveCombat && response.combat) {
           console.log('[useCombatManager] 🔄 Active combat detected on reconnect:', response.combat)
           setActiveCombatInfo(response.combat)
           setShowCombatRejoin(true)
+        } else {
+          console.log('[useCombatManager] No active combat found')
         }
       })
     }
@@ -105,49 +126,90 @@ export function useCombatManager(
       socket.off('combat:error', handleCombatError)
       socket.off('combat:ended', handleCombatEnded)
     }
-  }, [socketRef, socketReady, inCombatMatch])
+  }, [socketRef, socketReady])
 
   // Handle combat rejoin
   const handleCombatRejoin = useCallback(
     async (combatInfo) => {
       console.log('[useCombatManager] 🔄 Rejoining combat:', combatInfo.combatInstanceId)
-      console.log('[useCombatManager] Combat zone:', combatInfo.zone?.name, '(ID:', combatInfo.zoneId, ')')
+      console.log('[useCombatManager] Full combat info:', combatInfo)
+      console.log('[useCombatManager] Combat zone object:', combatInfo.zone)
+      console.log('[useCombatManager] Combat zone ID:', combatInfo.zoneId)
 
       if (!socketRef.current || !combatInfo) {
         console.error('[useCombatManager] Cannot rejoin: missing socket or combat info')
         return
       }
 
+      // Clear the modal and any stale info
+      setShowCombatRejoin(false)
+      setActiveCombatInfo(null)
+
       // Switch to combat scene
       setInCombatMatch(true)
       setIsMatchmakingBattle(combatInfo.isMatchmaking || false)
-      setShowCombatRejoin(false)
 
-      // Update zone before joining combat if we have zone info
-      if (combatInfo.zone) {
-        console.log('[useCombatManager] 🗺️ Updating zone for combat rejoin:', combatInfo.zone.name)
-        updateZone(combatInfo.zone)
-      } else if (combatInfo.zoneId) {
-        console.log('[useCombatManager] ⚠️ Have zoneId but no zone object, fetching zone data...')
-        // Fetch zone data if we only have the ID
-        getZoneById(combatInfo.zoneId).then((zone) => {
+      // Update zone before joining combat
+      // Always fetch zone data by ID to ensure we have complete zone information
+      if (combatInfo.zoneId) {
+        console.log('[useCombatManager] 📍 Fetching zone data for zone ID:', combatInfo.zoneId)
+        try {
+          const zone = await getZoneById(combatInfo.zoneId)
           if (zone) {
+            console.log('[useCombatManager] 🗺️ Updating zone for combat rejoin:', zone.name)
             updateZone(zone)
+            
+          // IMPORTANT: Actually join the zone on the backend
+          // Skip level check since player was already allowed into combat
+          console.log('[useCombatManager] 🚀 Joining zone on backend (skipping level check for combat rejoin):', combatInfo.zoneId)
+          const joinResponse = await new Promise(resolve => {
+            socketRef.current.emit('zone:join', { 
+              zoneId: combatInfo.zoneId, 
+              skipLevelCheck: true // Skip level requirements for combat rejoin
+            }, resolve)
+          })
+
+          if (!joinResponse?.ok) {
+            console.error('[useCombatManager] ❌ Failed to join zone on backend:', joinResponse?.error)
+            // Reset states on failure
+            setInCombatMatch(false)
+            setIsMatchmakingBattle(false)
+            return
           }
-        })
+
+          console.log('[useCombatManager] ✅ Successfully joined zone on backend')
+          } else {
+            console.error('[useCombatManager] ❌ Failed to fetch zone data for ID:', combatInfo.zoneId)
+            // Reset states on failure
+            setInCombatMatch(false)
+            setIsMatchmakingBattle(false)
+            return
+          }
+        } catch (error) {
+          console.error('[useCombatManager] ❌ Error fetching zone:', error)
+          // Reset states on failure
+          setInCombatMatch(false)
+          setIsMatchmakingBattle(false)
+          return
+        }
+      } else {
+        console.warn('[useCombatManager] ⚠️ No zone ID available in combat info')
       }
+
+      // Small delay to ensure zone join completes
+      await new Promise(resolve => setTimeout(resolve, 100))
 
       // Join the combat instance
       socketRef.current.emit('combat:join-matchmaking', { combatInstanceId: combatInfo.combatInstanceId }, (response) => {
         if (response?.ok) {
           console.log('[useCombatManager] ✅ Successfully rejoined combat')
-          console.log('[useCombatManager] ✅ Fighting in zone:', combatInfo.zone?.name || combatInfo.zoneId)
+          console.log('[useCombatManager] ✅ Combat instance:', combatInfo.combatInstanceId)
           window.__inCombat = true
         } else {
           console.error('[useCombatManager] ❌ Failed to rejoin combat:', response?.error)
+          // Reset states on failure
           setInCombatMatch(false)
           setIsMatchmakingBattle(false)
-          setShowCombatRejoin(false)
         }
       })
     },
@@ -182,34 +244,39 @@ export function useCombatManager(
       console.log('='.repeat(60))
       const { combatInstanceId, zone, position } = data
 
-      // Switch to combat scene and mark as matchmaking battle
+      // IMPORTANT: Set matchmaking flags FIRST before zone update
+      // This ensures GameplayScene mounts with skipAutoJoinCombat=true
       setInCombatMatch(true)
       setIsMatchmakingBattle(true)
       console.log('[useCombatManager] inCombatMatch set to TRUE (matchmaking)')
 
+      // Then update zone (after flags are set)
+      // This ensures zone validation passes on the backend
+      if (zone) {
+        console.log('[useCombatManager] 🗺️ Updating current zone to arena:', zone.name)
+        updateZone(zone)
+      }
+
       if (combatInstanceId && socketRef.current) {
-        // Join the matchmaking combat instance
-        console.log('[useCombatManager] Emitting combat:join-matchmaking with combatInstanceId:', combatInstanceId)
-        socketRef.current.emit('combat:join-matchmaking', { combatInstanceId }, (response) => {
-          if (response?.ok) {
-            console.log('[useCombatManager] ✅ Successfully joined matchmaking combat instance:', combatInstanceId)
-            console.log('[useCombatManager] ✅ Combat will take place in zone:', zone?.name || 'unknown')
-            window.__inCombat = true
-          } else {
-            console.error('[useCombatManager] ❌ Failed to join matchmaking combat:', response?.error)
-          }
-        })
+        // Small delay to ensure zone state propagates
+        setTimeout(() => {
+          // Join the matchmaking combat instance
+          console.log('[useCombatManager] Emitting combat:join-matchmaking with combatInstanceId:', combatInstanceId)
+          socketRef.current.emit('combat:join-matchmaking', { combatInstanceId }, (response) => {
+            if (response?.ok) {
+              console.log('[useCombatManager] ✅ Successfully joined matchmaking combat instance:', combatInstanceId)
+              console.log('[useCombatManager] ✅ Combat will take place in zone:', zone?.name || 'unknown')
+              window.__inCombat = true
+            } else {
+              console.error('[useCombatManager] ❌ Failed to join matchmaking combat:', response?.error)
+            }
+          })
+        }, 100) // Small delay to let React state update
       } else {
         console.error('[useCombatManager] ❌ Missing combatInstanceId or socket:', {
           combatInstanceId,
           hasSocket: !!socketRef.current
         })
-      }
-
-      // Update zone to arena zone if provided
-      if (zone) {
-        console.log('[useCombatManager] 🗺️ Updating current zone to arena:', zone.name)
-        updateZone(zone)
       }
 
       // Return position for potential use (for player position update)

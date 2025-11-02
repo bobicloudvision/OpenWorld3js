@@ -14,7 +14,7 @@ import Leaderboard from './Leaderboard'
 import HeroSwitcherModal from './HeroSwitcherModal'
 import HeroStatsPanel from './HeroStatsPanel'
 
-export default function LobbyScene({ 
+function LobbyScene({ 
   playerPositionRef, 
   keyboardMap, 
   activeHero,
@@ -34,9 +34,25 @@ export default function LobbyScene({
     currentZone?.map_file ? `/models/${currentZone.map_file}` : '/models/world1.glb',
     [currentZone?.map_file]
   );
-  console.log('[LobbyScene] Rendering with zone:', currentZone?.name, 'map_file:', currentZone?.map_file, 'computed mapPath:', mapFilePath);
+  
+  // Throttle render logging
+  const lastRenderLogRef = React.useRef(0)
+  const renderCount = React.useRef(0)
+  renderCount.current++
+  
+  if (Date.now() - lastRenderLogRef.current > 1000) {
+    console.log('[LobbyScene] Rendered', renderCount.current, 'times. Zone:', currentZone?.name, 'map_file:', currentZone?.map_file);
+    renderCount.current = 0
+    lastRenderLogRef.current = Date.now()
+  }
+  
   const [isTabVisible, setIsTabVisible] = useState(!document.hidden)
   const [inCombat, setInCombat] = useState(false)
+
+  // Memoize player position change handler
+  const handlePositionChange = React.useCallback((position) => {
+    playerPositionRef.current = position
+  }, [playerPositionRef])
 
   // Log when zone changes
   useEffect(() => {
@@ -61,7 +77,8 @@ export default function LobbyScene({
     const handleCombatEnded = () => {
       console.log('[lobby] Combat ended');
       setInCombat(false);
-      socket.emit('combat:leave');
+      // Note: combat:leave is handled by GameplayScene cleanup
+      // No need to emit here since combat has already ended server-side
     };
 
     socket.on('combat:joined', handleCombatJoined);
@@ -156,9 +173,7 @@ export default function LobbyScene({
               camFollowDistance={4}
             >
               <Player 
-                onPositionChange={function(position) {
-                  playerPositionRef.current = position; 
-                }}
+                onPositionChange={handlePositionChange}
                 heroModel={activeHero?.model}
                 heroModelScale={activeHero?.modelScale}
                 heroModelRotation={activeHero?.modelRotation}
@@ -192,4 +207,37 @@ export default function LobbyScene({
     </>
   )
 }
+
+// Memoize component to prevent unnecessary re-renders
+export default React.memo(LobbyScene, (prevProps, nextProps) => {
+  // Return true if props are equal (skip re-render)
+  // Return false if props are different (do re-render)
+  
+  // Always re-render if these critical props change
+  if (
+    prevProps.activeHero?.playerHeroId !== nextProps.activeHero?.playerHeroId ||
+    prevProps.player?.id !== nextProps.player?.id ||
+    prevProps.currentZone?.id !== nextProps.currentZone?.id ||
+    prevProps.showLeaderboard !== nextProps.showLeaderboard ||
+    prevProps.showHeroSwitcher !== nextProps.showHeroSwitcher ||
+    prevProps.socket !== nextProps.socket
+  ) {
+    return false // Props changed, do re-render
+  }
+  
+  // Skip re-render for playerHeroes if only stats changed (health/power)
+  if (prevProps.playerHeroes !== nextProps.playerHeroes) {
+    if (prevProps.playerHeroes?.length !== nextProps.playerHeroes?.length) {
+      return false // Hero count changed, re-render
+    }
+    
+    const prevIds = prevProps.playerHeroes?.map(h => h.playerHeroId).join(',') || ''
+    const nextIds = nextProps.playerHeroes?.map(h => h.playerHeroId).join(',') || ''
+    if (prevIds !== nextIds) {
+      return false // Different heroes, re-render
+    }
+  }
+  
+  return true // Props effectively equal, skip re-render
+})
 

@@ -12,6 +12,23 @@ export function useZoneManager(socketRef, socketReady, onZoneChange) {
   const loadZoneAttemptedRef = useRef(false)
   const lastSocketIdRef = useRef(null)
 
+  // Helper function to get zone by ID
+  const getZoneById = useCallback((zoneId) => {
+    const socket = socketRef?.current
+    if (!socket || !socketReady) return Promise.resolve(null)
+
+    return new Promise((resolve) => {
+      socket.emit('zone:get', { zoneId }, (zoneResponse) => {
+        if (zoneResponse?.ok && zoneResponse.zone) {
+          resolve(zoneResponse.zone)
+        } else {
+          console.error('[useZoneManager] Failed to get zone:', zoneResponse?.error)
+          resolve(null)
+        }
+      })
+    })
+  }, [socketRef, socketReady])
+
   // Handle zone change (both auto-join and manual selection)
   const handleZoneChange = useCallback((zone, position) => {
     console.log('[useZoneManager] 🗺️ Zone changed:', zone.name)
@@ -52,6 +69,37 @@ export function useZoneManager(socketRef, socketReady, onZoneChange) {
       lastSocketIdRef.current = currentSocketId
     }
   }, [socketRef, socketReady])
+
+  // Listen for zone:changed events from server (e.g., during matchmaking)
+  useEffect(() => {
+    const socket = socketRef?.current
+    if (!socket || !socketReady) return
+
+    const handleZoneChanged = async (data) => {
+      console.log('[useZoneManager] 📍 zone:changed event received:', data)
+      const { zoneId, position } = data
+
+      if (zoneId) {
+        // Fetch full zone data
+        const zone = await getZoneById(zoneId)
+        if (zone) {
+          console.log('[useZoneManager] 🗺️ Updating zone from server event:', zone.name)
+          setCurrentZone(zone)
+          
+          // Call the parent callback if provided
+          if (onZoneChange) {
+            onZoneChange(zone, position)
+          }
+        }
+      }
+    }
+
+    socket.on('zone:changed', handleZoneChanged)
+
+    return () => {
+      socket.off('zone:changed', handleZoneChanged)
+    }
+  }, [socketRef, socketReady, getZoneById, onZoneChange])
 
   // Helper function to load zone data and auto-join lobby
   const loadZoneData = useCallback(async (socket) => {
@@ -206,23 +254,6 @@ export function useZoneManager(socketRef, socketReady, onZoneChange) {
       console.error('[useZoneManager] Error returning to lobby:', error)
     }
   }, [handleZoneChange, socketRef, socketReady])
-
-  // Helper function to get zone by ID
-  const getZoneById = useCallback((zoneId) => {
-    const socket = socketRef?.current
-    if (!socket || !socketReady) return Promise.resolve(null)
-
-    return new Promise((resolve) => {
-      socket.emit('zone:get', { zoneId }, (zoneResponse) => {
-        if (zoneResponse?.ok && zoneResponse.zone) {
-          resolve(zoneResponse.zone)
-        } else {
-          console.error('[useZoneManager] Failed to get zone:', zoneResponse?.error)
-          resolve(null)
-        }
-      })
-    })
-  }, [socketRef, socketReady])
 
   // Helper function to update zone state directly (for cases like combat rejoin)
   const updateZone = useCallback((zone) => {
