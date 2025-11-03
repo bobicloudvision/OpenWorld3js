@@ -62,6 +62,8 @@ export class PhysicsManager extends EventEmitter {
       iterations: config.iterations || 10,
       tolerance: config.tolerance || 0.001,
       debug: config.debug || false, // ✅ NEW: Debug visualization
+      timeStep: config.timeStep !== undefined ? config.timeStep : 1 / 60, // Fixed timestep
+      maxSubSteps: config.maxSubSteps !== undefined ? config.maxSubSteps : 3, // Max substeps
       ...config
     };
 
@@ -73,6 +75,9 @@ export class PhysicsManager extends EventEmitter {
     
     // Track which entities have physics
     this.physicsBodies = new Map(); // entity.id -> body
+    
+    // ✅ NEW: Track vehicles
+    this.vehicles = new Map(); // entity.id -> vehicle
 
     this.isEnabled = true;
 
@@ -538,8 +543,9 @@ export class PhysicsManager extends EventEmitter {
     }
 
     // Step the physics world
-    const fixedTimeStep = 1 / 60;
-    const maxSubSteps = 3;
+    // Use configured timestep or default
+    const fixedTimeStep = this.config.timeStep || 1 / 60;
+    const maxSubSteps = this.config.maxSubSteps || 3;
     
     this.world.step(fixedTimeStep, deltaTime, maxSubSteps);
 
@@ -735,6 +741,168 @@ export class PhysicsManager extends EventEmitter {
   }
 
   /**
+   * ✅ NEW: Create a RigidVehicle (car physics)
+   * 
+   * @param {Object} options - Vehicle configuration
+   * @param {CANNON.Body} options.chassisBody - The chassis physics body
+   * @param {Array} options.wheels - Array of wheel configurations
+   * @param {Object} options.wheels[].position - Wheel position {x, y, z}
+   * @param {Object} options.wheels[].axis - Wheel rotation axis {x, y, z}
+   * @param {number} options.wheels[].radius - Wheel radius (default: 1)
+   * @param {number} options.wheels[].mass - Wheel mass (default: 1)
+   * @param {number} options.wheels[].angularDamping - Wheel angular damping (default: 0.4)
+   * @param {CANNON.Material} options.wheelMaterial - Custom wheel material
+   * 
+   * @returns {CANNON.RigidVehicle} The created vehicle
+   * 
+   * @example
+   * // Create car chassis
+   * const chassisBody = physics.createBox({
+   *   width: 8, height: 1, depth: 4,
+   *   mass: 5,
+   *   position: { x: 0, y: 6, z: 0 }
+   * });
+   * 
+   * // Create vehicle with 4 wheels
+   * const vehicle = physics.createVehicle({
+   *   chassisBody: chassisBody,
+   *   wheels: [
+   *     { position: { x: -2, y: 0, z: 2.5 }, axis: { x: 0, y: 0, z: 1 } },
+   *     { position: { x: -2, y: 0, z: -2.5 }, axis: { x: 0, y: 0, z: 1 } },
+   *     { position: { x: 2, y: 0, z: 2.5 }, axis: { x: 0, y: 0, z: 1 } },
+   *     { position: { x: 2, y: 0, z: -2.5 }, axis: { x: 0, y: 0, z: 1 } }
+   *   ]
+   * });
+   */
+  createVehicle(options = {}) {
+    const { chassisBody, wheels = [], wheelMaterial = null } = options;
+
+    if (!chassisBody) {
+      console.error('❌ Cannot create vehicle: chassisBody is required');
+      return null;
+    }
+
+    // Create vehicle
+    const vehicle = new CANNON.RigidVehicle({
+      chassisBody: chassisBody
+    });
+
+    // Create wheel material if not provided
+    const material = wheelMaterial || new CANNON.Material('wheel');
+
+    // Add wheels
+    wheels.forEach((wheelConfig, index) => {
+      const {
+        position = { x: 0, y: 0, z: 0 },
+        axis = { x: 0, y: 0, z: 1 },
+        radius = 1,
+        mass = 1,
+        angularDamping = 0.4
+      } = wheelConfig;
+
+      // Create wheel body
+      const wheelBody = new CANNON.Body({
+        mass,
+        material: material
+      });
+
+      wheelBody.addShape(new CANNON.Sphere(radius));
+      wheelBody.angularDamping = angularDamping;
+
+      // Add wheel to vehicle
+      vehicle.addWheel({
+        body: wheelBody,
+        position: new CANNON.Vec3(position.x, position.y, position.z),
+        axis: new CANNON.Vec3(axis.x, axis.y, axis.z),
+        direction: new CANNON.Vec3(0, -1, 0) // Down direction for suspension
+      });
+    });
+
+    // Add vehicle to world
+    vehicle.addToWorld(this.world);
+
+    // Track vehicle wheels for debug visualization
+    if (this.debugEnabled) {
+      // Create debug mesh for chassis (already handled by createBox)
+      // Create debug meshes for wheels
+      vehicle.wheelBodies.forEach(wheelBody => {
+        this.createDebugMesh(wheelBody);
+      });
+    }
+
+    this.emit('vehicleCreated', { vehicle, chassisBody });
+    return vehicle;
+  }
+
+  /**
+   * ✅ NEW: Set wheel force (acceleration/braking)
+   * @param {CANNON.RigidVehicle} vehicle - The vehicle
+   * @param {number} force - Force value (positive = forward, negative = backward)
+   * @param {number} wheelIndex - Wheel index (0 = front-left, 1 = front-right, etc.)
+   */
+  setWheelForce(vehicle, force, wheelIndex) {
+    if (!vehicle || !vehicle.setWheelForce) {
+      console.warn('⚠️ Invalid vehicle or vehicle.setWheelForce not available');
+      return;
+    }
+
+    if (wheelIndex < 0 || wheelIndex >= vehicle.wheelBodies.length) {
+      console.warn(`⚠️ Invalid wheel index: ${wheelIndex}`);
+      return;
+    }
+
+    vehicle.setWheelForce(force, wheelIndex);
+  }
+
+  /**
+   * ✅ NEW: Set steering value
+   * @param {CANNON.RigidVehicle} vehicle - The vehicle
+   * @param {number} value - Steering angle in radians (positive = left, negative = right)
+   * @param {number} wheelIndex - Wheel index (usually front wheels: 0, 1)
+   */
+  setSteeringValue(vehicle, value, wheelIndex) {
+    if (!vehicle || !vehicle.setSteeringValue) {
+      console.warn('⚠️ Invalid vehicle or vehicle.setSteeringValue not available');
+      return;
+    }
+
+    if (wheelIndex < 0 || wheelIndex >= vehicle.wheelBodies.length) {
+      console.warn(`⚠️ Invalid wheel index: ${wheelIndex}`);
+      return;
+    }
+
+    vehicle.setSteeringValue(value, wheelIndex);
+  }
+
+  /**
+   * ✅ NEW: Remove vehicle from physics world
+   * @param {CANNON.RigidVehicle} vehicle - The vehicle to remove
+   */
+  removeVehicle(vehicle) {
+    if (!vehicle) return;
+
+    // Remove debug meshes for wheels
+    if (this.debugEnabled && vehicle.wheelBodies) {
+      vehicle.wheelBodies.forEach(wheelBody => {
+        this.removeDebugMesh(wheelBody);
+      });
+    }
+
+    // Remove vehicle from world
+    vehicle.removeFromWorld(this.world);
+
+    // Find and remove from vehicles map
+    for (const [entityId, trackedVehicle] of this.vehicles.entries()) {
+      if (trackedVehicle === vehicle) {
+        this.vehicles.delete(entityId);
+        break;
+      }
+    }
+
+    this.emit('vehicleRemoved', { vehicle });
+  }
+
+  /**
    * Enable physics
    */
   enable() {
@@ -752,6 +920,11 @@ export class PhysicsManager extends EventEmitter {
    * Clear all physics bodies
    */
   clear() {
+    // Remove all vehicles
+    for (const vehicle of this.vehicles.values()) {
+      this.removeVehicle(vehicle);
+    }
+
     // Remove all bodies
     for (const body of this.bodies.values()) {
       this.world.removeBody(body);
@@ -759,6 +932,7 @@ export class PhysicsManager extends EventEmitter {
 
     this.bodies.clear();
     this.physicsBodies.clear();
+    this.vehicles.clear();
   }
 
   /**
@@ -878,6 +1052,7 @@ export class PhysicsManager extends EventEmitter {
   updateDebugVisualization() {
     if (!this.debugEnabled || !this.debugScene) return;
 
+    // Update regular bodies
     for (const body of this.bodies.values()) {
       let debugMesh = this.debugMeshes.get(body.id);
       
@@ -891,6 +1066,25 @@ export class PhysicsManager extends EventEmitter {
       if (debugMesh) {
         debugMesh.position.copy(body.position);
         debugMesh.quaternion.copy(body.quaternion);
+      }
+    }
+
+    // ✅ NEW: Update vehicle wheel debug meshes
+    for (const vehicle of this.vehicles.values()) {
+      if (vehicle.wheelBodies) {
+        vehicle.wheelBodies.forEach(wheelBody => {
+          let debugMesh = this.debugMeshes.get(wheelBody.id);
+          
+          if (!debugMesh) {
+            this.createDebugMesh(wheelBody);
+            debugMesh = this.debugMeshes.get(wheelBody.id);
+          }
+
+          if (debugMesh) {
+            debugMesh.position.copy(wheelBody.position);
+            debugMesh.quaternion.copy(wheelBody.quaternion);
+          }
+        });
       }
     }
   }

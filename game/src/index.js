@@ -36,6 +36,9 @@ export { ThirdPersonCamera } from './camera/ThirdPersonCamera.js';
 // Physics
 export { PhysicsManager } from './physics/PhysicsManager.js';
 
+// Components
+export { VehicleComponent } from './components/VehicleComponent.js';
+
 // Helpers (simplified API)
 export { GameHelpers } from './helpers/GameHelpers.js';
 export { PhysicsScene } from './helpers/PhysicsScene.js';

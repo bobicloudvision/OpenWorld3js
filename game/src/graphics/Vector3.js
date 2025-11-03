@@ -95,6 +95,16 @@ export class Vector3 {
     return this._vector.distanceTo(v._vector || v);
   }
 
+  lerp(v, alpha) {
+    this._vector.lerp(v._vector || v, alpha);
+    return this;
+  }
+
+  addScaledVector(v, scale) {
+    this._vector.addScaledVector(v._vector || v, scale);
+    return this;
+  }
+
   // Get internal Three.js vector (for engine use only)
   _getThreeVector() {
     return this._vector;

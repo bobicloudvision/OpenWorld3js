@@ -43,14 +43,21 @@ export class MeshBuilder {
       color = 0xffffff,
       wireframe = false,
       castShadow = true,
-      receiveShadow = false
+      receiveShadow = false,
+      useNormalMaterial = false // Use MeshNormalMaterial instead of MeshStandardMaterial
     } = options;
 
     const geometry = new THREE.SphereGeometry(radius, widthSegments, heightSegments);
-    const material = new THREE.MeshStandardMaterial({ 
-      color, 
-      wireframe 
-    });
+    
+    let material;
+    if (useNormalMaterial) {
+      material = new THREE.MeshNormalMaterial();
+    } else {
+      material = new THREE.MeshStandardMaterial({ 
+        color, 
+        wireframe 
+      });
+    }
 
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = castShadow;
@@ -233,6 +240,38 @@ export class MeshBuilder {
 
     const grid = new THREE.GridHelper(size, divisions, centerLineColor, color);
     return grid;
+  }
+
+  /**
+   * Create an axes helper
+   */
+  static createAxesHelper(options = {}) {
+    const {
+      size = 1
+    } = options;
+
+    return new THREE.AxesHelper(size);
+  }
+
+  /**
+   * Create a mesh with MeshNormalMaterial (for debugging/visualization)
+   */
+  static createNormalMaterialMesh(options = {}) {
+    const {
+      geometry,
+      color = null // If provided, uses MeshStandardMaterial instead
+    } = options;
+
+    if (!geometry) {
+      console.warn('MeshBuilder.createNormalMaterialMesh: geometry is required');
+      return null;
+    }
+
+    const material = color !== null 
+      ? new THREE.MeshStandardMaterial({ color })
+      : new THREE.MeshNormalMaterial();
+    
+    return new THREE.Mesh(geometry, material);
   }
 
   /**

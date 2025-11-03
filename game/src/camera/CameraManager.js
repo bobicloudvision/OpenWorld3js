@@ -106,6 +106,43 @@ export class CameraManager extends EventEmitter {
   }
 
   /**
+   * Follow a target with smooth camera movement
+   * @param {Object} target - Target object with position (Vector3 or {x, y, z})
+   * @param {Object} options - Follow options
+   */
+  followTarget(target, options = {}) {
+    if (!this.activeCamera || !target) return;
+
+    const {
+      offset = { x: 0, y: 10, z: 20 },
+      lerpSpeed = 0.1,
+      lookAtTarget = true
+    } = options;
+
+    // Get target position
+    const targetPos = target.position || target;
+    const targetX = targetPos.x || targetPos._vector?.x || 0;
+    const targetY = targetPos.y || targetPos._vector?.y || 0;
+    const targetZ = targetPos.z || targetPos._vector?.z || 0;
+
+    // Calculate desired camera position
+    const desiredX = targetX + (offset.x || 0);
+    const desiredY = targetY + (offset.y || 0);
+    const desiredZ = targetZ + (offset.z || 0);
+
+    // Smoothly move camera
+    this.activeCamera.position.lerp(
+      new THREE.Vector3(desiredX, desiredY, desiredZ),
+      lerpSpeed
+    );
+
+    // Look at target
+    if (lookAtTarget) {
+      this.activeCamera.lookAt(targetX, targetY, targetZ);
+    }
+  }
+
+  /**
    * Update camera
    */
   update(deltaTime) {
