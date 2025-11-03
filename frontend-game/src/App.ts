@@ -10,6 +10,7 @@ import { CustomLoadingScreen } from "./CustomLoadingScreen";
 
 import "@babylonjs/core/Loading/loadingScreen";
 import "@babylonjs/core/Loading/Plugins/babylonFileLoader";
+import "@babylonjs/loaders/glTF";
 
 import "@babylonjs/core/Cameras/universalCamera";
 
