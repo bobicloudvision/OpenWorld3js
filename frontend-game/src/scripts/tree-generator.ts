@@ -87,11 +87,10 @@ export default class TreeGeneratorComponent implements IScript {
         const treeName = "tree1.glb";
         
         try {
-            const result = await SceneLoader.ImportMeshAsync(
-                "",
-                treeRoot,
-                treeName,
-                scene
+            const result = await ImportMeshAsync(
+                `${treeRoot}${treeName}`,
+                scene,
+                { meshNames: "" }  
             );
             
             if (result.meshes.length > 0) {
