@@ -59,10 +59,17 @@ export class Entity extends EventEmitter {
     }
 
     // Sync mesh transform with entity transform
+    // BUT: Skip if this mesh is a child of another GameObject's mesh (to preserve local positioning)
+    // We detect this by checking if the parent is a Mesh/Group (not Scene)
     if (this.mesh) {
-      this.mesh.position.copy(this.position);
-      this.mesh.rotation.copy(this.rotation);
-      this.mesh.scale.copy(this.scale);
+      const parent = this.mesh.parent;
+      const isChildOfAnotherMesh = parent && (parent.type === 'Mesh' || parent.type === 'Group' || parent.isMesh);
+      
+      if (!isChildOfAnotherMesh) {
+        this.mesh.position.copy(this.position);
+        this.mesh.rotation.copy(this.rotation);
+        this.mesh.scale.copy(this.scale);
+      }
     }
   }
 
