@@ -6,12 +6,10 @@
 import { loadScene, scriptsDictionary, scriptAssetsCache, _applyScriptsForObject, _removeRegisteredScriptInstance, _preloadScriptsAssets } from "babylonjs-editor-tools";
 import * as scripts_box from "./scripts/box";
 import * as scripts_chat from "./scripts/chat";
-import * as scripts_scene_switch from "./scripts/scene-switch";
 
 export const scriptsMap = {
     "scripts/box.ts": scripts_box,
-	"scripts/chat.ts": scripts_chat,
-	"scripts/scene-switch.ts": scripts_scene_switch
+	"scripts/chat.ts": scripts_chat
 };
 
 export { loadScene, scriptsDictionary, scriptAssetsCache, _applyScriptsForObject, _removeRegisteredScriptInstance, _preloadScriptsAssets };
