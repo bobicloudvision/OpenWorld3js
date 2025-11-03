@@ -1174,33 +1174,6 @@ var import_babylonjs52 = require("babylonjs");
 var import_babylonjs48 = require("babylonjs");
 var zeroVector = import_babylonjs48.Vector3.Zero();
 
-// Users/bozhidar/PhpstormProjects/OpenWorld3js/frontend-game/src/scripts/box.ts
-var box_exports = {};
-__export(box_exports, {
-  default: () => SceneComponent
-});
-var import_babylonjs53 = require("babylonjs");
-var SceneComponent = class {
-  constructor(mesh) {
-    this.mesh = mesh;
-  }
-  static {
-    __name(this, "SceneComponent");
-  }
-  _speed = 0.04;
-  onStart() {
-  }
-  onUpdate() {
-    this.mesh.rotate(import_babylonjs53.Vector3.UpReadOnly, this._speed * this.mesh.getScene().getAnimationRatio());
-  }
-};
-__decorateClass([
-  visibleAsNumber("Speed", {
-    min: 0,
-    max: 0.1
-  })
-], SceneComponent.prototype, "_speed", 2);
-
 // Users/bozhidar/PhpstormProjects/OpenWorld3js/frontend-game/src/scripts/chat.ts
 var chat_exports = {};
 __export(chat_exports, {
@@ -1278,10 +1251,37 @@ var ChatComponent = class {
   }
 };
 
+// Users/bozhidar/PhpstormProjects/OpenWorld3js/frontend-game/src/scripts/box.ts
+var box_exports = {};
+__export(box_exports, {
+  default: () => SceneComponent
+});
+var import_babylonjs53 = require("babylonjs");
+var SceneComponent = class {
+  constructor(mesh) {
+    this.mesh = mesh;
+  }
+  static {
+    __name(this, "SceneComponent");
+  }
+  _speed = 0.04;
+  onStart() {
+  }
+  onUpdate() {
+    this.mesh.rotate(import_babylonjs53.Vector3.UpReadOnly, this._speed * this.mesh.getScene().getAnimationRatio());
+  }
+};
+__decorateClass([
+  visibleAsNumber("Speed", {
+    min: 0,
+    max: 0.1
+  })
+], SceneComponent.prototype, "_speed", 2);
+
 // Users/bozhidar/PhpstormProjects/OpenWorld3js/frontend-game/src/scripts.ts
 var scriptsMap = {
-  "scripts/box.ts": box_exports,
-  "scripts/chat.ts": chat_exports
+  "scripts/chat.ts": chat_exports,
+  "scripts/box.ts": box_exports
 };
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {

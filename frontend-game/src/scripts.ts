@@ -4,12 +4,12 @@
  */
 
 import { loadScene, scriptsDictionary, scriptAssetsCache, _applyScriptsForObject, _removeRegisteredScriptInstance, _preloadScriptsAssets } from "babylonjs-editor-tools";
-import * as scripts_box from "./scripts/box";
 import * as scripts_chat from "./scripts/chat";
+import * as scripts_box from "./scripts/box";
 
 export const scriptsMap = {
-    "scripts/box.ts": scripts_box,
-	"scripts/chat.ts": scripts_chat
+    "scripts/chat.ts": scripts_chat,
+	"scripts/box.ts": scripts_box
 };
 
 export { loadScene, scriptsDictionary, scriptAssetsCache, _applyScriptsForObject, _removeRegisteredScriptInstance, _preloadScriptsAssets };
