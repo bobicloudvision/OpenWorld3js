@@ -6,10 +6,14 @@
 import { loadScene, scriptsDictionary, scriptAssetsCache, _applyScriptsForObject, _removeRegisteredScriptInstance, _preloadScriptsAssets } from "babylonjs-editor-tools";
 import * as scripts_box from "./scripts/box";
 import * as scripts_chat from "./scripts/chat";
+import * as scripts_camera_control from "./scripts/camera-control";
+import * as scripts_visible_as_string from "./scripts/visible-as-string";
 
 export const scriptsMap = {
     "scripts/box.ts": scripts_box,
-	"scripts/chat.ts": scripts_chat
+	"scripts/chat.ts": scripts_chat,
+	"scripts/camera-control.ts": scripts_camera_control,
+	"scripts/visible-as-string.ts": scripts_visible_as_string
 };
 
 export { loadScene, scriptsDictionary, scriptAssetsCache, _applyScriptsForObject, _removeRegisteredScriptInstance, _preloadScriptsAssets };

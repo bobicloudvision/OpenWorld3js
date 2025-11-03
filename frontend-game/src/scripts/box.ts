@@ -10,7 +10,7 @@ export default class SceneComponent implements IScript {
 	})
 	private _speed: number = 0.04;
 
-	public constructor(public mesh: Mesh) {}
+	public constructor(public mesh: Mesh) {} 
 
 	public onStart(): void {}
 
