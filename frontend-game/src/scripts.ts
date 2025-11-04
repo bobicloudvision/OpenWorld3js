@@ -4,10 +4,12 @@
  */
 
 import { loadScene, scriptsDictionary, scriptAssetsCache, _applyScriptsForObject, _removeRegisteredScriptInstance, _preloadScriptsAssets } from "babylonjs-editor-tools";
+import * as scripts_player from "./scripts/player";
 import * as scripts_tree_generator from "./scripts/tree-generator";
 
 export const scriptsMap = {
-    "scripts/tree-generator.ts": scripts_tree_generator
+    "scripts/player.ts": scripts_player,
+	"scripts/tree-generator.ts": scripts_tree_generator
 };
 
 export { loadScene, scriptsDictionary, scriptAssetsCache, _applyScriptsForObject, _removeRegisteredScriptInstance, _preloadScriptsAssets };
