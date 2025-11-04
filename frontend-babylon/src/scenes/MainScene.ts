@@ -146,7 +146,7 @@ export class MainScene extends BaseScene {
 	private async loadCharacter(scene: Scene): Promise<void> {
 		try {
 			// Replace with your character model path
-			const characterPath = "/models/avatars/Avatar1.glb"; // Adjust path as needed
+			const characterPath = "/models/avatars/DemonTWiezzorek.glb"; // Adjust path as needed
 			this._characterController = await CharacterController.CreateAsync(scene, characterPath, this._canvas);
 			
 			// Set character position
