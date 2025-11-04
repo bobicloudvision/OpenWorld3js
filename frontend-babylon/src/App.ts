@@ -1,13 +1,5 @@
 import { Scene } from "@babylonjs/core/scene";
 import { Engine } from "@babylonjs/core/Engines/engine";
-import { Vector3 } from "@babylonjs/core/Maths/math.vector";
-import { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins/havokPlugin";
-import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
-import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
-import { Mesh } from "@babylonjs/core/Meshes/mesh";
-import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
-
-import HavokPhysics from "@babylonjs/havok";
 
 import "@babylonjs/core/Loading/loadingScreen";
 import "@babylonjs/core/Loading/Plugins/babylonFileLoader";
@@ -22,10 +14,17 @@ import "@babylonjs/core/Materials/standardMaterial";
 import "@babylonjs/core/Physics";
 import "@babylonjs/materials/sky";
 
+import { EngineManager, EngineOptions } from "./core/EngineManager";
+import { PhysicsManager } from "./core/PhysicsManager";
+import { SceneManager } from "./core/SceneManager";
+import { BaseScene } from "./core/BaseScene";
+import { MainScene } from "./scenes/MainScene";
+
 export class App {
 	private _canvas: HTMLCanvasElement;
-	private _engine: Engine | null = null;
-	private _scene: Scene | null = null;
+	private _engineManager: EngineManager;
+	private _physicsManager: PhysicsManager;
+	private _sceneManager: SceneManager | null = null;
 
 	constructor() {
 		const canvasElement = document.getElementById('canvas') as HTMLCanvasElement;
@@ -33,81 +32,109 @@ export class App {
 			throw new Error('Canvas element not found');
 		}
 		this._canvas = canvasElement;
+		this._engineManager = new EngineManager(this._canvas);
+		this._physicsManager = new PhysicsManager();
 	}
 
-	public async init(): Promise<void> {
-		this._engine = new Engine(this._canvas, true, {
-			stencil: true,
-			antialias: true,
-			audioEngine: true,
-			adaptToDeviceRatio: true,
-			disableWebGL2Support: false,
-			useHighPrecisionFloats: true,
-			powerPreference: "high-performance",
-			failIfMajorPerformanceCaveat: false,
-		});
-
-		this._scene = new Scene(this._engine);
-
-		// Create a basic scene
-		this._createScene();
+	public async init(engineOptions?: EngineOptions): Promise<void> {
+		// Initialize engine
+		this._engineManager.initialize(engineOptions);
+		const engine = this._engineManager.getEngine();
 
 		// Initialize physics
-		const havok = await HavokPhysics();
-		this._scene.enablePhysics(new Vector3(0, -9.81, 0), new HavokPlugin(true, havok));
+		await this._physicsManager.initialize();
 
-		// Handle window resize
-		const handleResize = () => {
-			this._engine?.resize();
-		};
+		// Initialize managers
+		this._sceneManager = new SceneManager(engine, this._canvas);
 
-		window.addEventListener("resize", handleResize);
+		// Create first scene
+		this.createFirstScene(engine);
 
 		// Start render loop
-		this._engine.runRenderLoop(() => {
-			this._scene?.render();
+		this._engineManager.startRenderLoop(() => {
+			const activeScene = this._sceneManager?.getActiveScene();
+			if (activeScene) {
+				activeScene.render();
+			}
 		});
 	}
 
-	private _createScene(): void {
-		if (!this._scene) return;
+	private createFirstScene(engine: Engine): void {
+		if (!this._sceneManager) {
+			throw new Error('App not initialized. Call init() first.');
+		}
 
-		// Create camera
-		const camera = new ArcRotateCamera(
-			"camera",
-			-Math.PI / 2,
-			Math.PI / 2.5,
-			10,
-			new Vector3(0, 0, 0),
-			this._scene
-		);
-		camera.attachControl(this._canvas, true);
-		this._scene.activeCamera = camera;
+		const mainScene = new MainScene(engine, this._canvas, this._physicsManager);
+		this.createSceneFromClass(mainScene);
+	}
 
-		// Create light
-		const light = new HemisphericLight("light", new Vector3(0, 1, 0), this._scene);
-		light.intensity = 0.7;
+	public createSceneFromClass(sceneClass: BaseScene): Scene {
+		if (!this._sceneManager) {
+			throw new Error('App not initialized. Call init() first.');
+		}
 
-		// Create ground
-		const ground = MeshBuilder.CreateGround("ground", { width: 10, height: 10 }, this._scene);
+		const name = sceneClass.getName();
 
-		// Create a box
-		const box = MeshBuilder.CreateBox("box", { size: 2 }, this._scene);
-		box.position.y = 1;
+		if (this._sceneManager.hasScene(name)) {
+			throw new Error(`Scene "${name}" already exists.`);
+		}
 
-		// Create a sphere
-		const sphere = MeshBuilder.CreateSphere("sphere", { diameter: 2 }, this._scene);
-		sphere.position.x = -3;
-		sphere.position.y = 1;
+		const scene = sceneClass.create();
+		this._sceneManager.addScene(name, scene);
 
-		// Create a cylinder
-		const cylinder = MeshBuilder.CreateCylinder("cylinder", { height: 2, diameter: 1 }, this._scene);
-		cylinder.position.x = 3;
-		cylinder.position.y = 1;
+		// Set as active if no active scene
+		if (!this._sceneManager.getActiveScene()) {
+			this._sceneManager.switchScene(name);
+		}
+
+		return scene;
+	}
+
+
+	public removeScene(name: string): boolean {
+		if (!this._sceneManager) {
+			return false;
+		}
+		return this._sceneManager.removeScene(name);
+	}
+
+	public switchScene(name: string): boolean {
+		if (!this._sceneManager) {
+			return false;
+		}
+		return this._sceneManager.switchScene(name);
+	}
+
+	public getScene(name: string): Scene | undefined {
+		return this._sceneManager?.getScene(name);
+	}
+
+	public getActiveScene(): Scene | null {
+		return this._sceneManager?.getActiveScene() || null;
+	}
+
+	public getActiveSceneName(): string | null {
+		return this._sceneManager?.getActiveSceneName() || null;
+	}
+
+	public getAllSceneNames(): string[] {
+		return this._sceneManager?.getAllSceneNames() || [];
+	}
+
+	public getEngineManager(): EngineManager {
+		return this._engineManager;
+	}
+
+	public getPhysicsManager(): PhysicsManager {
+		return this._physicsManager;
+	}
+
+	public getSceneManager(): SceneManager | null {
+		return this._sceneManager;
 	}
 
 	public dispose(): void {
-		this._scene?.dispose();
-		this._engine?.dispose();
+		this._sceneManager?.dispose();
+		this._engineManager.dispose();
 	}
 }
