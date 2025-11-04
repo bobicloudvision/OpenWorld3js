@@ -31,7 +31,6 @@ export class MainScene extends BaseScene {
 		this.createCamera(scene);
 		this.createLighting(scene);
 		this.createShadows(scene);
-		this.createGround(scene);
 		await this.loadHDRSky(scene);
 		await this.loadWorldModel(scene);
 		await this.loadCharacter(scene);
@@ -66,19 +65,6 @@ export class MainScene extends BaseScene {
 
 		this._shadowGenerator = new ShadowGenerator(1024, this._sunLight);
 		this._shadowGenerator.useExponentialShadowMap = true;
-	}
-
-	private createGround(scene: Scene): void {
-		const ground = MeshBuilder.CreateGround("ground", { width: 100, height: 100 }, scene);
-		
-		if (this._shadowGenerator) {
-			ground.receiveShadows = true;
-		}
-
-		// Add physics to ground
-		if (scene.isPhysicsEnabled()) {
-			new PhysicsAggregate(ground, PhysicsShapeType.BOX, { mass: 0 }, scene);
-		}
 	}
 
 	private async loadHDRSky(scene: Scene): Promise<void> {
@@ -134,10 +120,20 @@ export class MainScene extends BaseScene {
 			// Add all assets from the container to the scene
 			assetContainer.addAllToScene();
 			
+			// Enable physics on all meshes
+			for (const mesh of assetContainer.meshes) {
+				// Skip helper meshes and meshes without geometry
+				if (mesh.getTotalVertices() === 0) continue;
+				
+				// Create static physics body (mass: 0 means immovable)
+				new PhysicsAggregate(mesh, PhysicsShapeType.MESH, { mass: 0 });
+			}
+			
 			console.log("World model loaded successfully", {
 				meshes: assetContainer.meshes.length,
 				animations: assetContainer.animationGroups.length,
-				skeletons: assetContainer.skeletons.length
+				skeletons: assetContainer.skeletons.length,
+				physicsEnabled: true
 			});
 		} catch (error) {
 			console.error("Error loading world model:", error);

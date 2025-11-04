@@ -39,8 +39,13 @@ export class EngineManager {
 
 		this._engine = new Engine(this._canvas, true, mergedOptions);
 
+		// Display loading UI
+		this._engine.displayLoadingUI();
+
 		// Handle window resize
 		window.addEventListener("resize", () => {
+			this._canvas.width = window.innerWidth;
+			this._canvas.height = window.innerHeight;
 			this._engine?.resize();
 		});
 
