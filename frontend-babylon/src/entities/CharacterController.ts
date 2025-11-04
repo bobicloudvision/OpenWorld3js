@@ -5,11 +5,9 @@ import { Quaternion, Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import { TransformNode } from "@babylonjs/core/Meshes/transformNode";
 import { ActionManager, ExecuteCodeAction } from "@babylonjs/core/Actions";
-import { AnimationGroup } from "@babylonjs/core/Animations/animationGroup";
 import { PhysicsShapeType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugin";
 import { PhysicsAggregate } from "@babylonjs/core/Physics/v2/physicsAggregate";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
-import { moveTowards } from "../utils/mathUtils";
 
 export class CharacterController {
 	readonly model: AbstractMesh;
@@ -17,12 +15,6 @@ export class CharacterController {
 	readonly physicsAggregate: PhysicsAggregate;
 	readonly moveSpeed = 1.8;
 	readonly rotationSpeed = 6;
-	readonly animationBlendSpeed = 4.0;
-	readonly walkAnim: AnimationGroup | null;
-	readonly sambaAnim: AnimationGroup | null;
-	readonly idleAnim: AnimationGroup | null;
-	private targetAnim: AnimationGroup | null;
-	readonly nonIdleAnimations: AnimationGroup[];
 	readonly inputMap: Map<string, boolean>;
 	readonly thirdPersonCamera: ArcRotateCamera;
 	keyForward = "w";
@@ -66,32 +58,6 @@ export class CharacterController {
 
 		this.thirdPersonCamera = thirdPersonCamera;
 
-		// Try to find walk animation with multiple possible names
-		this.walkAnim = this.findAnimationGroup(scene, ["Walking", "Walk", "Walk1", "PohodkaTarikat"]);
-		if (this.walkAnim) {
-			this.walkAnim.weight = 0;
-		} else {
-			console.warn("Walk animation not found - character will move without walk animation");
-		}
-
-		// Try to find idle animation with multiple possible names
-		this.idleAnim = this.findAnimationGroup(scene, ["Idle", "ManIdle1", "ManIdle4", "WomanIdle1"]);
-		if (this.idleAnim) {
-			this.idleAnim.weight = 1;
-			this.idleAnim.play(true);
-		} else {
-			console.warn("Idle animation not found - character will work without idle animation");
-		}
-
-		// Try to find samba/dance animation (optional)
-		this.sambaAnim = this.findAnimationGroup(scene, ["SambaDancing", "Samba", "Dance"]);
-		if (this.sambaAnim) {
-			this.sambaAnim.weight = 0;
-		}
-
-		this.targetAnim = this.idleAnim;
-		this.nonIdleAnimations = [this.walkAnim, this.sambaAnim].filter(anim => anim !== null) as AnimationGroup[];
-
 		this.inputMap = new Map();
 		scene.actionManager = new ActionManager(scene);
 		scene.actionManager.registerAction(
@@ -112,23 +78,11 @@ export class CharacterController {
 		this.physicsAggregate.body.setLinearDamping(10);
 	}
 
-	private findAnimationGroup(scene: Scene, names: string[]): AnimationGroup | null {
-		for (const name of names) {
-			const anim = scene.getAnimationGroupByName(name);
-			if (anim !== null) {
-				return anim;
-			}
-		}
-		return null;
-	}
-
 	public getTransform(): TransformNode {
 		return this.impostorMesh;
 	}
 
 	public update(deltaSeconds: number): void {
-		this.targetAnim = this.idleAnim;
-
 		const angle180 = Math.PI;
 		const angle45 = angle180 / 4;
 		const angle90 = angle180 / 2;
@@ -163,10 +117,6 @@ export class CharacterController {
 		rot.multiplyInPlace(Quaternion.RotationAxis(Vector3.Up(), rotation));
 
 		if (this.inputMap.get(this.keyForward) || this.inputMap.get(this.keyBackward) || this.inputMap.get(this.keyLeft) || this.inputMap.get(this.keyRight)) {
-			if (this.walkAnim) {
-				this.targetAnim = this.walkAnim;
-			}
-
 			const quaternion = rot;
 			const impostorQuaternion = this.impostorMesh.rotationQuaternion;
 			if (impostorQuaternion === null) {
@@ -180,27 +130,6 @@ export class CharacterController {
 			);
 			this.impostorMesh.translate(new Vector3(0, 0, -1), this.moveSpeed * deltaSeconds);
 			this.physicsAggregate.body.setTargetTransform(this.impostorMesh.absolutePosition, impostorQuaternion);
-		}
-
-		if (this.inputMap.get("b") && this.sambaAnim) {
-			this.targetAnim = this.sambaAnim;
-		}
-
-		let weightSum = 0;
-		for (const animation of this.nonIdleAnimations) {
-			if (animation === this.targetAnim) {
-				animation.weight = moveTowards(animation.weight, 1, this.animationBlendSpeed * deltaSeconds);
-			} else {
-				animation.weight = moveTowards(animation.weight, 0, this.animationBlendSpeed * deltaSeconds);
-			}
-			if (animation.weight > 0 && !animation.isPlaying) animation.play(true);
-			if (animation.weight === 0 && animation.isPlaying) animation.pause();
-
-			weightSum += animation.weight;
-		}
-
-		if (this.idleAnim) {
-			this.idleAnim.weight = moveTowards(this.idleAnim.weight, Math.min(Math.max(1 - weightSum, 0.0), 1.0), this.animationBlendSpeed * deltaSeconds);
 		}
 	}
 
