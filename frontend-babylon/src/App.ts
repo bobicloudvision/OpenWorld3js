@@ -48,7 +48,7 @@ export class App {
 		this._sceneManager = new SceneManager(engine, this._canvas);
 
 		// Create first scene
-		this.createFirstScene(engine);
+		await this.createFirstScene(engine);
 
 		// Start render loop
 		this._engineManager.startRenderLoop(() => {
@@ -59,16 +59,16 @@ export class App {
 		});
 	}
 
-	private createFirstScene(engine: Engine): void {
+	private async createFirstScene(engine: Engine): Promise<void> {
 		if (!this._sceneManager) {
 			throw new Error('App not initialized. Call init() first.');
 		}
 
 		const mainScene = new MainScene(engine, this._canvas, this._physicsManager);
-		this.createSceneFromClass(mainScene);
+		await this.createSceneFromClass(mainScene);
 	}
 
-	public createSceneFromClass(sceneClass: BaseScene): Scene {
+	public async createSceneFromClass(sceneClass: BaseScene): Promise<Scene> {
 		if (!this._sceneManager) {
 			throw new Error('App not initialized. Call init() first.');
 		}
@@ -79,7 +79,7 @@ export class App {
 			throw new Error(`Scene "${name}" already exists.`);
 		}
 
-		const scene = sceneClass.create();
+		const scene = await sceneClass.create();
 		this._sceneManager.addScene(name, scene);
 
 		// Set as active if no active scene

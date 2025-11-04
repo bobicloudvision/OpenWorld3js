@@ -32,7 +32,7 @@ export abstract class BaseScene {
 		return this._scene;
 	}
 
-	public create(): Scene {
+	public async create(): Promise<Scene> {
 		this._scene = new Scene(this._engine);
 
 		if (this._enablePhysics && this._physicsManager.isInitialized()) {
@@ -40,7 +40,7 @@ export abstract class BaseScene {
 		}
 
 		// Subclasses override this to set up cameras, lights, meshes, etc.
-		this.setupScene(this._scene);
+		await this.setupScene(this._scene);
 
 		return this._scene;
 	}
@@ -50,6 +50,6 @@ export abstract class BaseScene {
 		this._scene = null;
 	}
 
-	protected abstract setupScene(scene: Scene): void;
+	protected abstract setupScene(scene: Scene): Promise<void> | void;
 }
 
