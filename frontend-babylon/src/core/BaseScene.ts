@@ -9,6 +9,7 @@ export abstract class BaseScene {
 	protected _canvas: HTMLCanvasElement;
 	protected _physicsManager: PhysicsManager;
 	protected _enablePhysics: boolean = true;
+	private _lastFrameTime: number = 0;
 
 	constructor(
 		name: string,
@@ -42,6 +43,14 @@ export abstract class BaseScene {
 		// Subclasses override this to set up cameras, lights, meshes, etc.
 		await this.setupScene(this._scene);
 
+		// Set up update loop for scene-specific updates
+		this._scene.registerBeforeRender(() => {
+			const currentTime = performance.now() / 1000;
+			const deltaTime = this._lastFrameTime === 0 ? 0 : currentTime - this._lastFrameTime;
+			this._lastFrameTime = currentTime;
+			this.update(deltaTime);
+		});
+
 		return this._scene;
 	}
 
@@ -51,5 +60,9 @@ export abstract class BaseScene {
 	}
 
 	protected abstract setupScene(scene: Scene): Promise<void> | void;
+
+	protected update(deltaTime: number): void {
+		// Override in subclasses to add update logic
+	}
 }
 
