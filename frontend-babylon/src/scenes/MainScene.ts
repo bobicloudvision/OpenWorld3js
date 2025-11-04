@@ -16,6 +16,7 @@ import { PhysicsShapeType } from "@babylonjs/core/Physics/v2/IPhysicsEnginePlugi
 import { BaseScene } from "../core/BaseScene";
 import { PhysicsManager } from "../core/PhysicsManager";
 import { CharacterController } from "../entities/CharacterController";
+import { PBRMetallicRoughnessMaterial } from "@babylonjs/core";
 
 export class MainScene extends BaseScene {
 	private _characterController: CharacterController | null = null;
@@ -125,7 +126,9 @@ export class MainScene extends BaseScene {
 				// Skip helper meshes and meshes without geometry
 				if (mesh.getTotalVertices() === 0) continue;
 				
+				mesh.position.y = -1;
 				// Create static physics body (mass: 0 means immovable)
+
 				new PhysicsAggregate(mesh, PhysicsShapeType.MESH, { mass: 0 });
 			}
 			
