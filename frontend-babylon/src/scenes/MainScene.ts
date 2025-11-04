@@ -3,7 +3,7 @@ import { Engine } from "@babylonjs/core/Engines/engine";
 import { Vector3 } from "@babylonjs/core/Maths/math.vector";
 import { ArcRotateCamera } from "@babylonjs/core/Cameras/arcRotateCamera";
 import { HemisphericLight } from "@babylonjs/core/Lights/hemisphericLight";
-import { SceneLoader } from "@babylonjs/core/Loading/sceneLoader";
+import { LoadAssetContainerAsync } from "@babylonjs/core/Loading/sceneLoader";
 import { HDRCubeTexture } from "@babylonjs/core/Materials/Textures/hdrCubeTexture";
 import { MeshBuilder } from "@babylonjs/core/Meshes/meshBuilder";
 import { StandardMaterial } from "@babylonjs/core/Materials/standardMaterial";
@@ -17,7 +17,13 @@ export class MainScene extends BaseScene {
 	}
 
 	protected async setupScene(scene: Scene): Promise<void> {
-		// Create camera
+		this.createCamera(scene);
+		this.createLighting(scene);
+		await this.loadHDRSky(scene);
+		await this.loadWorldModel(scene);
+	}
+
+	private createCamera(scene: Scene): void {
 		const camera = new ArcRotateCamera(
 			"camera",
 			-Math.PI / 2,
@@ -28,12 +34,14 @@ export class MainScene extends BaseScene {
 		);
 		camera.attachControl(this._canvas, true);
 		scene.activeCamera = camera;
+	}
 
-		// Create light
+	private createLighting(scene: Scene): void {
 		const light = new HemisphericLight("light", new Vector3(0, 1, 0), scene);
-		light.intensity = 0.7;
+		light.intensity = 0.3;
+	}
 
-		// Load HDR environment texture for sky
+	private async loadHDRSky(scene: Scene): Promise<void> {
 		try {
 			// Parameters: url, scene, size, noMipmap, generateHarmonics, gammaSpace, prefilterOnLoad
 			const hdrTexture = new HDRCubeTexture(
@@ -51,26 +59,39 @@ export class MainScene extends BaseScene {
 			scene.environmentIntensity = 1.0;
 			
 			// Create skybox mesh to display the HDR sky
-			const skybox = MeshBuilder.CreateBox("skybox", { size: 1000 }, scene);
-			const skyboxMaterial = new StandardMaterial("skyboxMaterial", scene);
-			skyboxMaterial.backFaceCulling = false;
-			skyboxMaterial.disableLighting = true;
-			skyboxMaterial.reflectionTexture = hdrTexture.clone();
-			if (skyboxMaterial.reflectionTexture) {
-				skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
-			}
-			skybox.material = skyboxMaterial;
-			skybox.infiniteDistance = true;
+			this.createSkybox(scene, hdrTexture);
 			
 			console.log("HDR sky loaded successfully");
 		} catch (error) {
 			console.error("Error loading HDR sky:", error);
 		}
+	}
 
-		// Load world model
+	private createSkybox(scene: Scene, hdrTexture: HDRCubeTexture): void {
+		const skybox = MeshBuilder.CreateBox("skybox", { size: 1000 }, scene);
+		const skyboxMaterial = new StandardMaterial("skyboxMaterial", scene);
+		skyboxMaterial.backFaceCulling = false;
+		skyboxMaterial.disableLighting = true;
+		skyboxMaterial.reflectionTexture = hdrTexture.clone();
+		if (skyboxMaterial.reflectionTexture) {
+			skyboxMaterial.reflectionTexture.coordinatesMode = Texture.SKYBOX_MODE;
+		}
+		skybox.material = skyboxMaterial;
+		skybox.infiniteDistance = true;
+	}
+
+	private async loadWorldModel(scene: Scene): Promise<void> {
 		try {
-			const result = await SceneLoader.ImportMeshAsync("", "/models/", "world1.glb", scene);
-			console.log("World model loaded successfully", result);
+			const assetContainer = await LoadAssetContainerAsync("/models/world1.glb", scene);
+			
+			// Add all assets from the container to the scene
+			assetContainer.addAllToScene();
+			
+			console.log("World model loaded successfully", {
+				meshes: assetContainer.meshes.length,
+				animations: assetContainer.animationGroups.length,
+				skeletons: assetContainer.skeletons.length
+			});
 		} catch (error) {
 			console.error("Error loading world model:", error);
 		}
